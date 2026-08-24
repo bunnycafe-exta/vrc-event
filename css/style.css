@@ -1012,6 +1012,65 @@ ul { list-style: none; }
 }
 
 /* ==========================================================================
+   BGM Toggle
+   ========================================================================== */
+
+.bgm-toggle {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid rgba(201, 162, 75, 0.4);
+  color: var(--color-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  z-index: 900;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.bgm-toggle:hover {
+  transform: scale(1.08);
+  border-color: rgba(201, 162, 75, 0.75);
+}
+
+.bgm-toggle::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 162, 75, 0.5);
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+.bgm-toggle.is-playing::before {
+  animation: bgmPulse 2.4s ease-out infinite;
+}
+
+@keyframes bgmPulse {
+  0% { opacity: 0.6; transform: scale(0.85); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+.bgm-icon-on { display: none; }
+.bgm-toggle.is-playing .bgm-icon-on { display: block; }
+.bgm-toggle.is-playing .bgm-icon-off { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bgm-toggle.is-playing::before { animation: none; }
+}
+
+@media (max-width: 480px) {
+  .bgm-toggle { right: 16px; bottom: 16px; width: 46px; height: 46px; }
+}
+
+/* ==========================================================================
    Responsive — Tablet
    ========================================================================== */
 
