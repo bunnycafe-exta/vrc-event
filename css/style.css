@@ -432,7 +432,7 @@ ul { list-style: none; }
   height: auto;
   margin: 0 auto;
   opacity: 0;
-  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 0 rgba(201, 162, 75, 0));
+  filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55));
 }
 
 .hero-logo-img.is-revealed {
@@ -440,7 +440,7 @@ ul { list-style: none; }
 }
 
 @keyframes heroLogoFlicker {
-  0%   { opacity: 0; filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 0 rgba(201, 162, 75, 0)); }
+  0%   { opacity: 0; filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)); }
   3%   { opacity: 1; }
   6%   { opacity: 0.25; }
   9%   { opacity: 1; }
@@ -453,8 +453,8 @@ ul { list-style: none; }
   30%  { opacity: 0.12; }
   33%  { opacity: 0.6; }
   36%  { opacity: 0.08; }
-  40%  { opacity: 0; filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 0 rgba(201, 162, 75, 0)); }
-  100% { opacity: 1; filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 26px rgba(201, 162, 75, 0.45)); }
+  40%  { opacity: 0; filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)); }
+  100% { opacity: 1; filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
