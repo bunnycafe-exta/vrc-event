@@ -780,7 +780,7 @@ ul { list-style: none; }
 
 .cast-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 28px;
 }
 
@@ -800,21 +800,21 @@ ul { list-style: none; }
 
 .cast-card-owner {
   width: 100%;
-  max-width: 280px;
+  max-width: 320px;
   border: 2px solid rgba(217, 161, 90, 0.5);
   padding: 36px 24px;
 }
 
 .cast-card-owner .cast-photo {
-  width: 180px;
-  height: 180px;
+  width: 232px;
+  height: 232px;
   font-size: 4rem;
 }
 
 .cast-photo {
   position: relative;
-  width: 152px;
-  height: 152px;
+  width: 200px;
+  height: 200px;
   margin: 0 auto 20px;
   border-radius: 50%;
   background: var(--gradient-soft);
