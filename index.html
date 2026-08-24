@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EXTA | VRChatヴァーチャルバニーカフェイベント</title>
+<meta name="description" content="EXTA - VRChatで開催中のヴァーチャルバニーカフェイベント。昼下がりのひとときを、うさぎ耳のキャストとともに。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ===== Intro / Welcome Splash ===== -->
+<div class="intro-overlay" id="introOverlay" aria-hidden="true">
+  <div class="intro-logo-wrap">
+    <img class="intro-logo" src="ロゴマーク/ロゴマーク.png" alt="">
+    <span class="intro-eyelid"></span>
+  </div>
+</div>
+
+<!-- ===== Header ===== -->
+<header class="site-header" id="siteHeader">
+  <div class="header-inner">
+    <a href="#hero" class="logo">
+      <span class="logo-mark" role="img" aria-label="EXTA"></span>
+      <span class="logo-text">
+        <span class="logo-genre">Bunny Cafe</span>
+        <span class="logo-name">EXTA</span>
+      </span>
+    </a>
+
+    <nav class="nav" id="siteNav">
+      <ul class="nav-list">
+        <li><a href="#hero" class="nav-link">Home</a></li>
+        <li><a href="#concept" class="nav-link">Concept</a></li>
+        <li><a href="#menu" class="nav-link">Menu</a></li>
+        <li><a href="#shop" class="nav-link">Shop Info</a></li>
+        <li><a href="#cast" class="nav-link">Cast</a></li>
+      </ul>
+    </nav>
+
+    <button class="nav-toggle" id="navToggle" aria-label="メニューを開く" aria-expanded="false" aria-controls="siteNav">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===== Hero Section ===== -->
+  <section class="hero" id="hero">
+    <div class="hero-bg" aria-hidden="true">
+      <div class="hero-glow"></div>
+      <div class="hero-particles"></div>
+    </div>
+
+    <div class="hero-content">
+      <p class="hero-eyebrow">Virtual Cafe Event</p>
+      <h1 class="hero-title">
+        <img class="hero-logo-img" src="エクスタ_文字だけ_crop.png" alt="Bunny Cafe EXTA">
+      </h1>
+      <p class="hero-copy">午後の陽だまりに、うさぎ耳のもてなしを。<br>ヴァーチャル空間でゆったり過ごすカフェタイム。</p>
+      <div class="hero-actions">
+        <a href="#shop" class="btn btn-primary">来店案内を見る</a>
+        <a href="#concept" class="btn btn-outline">コンセプトを知る</a>
+      </div>
+    </div>
+
+    <a href="#concept" class="scroll-cue" aria-label="次のセクションへスクロール">
+      <span></span>
+    </a>
+  </section>
+
+  <!-- ===== Concept Section ===== -->
+  <section class="concept" id="concept">
+    <div class="section-inner">
+      <p class="section-eyebrow">Concept</p>
+      <h2 class="section-title">やわらかな午後の、うさぎカフェ</h2>
+
+      <div class="concept-grid">
+        <div class="concept-visual" aria-hidden="true">
+          <div class="concept-visual-frame">
+            <span class="concept-visual-icon">🍰</span>
+          </div>
+        </div>
+
+        <div class="concept-text">
+          <p>
+            EXTAは、VRChat上に佇む小さなバニーカフェイベントです。
+            差し込む陽光と、ゆるやかに流れる音楽。
+            うさぎ耳のキャストたちが、訪れるすべての人にくつろぎのひとときをお届けします。
+          </p>
+          <p>
+            忙しい毎日から少し離れて、あたたかな木漏れ日の中でお茶を一杯。
+            そんな "ちょうどいい非日常" を大切にしています。
+          </p>
+
+          <ul class="concept-points">
+            <li>
+              <span class="concept-points-num">01</span>
+              <div>
+                <h3>癒やしの空間デザイン</h3>
+                <p>昼下がりの光をイメージした、あたたかみのあるワールド設計。</p>
+              </div>
+            </li>
+            <li>
+              <span class="concept-points-num">02</span>
+              <div>
+                <h3>おもてなしキャスト</h3>
+                <p>お客様一人ひとりに寄り添う、うさぎ耳キャストたちの接客。</p>
+              </div>
+            </li>
+            <li>
+              <span class="concept-points-num">03</span>
+              <div>
+                <h3>ゆったり過ごせる時間</h3>
+                <p>写真撮影やおしゃべりも自由に楽しめるアットホームな雰囲気。</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Menu Section ===== -->
+  <section class="menu" id="menu">
+    <div class="section-inner">
+      <p class="section-eyebrow">Menu</p>
+      <h2 class="section-title">メニュー表</h2>
+      <p class="section-lead">陽だまりの午後にぴったりの、こだわりメニューをご用意しました。</p>
+
+      <div class="menu-tabs">
+        <div class="menu-category">
+          <h3 class="menu-category-title"><span>🍕</span>Food</h3>
+          <ul class="menu-list menu-list-simple">
+            <li class="menu-item-simple">ピンチョス</li>
+            <li class="menu-item-simple">ハムエッグトースト</li>
+            <li class="menu-item-simple">彩りドックトースト</li>
+            <li class="menu-item-simple">サンドイッチクロワッサン</li>
+            <li class="menu-item-simple">サラダボール</li>
+            <li class="menu-item-simple">ブルスケッタ</li>
+            <li class="menu-item-simple">イチゴトースト</li>
+          </ul>
+        </div>
+
+        <div class="menu-category">
+          <h3 class="menu-category-title"><span>🍰</span>Dessert</h3>
+          <ul class="menu-list menu-list-simple">
+            <li class="menu-item-simple">デザートクロワッサン</li>
+            <li class="menu-item-simple">アサイーボール</li>
+            <li class="menu-item-simple">クリームイチゴヨーグルト</li>
+            <li class="menu-item-simple">フルーツフレンチパン</li>
+            <li class="menu-item-simple">チョコスコーン</li>
+          </ul>
+        </div>
+
+        <div class="menu-category">
+          <h3 class="menu-category-title"><span>☕</span>Drink</h3>
+          <ul class="menu-list menu-list-simple">
+            <li class="menu-item-simple">
+              スカッシュドリンク
+              <span class="menu-item-note">（グレフル・イチゴ・マスカット・レモン）</span>
+            </li>
+            <li class="menu-item-simple">エスプレッソ</li>
+            <li class="menu-item-simple">アメリカーノ</li>
+            <li class="menu-item-simple">ラテ</li>
+            <li class="menu-item-simple">カプチーノ</li>
+            <li class="menu-item-simple">カフェモカ</li>
+            <li class="menu-item-simple">紅茶</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Shop Info Section ===== -->
+  <section class="shop" id="shop">
+    <div class="section-inner">
+      <p class="section-eyebrow">Shop Info</p>
+      <h2 class="section-title">店舗情報</h2>
+
+      <div class="shop-grid">
+        <dl class="shop-table">
+          <div class="shop-row">
+            <dt>店名</dt>
+            <dd>EXTA</dd>
+          </div>
+          <div class="shop-row">
+            <dt>プラットフォーム</dt>
+            <dd>VRChat</dd>
+          </div>
+          <div class="shop-row">
+            <dt>営業日</dt>
+            <dd>月一土曜日営業</dd>
+          </div>
+          <div class="shop-row">
+            <dt>営業時間</dt>
+            <dd>22:00～23:30（24:00）</dd>
+          </div>
+          <div class="shop-row">
+            <dt>ワールド</dt>
+            <dd>「BunnyCafe EXTA」（近日公開）</dd>
+          </div>
+          <div class="shop-row">
+            <dt>定員</dt>
+            <dd>32名（グループ＋インスタンス）</dd>
+          </div>
+          <div class="shop-row">
+            <dt>お問い合わせ</dt>
+            <dd>Discord / Twitter(X) にてご連絡ください</dd>
+          </div>
+        </dl>
+
+        <div class="shop-map" aria-hidden="true">
+          <div class="shop-map-inner">
+            <span class="shop-map-icon">🗺️</span>
+            <p>World Access Info</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Cast Section ===== -->
+  <section class="cast" id="cast">
+    <div class="section-inner">
+      <p class="section-eyebrow">Cast</p>
+      <h2 class="section-title">キャスト紹介</h2>
+      <p class="section-lead">オーナーとキャストバニー、合計9名で皆様をお迎えします。</p>
+
+      <div class="cast-owner">
+        <article class="cast-card cast-card-owner">
+          <div class="cast-photo"><img src="キャスト写真/てとら.png" alt="てとら" loading="lazy"></div>
+          <p class="cast-role">Owner</p>
+          <h3 class="cast-name">てとら</h3>
+        </article>
+      </div>
+
+      <h3 class="cast-subtitle">Cast Bunny</h3>
+      <div class="cast-grid">
+        <article class="cast-card">
+          <div class="cast-photo"><img src="キャスト写真/ぷにねこ.png" alt="ぷにねこ" loading="lazy"></div>
+          <p class="cast-role">Cast Bunny</p>
+          <h3 class="cast-name">ぷにねこ</h3>
+        </article>
+
+        <article class="cast-card">
+          <div class="cast-photo"><img src="キャスト写真/メガスターミー.png" alt="メガスターミー" loading="lazy"></div>
+          <p class="cast-role">Cast Bunny</p>
+          <h3 class="cast-name">メガスターミー</h3>
+        </article>
+
+        <article class="cast-card">
+          <div class="cast-photo" aria-hidden="true"><span>🐇</span><small class="cast-photo-pending">Photo Coming Soon</small></div>
+          <p class="cast-role">Cast Bunny</p>
+          <h3 class="cast-name">はやしすん</h3>
+        </article>
+
+        <article class="cast-card">
+          <div class="cast-photo"><img src="キャスト写真/オロシ.png" alt="オロシ" loading="lazy"></div>
+          <p class="cast-role">Cast Bunny</p>
+          <h3 class="cast-name">オロシ</h3>
+        </article>
+
+        <article class="cast-card">
+          <div class="cast-photo"><img src="キャスト写真/とらまる.png" alt="とらまる" loading="lazy"></div>
+          <p class="cast-role">Cast Bunny</p>
+          <h3 class="cast-name">とらまる</h3>
+        </article>
+
+        <article class="cast-card">
+          <div class="cast-photo"><img src="キャスト写真/ユトロス.png" alt="ユトロス" loading="lazy"></div>
+          <p class="cast-role">Cast Bunny</p>
+          <h3 class="cast-name">ユトロス</h3>
+        </article>
+
+        <article class="cast-card">
+          <div class="cast-photo"><img src="キャスト写真/しえる.png" alt="しえる" loading="lazy"></div>
+          <p class="cast-role">Cast Bunny</p>
+          <h3 class="cast-name">しえる</h3>
+        </article>
+
+        <article class="cast-card">
+          <div class="cast-photo"><img src="キャスト写真/ムレン.png" alt="ムレン" loading="lazy"></div>
+          <p class="cast-role">Cast Bunny</p>
+          <h3 class="cast-name">ムレン</h3>
+        </article>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== Footer ===== -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <span class="logo-mark" role="img" aria-label="EXTA"></span>
+      <span class="logo-text">
+        <span class="logo-genre">Bunny Cafe</span>
+        <span class="logo-name">EXTA</span>
+      </span>
+    </div>
+    <ul class="footer-links">
+      <li><a href="#hero">Home</a></li>
+      <li><a href="#concept">Concept</a></li>
+      <li><a href="#menu">Menu</a></li>
+      <li><a href="#shop">Shop Info</a></li>
+      <li><a href="#cast">Cast</a></li>
+    </ul>
+    <p class="footer-copy">&copy; 2026 EXTA. All Rights Reserved.</p>
+  </div>
+</footer>
+
+<script src="js/script.js"></script>
+</body>
+</html>
