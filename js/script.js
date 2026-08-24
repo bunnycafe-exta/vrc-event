@@ -4,7 +4,7 @@ const heroLogoImg = document.querySelector('.hero-logo-img');
 
 if (introOverlay) {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const revealDelay = prefersReducedMotion ? 0 : 1600;
+  const revealDelay = prefersReducedMotion ? 0 : 1750;
 
   document.documentElement.classList.add('intro-locked');
 
