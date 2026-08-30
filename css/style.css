@@ -1010,6 +1010,12 @@ ul { list-style: none; }
   padding: 36px 24px;
 }
 
+.cast-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
 .cast-card-owner .cast-photo {
   width: 232px;
   height: 232px;
