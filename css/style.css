@@ -528,7 +528,7 @@ ul { list-style: none; }
 }
 
 .hero-logo-img.is-revealed {
-  animation: heroLogoFlicker 1.6s linear both;
+  animation: heroLogoFlicker 2s linear both;
 }
 
 @keyframes heroLogoFlicker {
