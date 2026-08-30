@@ -528,25 +528,16 @@ ul { list-style: none; }
 }
 
 .hero-logo-img.is-revealed {
-  animation: heroLogoFlicker 2.4s linear both;
+  animation: heroLogoFlicker 1.6s linear both;
 }
 
 @keyframes heroLogoFlicker {
-  0%   { opacity: 0; filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)); }
-  3%   { opacity: 1; }
-  6%   { opacity: 0.25; }
-  9%   { opacity: 1; }
-  12%  { opacity: 0.15; }
-  15%  { opacity: 0.85; }
-  18%  { opacity: 0.1; }
-  21%  { opacity: 1; }
-  24%  { opacity: 0.2; }
-  27%  { opacity: 1; }
-  30%  { opacity: 0.12; }
-  33%  { opacity: 0.6; }
-  36%  { opacity: 0.08; }
-  40%  { opacity: 0; filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)); }
-  100% { opacity: 1; filter: drop-shadow(0 16px 30px rgba(0, 0, 0, 0.55)); }
+  0%   { opacity: 0; }
+  6%   { opacity: 1; }
+  12%  { opacity: 0.2; }
+  20%  { opacity: 1; }
+  26%  { opacity: 0.1; }
+  100% { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
