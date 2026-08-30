@@ -905,6 +905,19 @@ ul { list-style: none; }
   font-size: 0.95rem;
 }
 
+.shop-link {
+  color: var(--color-gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(201, 162, 75, 0.5);
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.shop-link:hover {
+  color: var(--color-peach);
+  text-decoration-color: var(--color-peach);
+}
+
 .shop-map-inner {
   position: relative;
   height: 100%;
