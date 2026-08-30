@@ -29,8 +29,8 @@ function startWelcomeSequence() {
     if (heroLogoImg) heroLogoImg.classList.add('is-revealed');
   }, revealDelay);
 
-  introOverlay.addEventListener('transitionend', () => {
-    introOverlay.remove();
+  introOverlay.addEventListener('transitionend', (e) => {
+    if (e.target === introOverlay) introOverlay.remove();
   });
 }
 
@@ -108,10 +108,11 @@ if (consentOverlay && consentEnter) {
     consentOverlay.classList.add('is-hidden');
     if (!userMuted) playBgm();
     startWelcomeSequence();
+    window.setTimeout(() => consentOverlay.remove(), 500);
   }, { once: true });
 
-  consentOverlay.addEventListener('transitionend', () => {
-    consentOverlay.remove();
+  consentOverlay.addEventListener('transitionend', (e) => {
+    if (e.target === consentOverlay) consentOverlay.remove();
   });
 } else {
   document.documentElement.classList.add('intro-locked');
