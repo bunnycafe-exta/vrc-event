@@ -829,6 +829,35 @@ ul { list-style: none; }
   margin-top: 4px;
 }
 
+.menu-tags {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.menu-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.6;
+}
+
+.menu-tag-hot {
+  color: #E8927A;
+  background: rgba(198, 90, 63, 0.18);
+  border: 1px solid rgba(198, 90, 63, 0.4);
+}
+
+.menu-tag-iced {
+  color: #8FC4DE;
+  background: rgba(94, 158, 189, 0.16);
+  border: 1px solid rgba(94, 158, 189, 0.4);
+}
+
 /* ==========================================================================
    Shop Info
    ========================================================================== */
