@@ -14,6 +14,20 @@
 </head>
 <body>
 
+<!-- ===== Sound Consent ===== -->
+<div class="consent-overlay" id="consentOverlay" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
+  <div class="consent-card">
+    <span class="consent-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="26" height="26">
+        <path d="M9 18.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm10-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5ZM9 16.5V6.6l10-2v9.9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    <p id="consentTitle" class="consent-title">このサイトでは音楽が流れます</p>
+    <p class="consent-text">音量をご確認のうえ、下のボタンからお進みください。</p>
+    <button type="button" class="btn btn-primary consent-btn" id="consentEnter">はじめる</button>
+  </div>
+</div>
+
 <!-- ===== Intro / Welcome Splash ===== -->
 <div class="intro-overlay" id="introOverlay" aria-hidden="true">
   <div class="intro-logo-wrap">
@@ -357,10 +371,10 @@
 <audio id="bgmAudio" src="店内BGM/えくす讃歌 (Instrumental).mp3" loop preload="auto"></audio>
 <button id="bgmToggle" class="bgm-toggle" type="button" aria-pressed="false" aria-label="BGMを再生">
   <svg class="bgm-icon bgm-icon-on" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-    <path fill="currentColor" d="M9 18.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm10-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5ZM9 16.5V6.6l10-2v9.9" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M9 18.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm10-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5ZM9 16.5V6.6l10-2v9.9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>
   <svg class="bgm-icon bgm-icon-off" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-    <path fill="currentColor" d="M9 18.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm10-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5ZM9 16.5V6.6l10-2v9.9" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M9 18.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm10-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5ZM9 16.5V6.6l10-2v9.9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
     <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
   </svg>
 </button>
