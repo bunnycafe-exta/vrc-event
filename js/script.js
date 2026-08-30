@@ -8,7 +8,6 @@ const MUTE_STORAGE_KEY = 'exta-bgm-muted';
 // Intro / welcome splash: logo drops in, bounces, then dives into its own eye
 const introOverlay = document.getElementById('introOverlay');
 const heroLogoImg = document.querySelector('.hero-logo-img');
-const introLogoWrap = document.querySelector('.intro-logo-wrap');
 const introLogoBounce = document.querySelector('.intro-logo-bounce');
 
 function startWelcomeSequence() {
@@ -18,11 +17,10 @@ function startWelcomeSequence() {
   }
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const revealDelay = prefersReducedMotion ? 0 : 1750;
+  const revealDelay = prefersReducedMotion ? 0 : 1500;
 
   if (!prefersReducedMotion) {
     if (introLogoBounce) introLogoBounce.classList.add('is-animating');
-    if (introLogoWrap) introLogoWrap.classList.add('is-animating');
   }
 
   window.setTimeout(() => {

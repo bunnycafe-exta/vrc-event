@@ -209,12 +209,6 @@ ul { list-style: none; }
   position: relative;
   width: clamp(120px, 26vw, 180px);
   aspect-ratio: 1 / 1;
-  /* transform-origin sits on the mark's right eye — the point the dive zooms into */
-  transform-origin: 62% 46%;
-}
-
-.intro-logo-wrap.is-animating {
-  animation: introDive 0.7s ease-in 1.3s both;
 }
 
 .intro-logo-bounce {
@@ -250,15 +244,9 @@ ul { list-style: none; }
   100% { transform: translateY(0) scale(1, 1); }
 }
 
-@keyframes introDive {
-  0%   { transform: scale(1); opacity: 1; }
-  65%  { transform: scale(9); opacity: 1; }
-  100% { transform: scale(16); opacity: 0; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .intro-overlay { transition: none; }
-  .intro-logo-wrap.is-animating, .intro-logo-bounce.is-animating { animation: none; }
+  .intro-logo-bounce.is-animating { animation: none; }
 }
 
 /* ==========================================================================
