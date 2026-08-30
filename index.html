@@ -22,9 +22,12 @@
         <path d="M9 18.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Zm10-2a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5ZM9 16.5V6.6l10-2v9.9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </span>
-    <p id="consentTitle" class="consent-title">このサイトでは音楽が流れます</p>
-    <p class="consent-text">音量をご確認のうえ、下のボタンからお進みください。</p>
-    <button type="button" class="btn btn-primary consent-btn" id="consentEnter">入店する</button>
+    <p id="consentTitle" class="consent-title">音楽を再生しますか？</p>
+    <p class="consent-text">このサイトではBGMが流れます。音量をご確認のうえ、お好みでお選びください。</p>
+    <div class="consent-actions">
+      <button type="button" class="btn btn-primary consent-btn" id="consentEnterSound">音楽ありで入店する</button>
+      <button type="button" class="btn btn-outline consent-btn consent-btn-silent" id="consentEnterSilent">音楽なしで入店する</button>
+    </div>
   </div>
 </div>
 
@@ -83,7 +86,7 @@
       <p class="hero-copy">午後の陽だまりに、うさぎ耳のもてなしを。<br>ヴァーチャル空間でゆったり過ごすカフェタイム。</p>
       <p class="hero-tag"><span class="hero-tag-dot" aria-hidden="true"></span>Cafe × Entertainment × Bunny</p>
       <div class="hero-actions">
-        <a href="#shop" class="btn btn-primary">来店案内を見る</a>
+        <a href="#shop" class="btn btn-primary">店舗情報を見る</a>
         <a href="#concept" class="btn btn-outline">コンセプトを知る</a>
       </div>
     </div>
@@ -108,12 +111,12 @@
 
         <div class="concept-text">
           <p>
-            EXTAは、VRChat上に佇む小さなバニーカフェイベントです。
-            差し込む陽光と、ゆるやかに流れる音楽。
-            うさぎ耳のキャストたちが、訪れるすべての人にくつろぎのひとときをお届けします。
+            EXTAは、VRChat上に佇む小さなバニーカフェイベントです。<br>
+            差し込む陽光と、ゆるやかに流れる音楽。<br>
+            うさぎ耳のキャストたちが、訪れる方にくつろぎのひとときをお届けします。
           </p>
           <p>
-            忙しい毎日から少し離れて、あたたかな木漏れ日の中でお茶を一杯。
+            忙しい毎日から少し離れて、あたたかな木漏れ日の中でお茶を一杯。<br>
             そんな "ちょうどいい非日常" を大切にしています。
           </p>
 
@@ -178,6 +181,11 @@
       <h2 class="section-title">メニュー表</h2>
       <p class="section-lead">陽だまりの午後にぴったりの、こだわりメニューをご用意しました。</p>
 
+      <div class="menu-reveal">
+        <button type="button" class="btn btn-primary menu-reveal-btn" id="menuRevealBtn" aria-expanded="false" aria-controls="menuRevealPanel">メニューを表示する</button>
+      </div>
+
+      <div class="menu-reveal-panel" id="menuRevealPanel">
       <div class="menu-tabs">
         <div class="menu-category">
           <h3 class="menu-category-title"><span>🍕</span>Food</h3>
@@ -241,6 +249,7 @@
             </li>
           </ul>
         </div>
+      </div>
       </div>
     </div>
   </section>
@@ -307,6 +316,14 @@
             <p class="cast-role">Owner</p>
             <h3 class="cast-name">てとら</h3>
           </a>
+          <div class="cast-social">
+            <a class="cast-social-link cast-social-link-vrchat" href="https://vrchat.com/home/user/usr_ef5b5658-bf5c-4e27-90d6-d3a45ebc3011" target="_blank" rel="noopener" aria-label="VRChatプロフィール">
+              <img src="SNSロゴ/VRChat Logo Black.png" alt="" loading="lazy">
+            </a>
+            <a class="cast-social-link" href="https://x.com/Tetra_POD_VRC" target="_blank" rel="noopener" aria-label="X（Twitter）">
+              <img src="SNSロゴ/twitterx.png" alt="" loading="lazy">
+            </a>
+          </div>
         </article>
       </div>
 

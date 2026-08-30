@@ -44,6 +44,10 @@ html {
   scroll-padding-top: var(--header-height);
 }
 
+#concept, #interior, #menu, #shop, #cast {
+  scroll-margin-top: -100px;
+}
+
 html.intro-locked {
   overflow: hidden;
 }
@@ -161,8 +165,23 @@ ul { list-style: none; }
   line-height: 1.7;
 }
 
+.consent-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .consent-btn {
   width: 100%;
+}
+
+.consent-btn-silent {
+  color: var(--color-brown-soft);
+  border-color: rgba(201, 162, 75, 0.3);
+}
+
+.consent-btn-silent:hover {
+  color: var(--color-white);
 }
 
 /* ==========================================================================
@@ -252,9 +271,11 @@ ul { list-style: none; }
   justify-content: center;
   padding: 14px 34px;
   border-radius: 999px;
+  font-family: inherit;
   font-weight: 700;
   font-size: 0.95rem;
   letter-spacing: 0.05em;
+  cursor: pointer;
   transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
   border: 2px solid transparent;
   white-space: nowrap;
@@ -272,6 +293,7 @@ ul { list-style: none; }
 }
 
 .btn-outline {
+  background: transparent;
   border-color: rgba(201, 162, 75, 0.6);
   color: var(--color-white);
 }
@@ -302,10 +324,9 @@ ul { list-style: none; }
 }
 
 .header-inner {
-  max-width: var(--container-width);
+  width: 100%;
   height: 100%;
-  margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -782,6 +803,24 @@ ul { list-style: none; }
   position: relative;
 }
 
+.menu-reveal {
+  display: flex;
+  justify-content: center;
+}
+
+.menu-reveal-panel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.7s ease, opacity 0.5s ease, margin-top 0.5s ease;
+}
+
+.menu-reveal-panel.is-visible {
+  max-height: 4000px;
+  opacity: 1;
+  margin-top: 48px;
+}
+
 .menu-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1016,6 +1055,40 @@ ul { list-style: none; }
   text-decoration: none;
 }
 
+.cast-social {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.cast-social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--color-cream);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cast-social-link:hover {
+  transform: translateY(-3px);
+}
+
+.cast-social-link img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.cast-social-link-vrchat img {
+  width: 78px;
+  height: 78px;
+}
+
 .cast-card-owner .cast-photo {
   width: 232px;
   height: 232px;
@@ -1042,11 +1115,32 @@ ul { list-style: none; }
   height: 100%;
   object-fit: cover;
   object-position: 50% 6%;
+  transform: scale(1.4);
+  transform-origin: 50% 18%;
   transition: transform 0.5s ease;
 }
 
 .cast-card:hover .cast-photo img {
-  transform: scale(1.15);
+  transform: scale(1.55);
+}
+
+.cast-photo img[alt="てとら"] {
+  transform-origin: 55% 18%;
+}
+
+.cast-card:hover .cast-photo img[alt="てとら"] {
+  transform: scale(1.55);
+  transform-origin: 55% 18%;
+}
+
+.cast-photo img[alt="メガスターミー"] {
+  object-position: 50% 20%;
+  transform-origin: 50% 30%;
+}
+
+.cast-card:hover .cast-photo img[alt="メガスターミー"] {
+  transform: scale(1.55);
+  transform-origin: 50% 30%;
 }
 
 .cast-photo-pending {

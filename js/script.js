@@ -1,7 +1,9 @@
 // Sound consent gate: shown first. The click satisfies browsers' user-gesture
 // requirement for audio autoplay, then hands off to the welcome splash.
 const consentOverlay = document.getElementById('consentOverlay');
-const consentEnter = document.getElementById('consentEnter');
+const consentEnterSound = document.getElementById('consentEnterSound');
+const consentEnterSilent = document.getElementById('consentEnterSilent');
+const MUTE_STORAGE_KEY = 'exta-bgm-muted';
 
 // Intro / welcome splash: logo drops in, bounces, then dives into its own eye
 const introOverlay = document.getElementById('introOverlay');
@@ -42,7 +44,6 @@ let playBgm = () => {};
 let pauseBgm = () => {};
 
 if (bgmAudio && bgmToggle) {
-  const MUTE_STORAGE_KEY = 'exta-bgm-muted';
   const TARGET_VOLUME = 0.3;
   const FADE_STEP = 0.02;
   const FADE_INTERVAL_MS = 120;
@@ -100,16 +101,21 @@ if (bgmAudio && bgmToggle) {
 }
 
 // Wire up the consent gate: locks scroll immediately, and only proceeds
-// (starting the welcome splash + BGM) once the visitor taps "はじめる".
-if (consentOverlay && consentEnter) {
+// (starting the welcome splash, with or without BGM) once the visitor picks one.
+if (consentOverlay && consentEnterSound && consentEnterSilent) {
   document.documentElement.classList.add('intro-locked');
 
-  consentEnter.addEventListener('click', () => {
+  const proceed = (withSound) => {
     consentOverlay.classList.add('is-hidden');
-    if (!userMuted) playBgm();
+    userMuted = !withSound;
+    localStorage.setItem(MUTE_STORAGE_KEY, withSound ? '0' : '1');
+    if (withSound) playBgm();
     startWelcomeSequence();
     window.setTimeout(() => consentOverlay.remove(), 500);
-  }, { once: true });
+  };
+
+  consentEnterSound.addEventListener('click', () => proceed(true), { once: true });
+  consentEnterSilent.addEventListener('click', () => proceed(false), { once: true });
 
   consentOverlay.addEventListener('transitionend', (e) => {
     if (e.target === consentOverlay) consentOverlay.remove();
@@ -118,6 +124,18 @@ if (consentOverlay && consentEnter) {
   document.documentElement.classList.add('intro-locked');
   if (!userMuted) playBgm();
   startWelcomeSequence();
+}
+
+// Menu reveal: hidden behind a button until the visitor asks to see it
+const menuRevealBtn = document.getElementById('menuRevealBtn');
+const menuRevealPanel = document.getElementById('menuRevealPanel');
+
+if (menuRevealBtn && menuRevealPanel) {
+  menuRevealBtn.addEventListener('click', () => {
+    const isVisible = menuRevealPanel.classList.toggle('is-visible');
+    menuRevealBtn.setAttribute('aria-expanded', String(isVisible));
+    menuRevealBtn.textContent = isVisible ? 'メニューを閉じる' : 'メニューを表示する';
+  });
 }
 
 // Header: add solid background once the user scrolls past the hero
