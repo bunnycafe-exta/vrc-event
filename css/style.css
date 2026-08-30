@@ -1282,21 +1282,6 @@ ul { list-style: none; }
    ========================================================================== */
 
 @media (max-width: 900px) {
-  .concept-grid { grid-template-columns: 1fr; gap: 40px; }
-  .concept-visual-frame { max-width: 320px; margin: 0 auto; }
-  .shop-grid { grid-template-columns: 1fr; }
-  .shop-map-inner { min-height: 200px; }
-  .cast-grid { grid-template-columns: repeat(2, 1fr); }
-  .menu-tabs { grid-template-columns: repeat(2, 1fr); gap: 40px 32px; }
-  .interior-gallery { grid-template-columns: repeat(2, 1fr); }
-  .interior-photo-wide { grid-column: 1 / -1; height: 320px; }
-}
-
-/* ==========================================================================
-   Responsive — Mobile
-   ========================================================================== */
-
-@media (max-width: 768px) {
   :root { --header-height: 64px; }
 
   .nav {
@@ -1325,6 +1310,21 @@ ul { list-style: none; }
 
   .nav-toggle { display: flex; }
 
+  .concept-grid { grid-template-columns: 1fr; gap: 40px; }
+  .concept-visual-frame { max-width: 320px; margin: 0 auto; }
+  .shop-grid { grid-template-columns: 1fr; }
+  .shop-map-inner { min-height: 200px; }
+  .cast-grid { grid-template-columns: repeat(2, 1fr); }
+  .menu-tabs { grid-template-columns: repeat(2, 1fr); gap: 40px 32px; }
+  .interior-gallery { grid-template-columns: repeat(2, 1fr); }
+  .interior-photo-wide { grid-column: 1 / -1; height: 320px; }
+}
+
+/* ==========================================================================
+   Responsive — Mobile
+   ========================================================================== */
+
+@media (max-width: 768px) {
   .menu-tabs { grid-template-columns: 1fr; gap: 56px; }
 
   .cast-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
