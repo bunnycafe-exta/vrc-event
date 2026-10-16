@@ -143,17 +143,17 @@
   }
 
   function demoPlacementMessage(e, p) {
-    const lines = ['【EXTA 配置のお知らせ】', `${demoDateJa(e.date)} ${e.startTime}〜${e.endTime} の配置が決まりました。`];
+    const rule = '───────────────────────────────';
+    const lines = ['【EXTA 配置のお知らせ】', `${demoDateJa(e.date)} ${e.startTime}〜${e.endTime}`, rule];
+    const sides = (label, names) => [label, ...(names.length ? names : ['—'])];
+    const names = ['', '第一', '第二'];
     p.rotations.forEach((rot) => {
-      lines.push('', `■第${rot.rotation}ローテーション`);
-      rot.slots.forEach((s) => lines.push(`${s.stations.join('・')}番：${s.name || '—'}`));
-      ['A', 'B'].forEach((g) => { if (rot.overflow[g].length) lines.push(`${g}グループ（スタッフ側）に加わる：${rot.overflow[g].join('、')}`); });
+      lines.push('', `【${names[rot.rotation] || `第${rot.rotation}`}ローテ】`, '🐇キャスト');
+      rot.slots.forEach((s, i) => lines.push(`${'①②③④⑤⑥'[i]}${s.name || '—'}`));
+      lines.push('', '🎩スタッフ', ...sides('①～③サイド', rot.staffSides.A), '', ...sides('③～⑤サイド', rot.staffSides.B));
     });
-    if (p.staff) {
-      lines.push('', '■スタッフ', `Aグループ：${p.staff.A.join('、') || '—'}`, `Bグループ：${p.staff.B.join('、') || '—'}`);
-      if (p.staff.waiting.length) lines.push(`待機：${p.staff.waiting.join('、')}`);
-    }
-    lines.push('', 'よろしくお願いします！', '', '▼確認はこちら', 'https://bunnycafe-exta.github.io/vrc-event/staff.html');
+    if (!p.rotations.length && p.staff) lines.push('', '🎩スタッフ', ...sides('①～③サイド', p.staff.A), '', ...sides('③～⑤サイド', p.staff.B));
+    lines.push(rule);
     return lines.join('\n');
   }
 
@@ -264,11 +264,18 @@
         const castNames = DEMO_CASTS.filter((n) => eff(e, n) === 'ok');
         const staffNames = demoShuffle(DEMO_STAFF.filter((n) => eff(e, n) === 'ok'));
         if (!castNames.length && !staffNames.length) return fail('出勤する人がいません');
-        const staffCounts = { A: Math.min(2, staffNames.length), B: Math.max(0, Math.min(2, staffNames.length - 2)) };
+        let sizeA = Math.ceil(staffNames.length / 2);
+        if (staffNames.length % 2 === 1 && Math.random() < 0.5) sizeA = staffNames.length - sizeA;
+        const sideA = staffNames.slice(0, sizeA);
+        const sideB = staffNames.slice(sizeA);
         db.placements[e.date] = {
           date: e.date,
-          rotations: castNames.length ? demoPlanCasts(castNames, staffCounts) : [],
-          staff: staffNames.length ? { A: staffNames.slice(0, 2), B: staffNames.slice(2, 4), waiting: staffNames.slice(4) } : null
+          rotations: castNames.length ? demoPlanCasts(castNames, { A: sideA.length, B: sideB.length }).map((rot) => ({
+            rotation: rot.rotation,
+            slots: rot.slots,
+            staffSides: { A: sideA.concat(rot.overflow.A), B: sideB.concat(rot.overflow.B) }
+          })) : [],
+          staff: { A: sideA, B: sideB }
         };
         db.published = db.published || {};
         delete db.published[e.id];
@@ -326,46 +333,42 @@
     return false;
   }
 
+  const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
+  const ROTATION_NAMES = ['', '第一', '第二'];
+  const SIDE_LABELS = { A: '①～③サイド', B: '③～⑤サイド' };
+
+  function renderSides(container, sides) {
+    container.append(el('p', 'placement-note', '🎩スタッフ'));
+    const grid = el('div', 'placement-grid placement-grid-staff');
+    ['A', 'B'].forEach((key) => {
+      const names = sides[key];
+      const card = el('div', 'placement-slot' + (me && names.includes(me.name) ? ' is-me' : ''));
+      card.append(el('span', 'placement-stations', SIDE_LABELS[key]));
+      if (!names.length) card.append(el('span', 'placement-name', '—'));
+      names.forEach((n) => card.append(el('span', 'placement-name', n)));
+      grid.append(card);
+    });
+    container.append(grid);
+  }
+
   function renderPlacement(container, placement) {
     container.replaceChildren();
     if (!placement) return;
     placement.rotations.forEach((rot) => {
-      container.append(el('h3', 'staff-rot-title', `第${rot.rotation}ローテーション`));
+      container.append(el('h3', 'staff-rot-title', `${ROTATION_NAMES[rot.rotation] || `第${rot.rotation}`}ローテ`));
+      container.append(el('p', 'placement-note', '🐇キャスト'));
       const grid = el('div', 'placement-grid');
-      rot.slots.forEach((slot) => {
+      rot.slots.forEach((slot, i) => {
         const card = el('div', 'placement-slot' + (slot.name ? '' : ' is-empty') + (me && slot.name === me.name ? ' is-me' : ''));
-        card.append(el('span', 'placement-stations', `${slot.stations.join('・')}番`), el('span', 'placement-name', slot.name || '—'));
+        card.append(el('span', 'placement-stations', `${CIRCLED[i]}（${slot.stations.join('・')}番）`), el('span', 'placement-name', slot.name || '—'));
         grid.append(card);
       });
       container.append(grid);
-
-      const overflow = rot.overflow || { A: [], B: [] };
-      const joined = [['A', overflow.A], ['B', overflow.B]].filter(([, names]) => names.length);
-      if (joined.length) {
-        container.append(el('p', 'placement-note', 'スタッフ側のグループに加わるキャスト'));
-        const extra = el('div', 'placement-grid placement-grid-staff');
-        joined.forEach(([label, names]) => {
-          const card = el('div', 'placement-slot' + (me && names.includes(me.name) ? ' is-me' : ''));
-          card.append(el('span', 'placement-stations', `${label}グループ`));
-          names.forEach((n) => card.append(el('span', 'placement-name', n)));
-          extra.append(card);
-        });
-        container.append(extra);
-      }
+      renderSides(container, rot.staffSides || { A: [], B: [] });
     });
-
-    if (placement.staff) {
-      container.append(el('h3', 'staff-rot-title', 'スタッフ配置'));
-      const grid = el('div', 'placement-grid placement-grid-staff');
-      [['A', placement.staff.A], ['B', placement.staff.B], ['待機', placement.staff.waiting]].forEach(([label, names]) => {
-        if (label === '待機' && !names.length) return;
-        const card = el('div', 'placement-slot' + (me && names.includes(me.name) ? ' is-me' : ''));
-        card.append(el('span', 'placement-stations', label === '待機' ? label : `${label}グループ`));
-        if (!names.length) card.append(el('span', 'placement-name', '—'));
-        names.forEach((n) => card.append(el('span', 'placement-name', n)));
-        grid.append(card);
-      });
-      container.append(grid);
+    if (!placement.rotations.length && placement.staff) {
+      container.append(el('h3', 'staff-rot-title', 'スタッフ'));
+      renderSides(container, placement.staff);
     }
   }
 

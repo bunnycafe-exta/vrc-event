@@ -11,7 +11,7 @@
  * コードを更新したとき: 「setup」を再実行（足りないシートだけ追加される）→
  *   デプロイ → デプロイを管理 → 鉛筆アイコン → バージョン「新バージョン」→ デプロイ（URLは変わらない）
  * スタッフ追加・パスワード再発行: 下の TARGETS に名前と役割を書いて「issueCredentials」を実行
- *   役割: cast=キャスト（店内番号1〜12の配置） / staff=スタッフ（AかBの二択・各2名） / owner=オーナー
+ *   役割: cast=キャスト（①〜⑥の配置） / staff=スタッフ（①～③サイド・③～⑤サイド） / owner=オーナー（配置の対象外）
  */
 
 // スプレッドシートに紐づけず script.google.com で単独のプロジェクトとして作る場合のみ、
@@ -25,8 +25,10 @@ const SESSION_SECONDS = 21600; // ログインの有効時間（6時間）
 const MAX_FAILS = 5;           // ログイン失敗の許容回数
 const LOCK_SECONDS = 600;      // 超えた場合のロック時間（10分）
 const POSITIONS_PER_ROTATION = 6; // 1ローテーションの人数（店内番号1〜12を2つずつ担当）
-const STAFF_GROUPS = ['A', 'B'];  // スタッフの配置先（二択）
-const STAFF_PER_GROUP = 2;        // 各グループの人数
+// スタッフ側の2つのサイド（スタッフを半分ずつに分け、あふれたキャストは人数の少ないほうへ）
+const SIDE_LABELS = { A: '①～③サイド', B: '③～⑤サイド' };
+const ROTATION_NAMES = ['', '第一', '第二'];
+const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
 
 const STAFF_LIST = [
   { name: 'てとら', role: 'owner' },
@@ -62,7 +64,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 5 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 6 });
 }
 
 function doPost(e) {
@@ -326,12 +328,9 @@ function responsesOf_(eventId) {
   return readRows_('Responses').filter(r => String(r.eventId) === eventId);
 }
 
+// 出勤確認・配置の対象は、キャストとスタッフ（オーナーは対象外）
 function activeMembers_() {
   return readRows_('Staff').filter(r => String(r.role) !== 'owner' && String(r.active).toUpperCase() !== 'FALSE');
-}
-
-function activeCasts_() {
-  return activeMembers_().filter(r => String(r.role) === 'cast');
 }
 
 function effectiveOf_(resp) {
@@ -428,14 +427,14 @@ function setFinal_(user, req) {
 
 // Placements シートの rotation 列:
 //   数字(1,2)=キャストのローテーション番号 / A1・B2 など=そのローテーションで「あふれて」スタッフグループに加わるキャスト
-//   A・B=スタッフのグループ / W=スタッフの待機
+//   A・B=スタッフ側のサイド（スタッフ。両ローテーション共通）
+// 返す配置の rotations[].staffSides は「サイドのスタッフ＋そのローテーションであふれたキャスト」
 function getPlacement_(date) {
   const rows = readRows_('Placements').filter(r => asDate_(r.date) === date);
   if (!rows.length) return null;
   const rotations = {};
   const overflow = {};
-  const groups = { A: [], B: [], W: [] };
-  let hasStaff = false;
+  const sides = { A: [], B: [] };
   rows.forEach(r => {
     const key = String(r.rotation);
     const joined = key.match(/^([AB])(\d+)$/);
@@ -444,9 +443,8 @@ function getPlacement_(date) {
     } else if (joined) {
       const rot = Number(joined[2]);
       (overflow[rot] = overflow[rot] || { A: [], B: [] })[joined[1]].push(String(r.name));
-    } else if (groups[key]) {
-      groups[key].push(String(r.name));
-      hasStaff = true;
+    } else if (sides[key]) {
+      sides[key].push(String(r.name));
     }
   });
   return {
@@ -457,9 +455,14 @@ function getPlacement_(date) {
         const found = rotations[rot].find(s => s.position === p);
         slots.push({ position: p, stations: [p * 2 - 1, p * 2], name: found ? found.name : '' });
       }
-      return { rotation: rot, slots: slots, overflow: overflow[rot] || { A: [], B: [] } };
+      const extra = overflow[rot] || { A: [], B: [] };
+      return {
+        rotation: rot,
+        slots: slots,
+        staffSides: { A: sides.A.concat(extra.A), B: sides.B.concat(extra.B) }
+      };
     }),
-    staff: hasStaff ? { A: groups.A, B: groups.B, waiting: groups.W } : null
+    staff: sides // キャストが誰も出勤しない日のための予備
   };
 }
 
@@ -476,24 +479,29 @@ function setPublished_(eventId, published) {
 }
 
 function buildPlacementMessage_(e, p) {
+  const rule = '───────────────────────────────';
   const lines = [
     '【EXTA 配置のお知らせ】',
-    dateJa_(e.date) + ' ' + e.startTime + '〜' + e.endTime + ' の配置が決まりました。'
+    dateJa_(e.date) + ' ' + e.startTime + '〜' + e.endTime,
+    rule
   ];
-  p.rotations.forEach(rot => {
-    lines.push('', '■第' + rot.rotation + 'ローテーション');
-    rot.slots.forEach(s => lines.push(s.stations.join('・') + '番：' + (s.name || '—')));
-    ['A', 'B'].forEach(g => {
-      if (rot.overflow[g].length) lines.push(g + 'グループ（スタッフ側）に加わる：' + rot.overflow[g].join('、'));
+  const sideLines = (label, names) => [label].concat(names.length ? names : ['—']);
+  if (p.rotations.length) {
+    p.rotations.forEach(rot => {
+      lines.push('', '【' + (ROTATION_NAMES[rot.rotation] || '第' + rot.rotation) + 'ローテ】', '🐇キャスト');
+      rot.slots.forEach((s, i) => lines.push(CIRCLED[i] + (s.name || '—')));
+      lines.push('', '🎩スタッフ');
+      lines.push.apply(lines, sideLines(SIDE_LABELS.A, rot.staffSides.A));
+      lines.push('');
+      lines.push.apply(lines, sideLines(SIDE_LABELS.B, rot.staffSides.B));
     });
-  });
-  if (p.staff) {
-    lines.push('', '■スタッフ');
-    lines.push('Aグループ：' + (p.staff.A.join('、') || '—'));
-    lines.push('Bグループ：' + (p.staff.B.join('、') || '—'));
-    if (p.staff.waiting.length) lines.push('待機：' + p.staff.waiting.join('、'));
+  } else {
+    lines.push('', '🎩スタッフ');
+    lines.push.apply(lines, sideLines(SIDE_LABELS.A, p.staff.A));
+    lines.push('');
+    lines.push.apply(lines, sideLines(SIDE_LABELS.B, p.staff.B));
   }
-  lines.push('', 'よろしくお願いします！', '', '▼確認はこちら', STAFF_PAGE_URL);
+  lines.push(rule);
   return lines.join('\n');
 }
 
@@ -548,7 +556,7 @@ function spreadOverflow_(names, counts) {
 // キャストを第1・第2ローテーションに配置する。
 //  - 同じキャストが両方に入ってよい（第2は第1であふれた人を優先）
 //  - 第2では、第1と同じ場所には置かない
-//  - ローテーションごとにあふれた人は、スタッフのAかBグループに回す
+//  - ローテーションごとにあふれた人は、スタッフ側のどちらかのサイド（A/B）に回す
 function planCasts_(castNames, staffCounts) {
   const P = POSITIONS_PER_ROTATION;
   const all = shuffle_(castNames);
@@ -579,17 +587,15 @@ function assign_(user) {
 
   const stamp = nowSecond_();
   const out = [];
-  // スタッフはAかBの二択。各グループ STAFF_PER_GROUP 名まで、あふれた人は待機
-  staffNames.forEach((name, i) => {
-    const slot = Math.floor(i / STAFF_PER_GROUP);
-    out.push([e.date, slot < STAFF_GROUPS.length ? STAFF_GROUPS[slot] : 'W', (i % STAFF_PER_GROUP) + 1, name, stamp]);
-  });
+  // スタッフは2つのサイドに半分ずつ分ける（奇数のときは、多いほうをランダムに決める）
+  let sizeA = Math.ceil(staffNames.length / 2);
+  if (staffNames.length % 2 === 1 && Math.random() < 0.5) sizeA = staffNames.length - sizeA;
+  const sideA = staffNames.slice(0, sizeA);
+  const sideB = staffNames.slice(sizeA);
+  sideA.forEach((name, i) => out.push([e.date, 'A', i + 1, name, stamp]));
+  sideB.forEach((name, i) => out.push([e.date, 'B', i + 1, name, stamp]));
   if (castNames.length) {
-    const staffCounts = {
-      A: Math.min(STAFF_PER_GROUP, staffNames.length),
-      B: Math.max(0, Math.min(STAFF_PER_GROUP, staffNames.length - STAFF_PER_GROUP))
-    };
-    planCasts_(castNames, staffCounts).forEach(rot => {
+    planCasts_(castNames, { A: sideA.length, B: sideB.length }).forEach(rot => {
       rot.slots.forEach((name, i) => { if (name) out.push([e.date, rot.rotation, i + 1, name, stamp]); });
       ['A', 'B'].forEach(g => rot.overflow[g].forEach((name, i) => out.push([e.date, g + rot.rotation, i + 1, name, stamp])));
     });
