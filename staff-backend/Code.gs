@@ -1,5 +1,5 @@
 /**
- * EXTA スタッフ勤怠システム（Google Apps Script / スプレッドシート連携）
+ * EXTA スタッフ出勤確認システム（Google Apps Script / スプレッドシート連携）
  *
  * セットアップ:
  *  1. 新しいGoogleスプレッドシートを作成 → 拡張機能 → Apps Script を開き、このコードを貼り付けて保存
@@ -8,6 +8,8 @@
  *  4. 表示されたウェブアプリURLを js/staff.js の API_URL に設定
  *  5. 「配布用」シートの内容を各スタッフへ個別に伝え、伝え終わったらシートを削除
  *
+ * コードを更新したとき: 「setup」を再実行（足りないシートだけ追加される）→
+ *   デプロイ → デプロイを管理 → 鉛筆アイコン → バージョン「新バージョン」→ デプロイ（URLは変わらない）
  * スタッフ追加・パスワード再発行: 下の TARGET_NAME / TARGET_ROLE を書き換えて「issueCredentials」を実行
  */
 
@@ -15,11 +17,12 @@
 // スプレッドシートのURLの /d/ と /edit の間の文字列をここに入れる（紐づけて作る場合は空のまま）
 const SPREADSHEET_ID = '';
 
+const STAFF_PAGE_URL = 'https://bunnycafe-exta.github.io/vrc-event/staff.html';
+
 const TZ = 'Asia/Tokyo';
 const SESSION_SECONDS = 21600; // ログインの有効時間（6時間）
 const MAX_FAILS = 5;           // ログイン失敗の許容回数
 const LOCK_SECONDS = 600;      // 超えた場合のロック時間（10分）
-const DAY_CHANGE_HOUR = 6;     // 午前6時までは前日の営業日として扱う（深夜の退勤対策）
 const POSITIONS_PER_ROTATION = 6; // 1ローテーションの人数（店内番号1〜12を2つずつ担当）
 
 const STAFF_LIST = [
@@ -41,8 +44,8 @@ const TARGET_ROLE = 'cast';
 
 const SHEETS = {
   Staff: ['id', 'name', 'role', 'salt', 'hash', 'active'],
-  Attendance: ['timestamp', 'businessDate', 'staffId', 'name', 'type'],
-  Shifts: ['date', 'staffId', 'name', 'status', 'updatedAt'],
+  Events: ['eventId', 'date', 'startTime', 'endTime', 'deadline', 'note', 'status', 'createdAt'],
+  Responses: ['eventId', 'staffId', 'name', 'answer', 'final', 'updatedAt'],
   Placements: ['date', 'rotation', 'position', 'name', 'createdAt']
 };
 
@@ -85,15 +88,13 @@ function route_(req) {
   const user = requireSession_(req.token);
   switch (action) {
     case 'state': return state_(user);
-    case 'punch': return withLock_(() => punch_(user, req));
-    case 'history': return history_(user);
-    case 'shifts': return shifts_(user);
-    case 'saveShift': return withLock_(() => saveShift_(user, req));
-    case 'deleteShift': return withLock_(() => deleteShift_(user, req));
-    case 'placement': return { ok: true, placement: getPlacement_(checkDate_(req.date)) };
-    case 'assign': requireOwner_(user); return withLock_(() => assign_(req));
-    case 'overview': requireOwner_(user); return overview_(req);
-    case 'month': requireOwner_(user); return month_(req);
+    case 'answer': return withLock_(() => answer_(user, req));
+    case 'previewEvent': requireOwner_(user); return previewEvent_(req);
+    case 'createEvent': requireOwner_(user); return withLock_(() => createEvent_(user, req));
+    case 'closeNow': requireOwner_(user); return withLock_(() => closeNow_(user));
+    case 'cancelEvent': requireOwner_(user); return withLock_(() => cancelEvent_(user));
+    case 'setFinal': requireOwner_(user); return withLock_(() => setFinal_(user, req));
+    case 'assign': requireOwner_(user); return withLock_(() => assign_(user));
     default: return fail_('不明な操作です');
   }
 }
@@ -179,16 +180,20 @@ function asDate_(v) {
   return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd') : String(v);
 }
 
+function asTime_(v) {
+  return v instanceof Date ? Utilities.formatDate(v, TZ, 'HH:mm') : String(v).slice(0, 5);
+}
+
 function asStamp_(v) {
   return v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM-dd HH:mm:ss') : String(v);
 }
 
-function stampToMs_(s) {
-  return new Date(s.replace(' ', 'T') + '+09:00').getTime();
+function nowMinute_() {
+  return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm');
 }
 
-function businessDate_(date) {
-  return Utilities.formatDate(new Date(date.getTime() - DAY_CHANGE_HOUR * 3600 * 1000), TZ, 'yyyy-MM-dd');
+function nowSecond_() {
+  return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
 }
 
 function checkDate_(v) {
@@ -197,117 +202,207 @@ function checkDate_(v) {
   return s;
 }
 
-function checkMonth_(v) {
+function checkTime_(v) {
   const s = String(v || '');
-  if (!/^\d{4}-\d{2}$/.test(s)) fail_('月の形式が正しくありません');
+  if (!/^\d{2}:\d{2}$/.test(s)) fail_('時刻の形式が正しくありません');
   return s;
 }
 
-function attendanceRows_() {
-  return readRows_('Attendance').map(r => ({
-    timestamp: asStamp_(r.timestamp),
-    businessDate: asDate_(r.businessDate),
-    staffId: String(r.staffId),
-    name: String(r.name),
-    type: String(r.type)
-  })).sort((a, b) => a.timestamp < b.timestamp ? -1 : 1);
-}
+/* ---------- Events ---------- */
 
-function timeOf_(stamp) {
-  return stamp.slice(11, 16);
-}
-
-// 1日分の打刻から 出勤/退勤/勤務分数 をまとめる
-function summarizeDay_(records) {
-  const firstIn = records.find(r => r.type === 'in');
-  if (!firstIn) return { inTime: '', outTime: '', minutes: 0 };
-  const outs = records.filter(r => r.type === 'out' && r.timestamp > firstIn.timestamp);
-  const lastOut = outs.length ? outs[outs.length - 1] : null;
+function eventFromRow_(r) {
   return {
-    inTime: timeOf_(firstIn.timestamp),
-    outTime: lastOut ? timeOf_(lastOut.timestamp) : '',
-    minutes: lastOut ? Math.round((stampToMs_(lastOut.timestamp) - stampToMs_(firstIn.timestamp)) / 60000) : 0
+    _row: r._row,
+    id: String(r.eventId),
+    date: asDate_(r.date),
+    startTime: asTime_(r.startTime),
+    endTime: asTime_(r.endTime),
+    deadline: asStamp_(r.deadline).slice(0, 16),
+    note: String(r.note || ''),
+    status: String(r.status),
+    createdAt: asStamp_(r.createdAt)
   };
 }
 
-/* ---------- Actions: staff ---------- */
+function currentEvent_() {
+  const list = readRows_('Events').map(eventFromRow_)
+    .filter(e => e.status === 'active')
+    .sort((a, b) => a.createdAt < b.createdAt ? 1 : -1);
+  return list.length ? list[0] : null;
+}
 
-function state_(user) {
-  const now = new Date();
-  const today = businessDate_(now);
-  const mine = attendanceRows_().filter(r => r.staffId === user.id && r.businessDate === today);
-  const last = mine.length ? mine[mine.length - 1].type : '';
+function phaseOf_(e) {
+  return nowMinute_() >= e.deadline ? 'closed' : 'open';
+}
+
+function dateJa_(d) {
+  const p = d.split('-').map(Number);
+  const dow = '月火水木金土日'.charAt(Number(Utilities.formatDate(new Date(d + 'T00:00:00+09:00'), TZ, 'u')) - 1);
+  return p[0] + '年' + p[1] + '月' + p[2] + '日（' + dow + '）';
+}
+
+function buildMessage_(e) {
+  const lines = [
+    '【EXTA 出勤確認】',
+    '次回の営業日が決まりました。',
+    '',
+    '日時：' + dateJa_(e.date) + ' ' + e.startTime + '〜' + e.endTime,
+    '回答期限：' + dateJa_(e.deadline.slice(0, 10)) + ' ' + e.deadline.slice(11, 16)
+  ];
+  if (e.note) lines.push('', e.note);
+  lines.push(
+    '',
+    'ご都合を「出勤できます」「出勤できません」からお選びください。',
+    '期限を過ぎると回答できなくなります。',
+    '',
+    '▼回答はこちら',
+    STAFF_PAGE_URL
+  );
+  return lines.join('\n');
+}
+
+function eventView_(e) {
   return {
-    ok: true,
-    user: { name: user.name, role: user.role },
-    businessDate: today,
-    status: last === 'in' ? 'in' : (last === 'out' ? 'out' : 'none'),
-    records: mine.map(r => ({ type: r.type, time: timeOf_(r.timestamp) })),
-    placement: getPlacement_(today)
+    id: e.id, date: e.date, startTime: e.startTime, endTime: e.endTime,
+    deadline: e.deadline, note: e.note, phase: phaseOf_(e), message: buildMessage_(e)
   };
 }
 
-function punch_(user, req) {
-  const type = String(req.type);
-  if (type !== 'in' && type !== 'out') fail_('操作が正しくありません');
-  const now = new Date();
-  const today = businessDate_(now);
-  const mine = attendanceRows_().filter(r => r.staffId === user.id && r.businessDate === today);
-  const last = mine.length ? mine[mine.length - 1].type : '';
-  if (type === 'in' && last === 'in') fail_('すでに出勤済みです');
-  if (type === 'out' && last !== 'in') fail_('出勤の打刻がないため退勤できません');
+function parseEventInput_(req) {
+  const date = checkDate_(req.date);
+  const startTime = checkTime_(req.startTime);
+  const endTime = checkTime_(req.endTime);
+  const deadline = String(req.deadline || '').replace('T', ' ').slice(0, 16);
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(deadline)) fail_('回答期限の形式が正しくありません');
+  if (deadline <= nowMinute_()) fail_('回答期限は現在より後の日時にしてください');
+  if (deadline > date + ' ' + startTime) fail_('回答期限は営業開始より前にしてください');
+  const note = String(req.note || '').trim().slice(0, 300);
+  return { date: date, startTime: startTime, endTime: endTime, deadline: deadline, note: note };
+}
 
-  sheet_('Attendance').appendRow([
-    Utilities.formatDate(now, TZ, 'yyyy-MM-dd HH:mm:ss'), today, user.id, user.name, type
+function previewEvent_(req) {
+  return { ok: true, message: buildMessage_(parseEventInput_(req)) };
+}
+
+function createEvent_(user, req) {
+  const input = parseEventInput_(req);
+  const sh = sheet_('Events');
+  readRows_('Events').filter(r => String(r.status) === 'active')
+    .forEach(r => sh.getRange(r._row, 7).setValue('cancelled'));
+  sh.appendRow([
+    Utilities.getUuid().slice(0, 8), input.date, input.startTime, input.endTime,
+    input.deadline, input.note, 'active', nowSecond_()
   ]);
   return state_(user);
 }
 
-function history_(user) {
-  const byDate = {};
-  attendanceRows_().filter(r => r.staffId === user.id).forEach(r => {
-    (byDate[r.businessDate] = byDate[r.businessDate] || []).push(r);
-  });
-  const days = Object.keys(byDate).sort().reverse().slice(0, 90).map(date => {
-    const s = summarizeDay_(byDate[date]);
-    return { date: date, inTime: s.inTime, outTime: s.outTime, minutes: s.minutes };
-  });
-  return { ok: true, days: days };
+function closeNow_(user) {
+  const e = currentEvent_();
+  if (!e) fail_('現在、出勤の確認はありません');
+  sheet_('Events').getRange(e._row, 5).setValue(nowMinute_());
+  return state_(user);
 }
 
-function shifts_(user) {
-  const today = businessDate_(new Date());
-  const list = readRows_('Shifts')
-    .filter(r => String(r.staffId) === user.id && asDate_(r.date) >= today)
-    .map(r => ({ date: asDate_(r.date), status: String(r.status) }))
-    .sort((a, b) => a.date < b.date ? -1 : 1);
-  return { ok: true, shifts: list };
+function cancelEvent_(user) {
+  const e = currentEvent_();
+  if (!e) fail_('現在、出勤の確認はありません');
+  sheet_('Events').getRange(e._row, 7).setValue('cancelled');
+  return state_(user);
 }
 
-function saveShift_(user, req) {
-  const date = checkDate_(req.date);
-  const status = String(req.status);
-  if (status !== 'available' && status !== 'absent') fail_('状態が正しくありません');
-  if (date < businessDate_(new Date())) fail_('過去の日付は登録できません');
+/* ---------- Responses ---------- */
 
-  const stamp = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
-  const existing = readRows_('Shifts').find(r => String(r.staffId) === user.id && asDate_(r.date) === date);
-  if (existing) {
-    sheet_('Shifts').getRange(existing._row, 4, 1, 2).setValues([[status, stamp]]);
+function responsesOf_(eventId) {
+  return readRows_('Responses').filter(r => String(r.eventId) === eventId);
+}
+
+function activeCasts_() {
+  return readRows_('Staff').filter(r => String(r.role) === 'cast' && String(r.active).toUpperCase() !== 'FALSE');
+}
+
+function effectiveOf_(resp) {
+  if (resp && String(resp.final)) return String(resp.final);
+  return resp && String(resp.answer) === 'yes' ? 'ok' : 'ng';
+}
+
+function detail_(e, responses) {
+  const rows = activeCasts_().map(c => {
+    const resp = responses.find(r => String(r.staffId) === String(c.id));
+    return {
+      name: String(c.name),
+      answer: resp ? String(resp.answer) : '',
+      final: resp ? String(resp.final) : '',
+      effective: effectiveOf_(resp)
+    };
+  });
+  return {
+    rows: rows,
+    counts: {
+      yes: rows.filter(r => r.answer === 'yes').length,
+      no: rows.filter(r => r.answer === 'no').length,
+      none: rows.filter(r => !r.answer).length,
+      attend: rows.filter(r => r.effective === 'ok').length
+    }
+  };
+}
+
+function state_(user) {
+  const out = { ok: true, user: { name: user.name, role: user.role }, event: null, myAnswer: '', placement: null };
+  const e = currentEvent_();
+  if (!e) return out;
+  out.event = eventView_(e);
+  const responses = responsesOf_(e.id);
+  if (user.role === 'cast') {
+    const mine = responses.find(r => String(r.staffId) === user.id);
+    out.myAnswer = mine ? String(mine.answer) : '';
   } else {
-    sheet_('Shifts').appendRow([date, user.id, user.name, status, stamp]);
+    out.detail = detail_(e, responses);
   }
-  return shifts_(user);
+  out.placement = getPlacement_(e.date);
+  return out;
 }
 
-function deleteShift_(user, req) {
-  const date = checkDate_(req.date);
-  const existing = readRows_('Shifts').find(r => String(r.staffId) === user.id && asDate_(r.date) === date);
-  if (existing) sheet_('Shifts').deleteRow(existing._row);
-  return shifts_(user);
+function answer_(user, req) {
+  if (user.role !== 'cast') fail_('回答できるのはキャストのみです');
+  const answer = String(req.answer);
+  if (answer !== 'yes' && answer !== 'no') fail_('回答が正しくありません');
+  const e = currentEvent_();
+  if (!e) fail_('現在、出勤の確認はありません');
+  if (phaseOf_(e) === 'closed') fail_('締め切られました。オーナーに直接ご連絡ください');
+
+  const sh = sheet_('Responses');
+  const existing = responsesOf_(e.id).find(r => String(r.staffId) === user.id);
+  const stamp = nowSecond_();
+  if (existing) {
+    sh.getRange(existing._row, 4).setValue(answer);
+    sh.getRange(existing._row, 6).setValue(stamp);
+  } else {
+    sh.appendRow([e.id, user.id, user.name, answer, '', stamp]);
+  }
+  return state_(user);
 }
 
-/* ---------- Actions: placement ---------- */
+function setFinal_(user, req) {
+  const e = currentEvent_();
+  if (!e) fail_('現在、出勤の確認はありません');
+  if (phaseOf_(e) !== 'closed') fail_('回答の締め切り後に設定できます');
+  const value = String(req.final);
+  if (value !== 'ok' && value !== 'ng') fail_('設定が正しくありません');
+  const cast = activeCasts_().find(c => String(c.name) === String(req.name));
+  if (!cast) fail_('対象のキャストが見つかりません');
+
+  const sh = sheet_('Responses');
+  const existing = responsesOf_(e.id).find(r => String(r.staffId) === String(cast.id));
+  if (existing) {
+    sh.getRange(existing._row, 5).setValue(value);
+    sh.getRange(existing._row, 6).setValue(nowSecond_());
+  } else {
+    sh.appendRow([e.id, String(cast.id), String(cast.name), '', value, nowSecond_()]);
+  }
+  return state_(user);
+}
+
+/* ---------- Placement ---------- */
 
 function getPlacement_(date) {
   const rows = readRows_('Placements').filter(r => asDate_(r.date) === date);
@@ -340,70 +435,28 @@ function shuffle_(arr) {
   return a;
 }
 
-function assign_(req) {
-  const date = checkDate_(req.date);
-  const source = String(req.source) === 'shift' ? 'shift' : 'attendance';
+function assign_(user) {
+  const e = currentEvent_();
+  if (!e) fail_('現在、出勤の確認はありません');
+  if (phaseOf_(e) !== 'closed') fail_('回答の締め切り後に抽選できます');
 
-  const casts = readRows_('Staff').filter(r => String(r.role) === 'cast' && String(r.active).toUpperCase() !== 'FALSE');
-  let present;
-  if (source === 'shift') {
-    const ok = {};
-    readRows_('Shifts').filter(r => asDate_(r.date) === date && String(r.status) === 'available')
-      .forEach(r => { ok[String(r.staffId)] = true; });
-    present = casts.filter(r => ok[String(r.id)]);
-  } else {
-    const ok = {};
-    attendanceRows_().filter(r => r.businessDate === date && r.type === 'in')
-      .forEach(r => { ok[r.staffId] = true; });
-    present = casts.filter(r => ok[String(r.id)]);
-  }
-  if (!present.length) fail_(source === 'shift' ? 'この日に出勤予定のキャストがいません' : 'この日に出勤打刻したキャストがいません');
+  const responses = responsesOf_(e.id);
+  const present = activeCasts_().filter(c =>
+    effectiveOf_(responses.find(r => String(r.staffId) === String(c.id))) === 'ok');
+  if (!present.length) fail_('出勤するキャストがいません');
 
   const names = shuffle_(present.map(r => String(r.name)));
-  const stamp = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+  const stamp = nowSecond_();
   const out = [];
   for (let i = 0; i < names.length; i++) {
-    out.push([date, Math.floor(i / POSITIONS_PER_ROTATION) + 1, (i % POSITIONS_PER_ROTATION) + 1, names[i], stamp]);
+    out.push([e.date, Math.floor(i / POSITIONS_PER_ROTATION) + 1, (i % POSITIONS_PER_ROTATION) + 1, names[i], stamp]);
   }
 
   const sh = sheet_('Placements');
-  readRows_('Placements').filter(r => asDate_(r.date) === date)
+  readRows_('Placements').filter(r => asDate_(r.date) === e.date)
     .map(r => r._row).sort((a, b) => b - a).forEach(row => sh.deleteRow(row));
   sh.getRange(sh.getLastRow() + 1, 1, out.length, 5).setValues(out);
-  return { ok: true, placement: getPlacement_(date) };
-}
-
-/* ---------- Actions: owner ---------- */
-
-function overview_(req) {
-  const date = checkDate_(req.date);
-  const att = attendanceRows_().filter(r => r.businessDate === date);
-  const shiftBy = {};
-  readRows_('Shifts').filter(r => asDate_(r.date) === date).forEach(r => { shiftBy[String(r.staffId)] = String(r.status); });
-
-  const rows = readRows_('Staff').filter(r => String(r.active).toUpperCase() !== 'FALSE').map(r => {
-    const s = summarizeDay_(att.filter(a => a.staffId === String(r.id)));
-    return { name: String(r.name), role: String(r.role), shift: shiftBy[String(r.id)] || '', inTime: s.inTime, outTime: s.outTime, minutes: s.minutes };
-  });
-  return { ok: true, date: date, rows: rows };
-}
-
-function month_(req) {
-  const month = checkMonth_(req.month);
-  const att = attendanceRows_().filter(r => r.businessDate.slice(0, 7) === month);
-  const rows = readRows_('Staff').filter(r => String(r.active).toUpperCase() !== 'FALSE').map(r => {
-    const mine = att.filter(a => a.staffId === String(r.id));
-    const byDate = {};
-    mine.forEach(a => { (byDate[a.businessDate] = byDate[a.businessDate] || []).push(a); });
-    let days = 0, minutes = 0;
-    Object.keys(byDate).forEach(d => {
-      const s = summarizeDay_(byDate[d]);
-      if (s.inTime) days++;
-      minutes += s.minutes;
-    });
-    return { name: String(r.name), role: String(r.role), days: days, minutes: minutes };
-  });
-  return { ok: true, month: month, rows: rows };
+  return state_(user);
 }
 
 /* ---------- Setup (editor から実行) ---------- */
@@ -458,7 +511,7 @@ function setup() {
   ensureSheets_();
   const staff = sheet_('Staff');
   if (staff.getLastRow() > 1) {
-    notify_('すでにスタッフが登録されています。追加・再発行は issueCredentials を使ってください');
+    notify_('シートを確認しました（スタッフはすでに登録済みです）。追加・再発行は issueCredentials を使ってください');
     return;
   }
   const used = {};

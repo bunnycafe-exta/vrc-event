@@ -64,123 +64,110 @@
       <button type="button" class="staff-logout" id="logoutBtn">ログアウト</button>
     </div>
 
-    <nav class="staff-tabs" id="staffTabs" aria-label="スタッフメニュー">
-      <button type="button" class="staff-tab is-active" data-tab="punch">打刻</button>
-      <button type="button" class="staff-tab" data-tab="history">勤怠履歴</button>
-      <button type="button" class="staff-tab" data-tab="shift">出勤予定</button>
-      <button type="button" class="staff-tab" data-tab="placement">配置</button>
-      <button type="button" class="staff-tab" data-tab="admin" id="adminTab" hidden>管理</button>
-    </nav>
-
-    <!-- 打刻 -->
-    <div class="staff-panel" id="panel-punch">
-      <div class="staff-card staff-punch">
-        <p class="staff-date" id="clockDate"></p>
-        <p class="staff-clock" id="clockTime">--:--:--</p>
-        <p class="staff-status" id="punchStatus"></p>
-        <div class="staff-punch-actions">
-          <button type="button" class="btn btn-primary" id="punchIn">出勤</button>
-          <button type="button" class="btn btn-outline" id="punchOut">退勤</button>
-        </div>
-        <p class="staff-message" id="punchMessage" role="alert"></p>
-        <ul class="staff-records" id="todayRecords"></ul>
-      </div>
-
+    <!-- ===== Cast ===== -->
+    <div id="castView" hidden>
       <div class="staff-card">
-        <h2 class="staff-h2">本日の配置</h2>
-        <div id="todayPlacement"></div>
-      </div>
-    </div>
+        <h2 class="staff-h2">出勤の確認</h2>
+        <p class="staff-muted" id="castEmpty" hidden>現在、出勤の確認はありません。</p>
 
-    <!-- 勤怠履歴 -->
-    <div class="staff-panel" id="panel-history" hidden>
-      <div class="staff-card">
-        <h2 class="staff-h2">自分の勤怠履歴</h2>
-        <div class="staff-table-wrap">
-          <table class="staff-table">
-            <thead><tr><th>日付</th><th>出勤</th><th>退勤</th><th>勤務時間</th></tr></thead>
-            <tbody id="historyBody"></tbody>
-          </table>
+        <div id="castEvent" hidden>
+          <pre class="staff-message-box" id="castMessage"></pre>
+
+          <div id="castAnswerBlock">
+            <p class="staff-ask">この日時に出勤できますか？</p>
+            <div class="staff-answer-actions">
+              <button type="button" class="staff-answer is-yes" id="answerYes">出勤できます</button>
+              <button type="button" class="staff-answer is-no" id="answerNo">出勤できません</button>
+            </div>
+          </div>
+
+          <p class="staff-message" id="castMessageText" role="alert"></p>
+          <p class="staff-info" id="castInfo"></p>
         </div>
       </div>
-    </div>
 
-    <!-- 出勤予定 -->
-    <div class="staff-panel" id="panel-shift" hidden>
-      <div class="staff-card">
-        <h2 class="staff-h2">出勤予定を登録</h2>
-        <form id="shiftForm" class="staff-inline-form">
-          <label class="staff-field">
-            <span>日付</span>
-            <input type="date" id="shiftDate" required>
-          </label>
-          <label class="staff-field">
-            <span>状態</span>
-            <select id="shiftStatus">
-              <option value="available">出勤できます</option>
-              <option value="absent">欠席です</option>
-            </select>
-          </label>
-          <button type="submit" class="btn btn-primary">登録</button>
-        </form>
-        <p class="staff-message" id="shiftMessage" role="alert"></p>
-        <ul class="staff-shift-list" id="shiftList"></ul>
-      </div>
-    </div>
-
-    <!-- 配置 -->
-    <div class="staff-panel" id="panel-placement" hidden>
-      <div class="staff-card">
+      <div class="staff-card" id="castPlacementCard" hidden>
         <h2 class="staff-h2">店内配置</h2>
-        <div class="staff-inline-form">
-          <label class="staff-field">
-            <span>日付</span>
-            <input type="date" id="placementDate">
-          </label>
-          <div class="staff-owner-only" id="assignControls" hidden>
+        <div id="castPlacement"></div>
+      </div>
+    </div>
+
+    <!-- ===== Owner ===== -->
+    <div id="ownerView" hidden>
+
+      <div class="staff-card">
+        <h2 class="staff-h2">営業日の出勤確認を作成</h2>
+        <form id="eventForm">
+          <div class="staff-inline-form">
             <label class="staff-field">
-              <span>抽選の対象</span>
-              <select id="assignSource">
-                <option value="attendance">出勤打刻したキャスト</option>
-                <option value="shift">出勤予定のキャスト</option>
-              </select>
+              <span>営業日</span>
+              <input type="date" id="eventDate" required>
             </label>
-            <button type="button" class="btn btn-primary" id="assignBtn">配置を抽選する</button>
+            <label class="staff-field">
+              <span>開始</span>
+              <input type="time" id="eventStart" value="22:00" required>
+            </label>
+            <label class="staff-field">
+              <span>終了</span>
+              <input type="time" id="eventEnd" value="23:30" required>
+            </label>
+          </div>
+          <div class="staff-inline-form staff-form-gap">
+            <label class="staff-field">
+              <span>回答の締め切り</span>
+              <input type="datetime-local" id="eventDeadline" required>
+            </label>
+          </div>
+          <label class="staff-field staff-form-gap">
+            <span>ひとこと（任意）</span>
+            <textarea id="eventNote" rows="2" maxlength="300" placeholder="例：次回は特別メニューの日です"></textarea>
+          </label>
+          <button type="submit" class="btn btn-outline">文面のプレビューを見る</button>
+        </form>
+        <p class="staff-message" id="eventFormMessage" role="alert"></p>
+
+        <div class="staff-preview" id="eventPreview" hidden>
+          <p class="staff-preview-title">キャスト全員にはこの文面が表示されます</p>
+          <pre class="staff-message-box" id="previewMessage"></pre>
+          <div class="staff-preview-actions">
+            <button type="button" class="btn btn-primary" id="eventConfirm">この内容で確定して全員に反映する</button>
+            <button type="button" class="btn btn-outline" id="eventCopy">文面をコピー</button>
+            <button type="button" class="staff-delete" id="eventEdit">修正する</button>
           </div>
         </div>
+      </div>
+
+      <div class="staff-card">
+        <h2 class="staff-h2">現在の出勤確認</h2>
+        <p class="staff-muted" id="ownerEmpty" hidden>まだ出勤確認を作成していません。</p>
+
+        <div id="ownerEvent" hidden>
+          <p><span class="staff-badge" id="ownerPhase"></span></p>
+          <pre class="staff-message-box" id="ownerMessage"></pre>
+          <div class="staff-preview-actions">
+            <button type="button" class="btn btn-outline" id="ownerCopy">文面をコピー</button>
+            <button type="button" class="btn btn-outline" id="closeNowBtn">今すぐ締め切る</button>
+            <button type="button" class="staff-delete" id="cancelEventBtn">この出勤確認を取り消す</button>
+          </div>
+          <p class="staff-message" id="ownerMessageText" role="alert"></p>
+
+          <p class="staff-counts" id="ownerCounts"></p>
+          <div class="staff-table-wrap">
+            <table class="staff-table">
+              <thead><tr><th>名前</th><th>回答</th><th>出勤の判断</th></tr></thead>
+              <tbody id="ownerBody"></tbody>
+            </table>
+          </div>
+          <p class="staff-muted staff-small" id="ownerHint"></p>
+        </div>
+      </div>
+
+      <div class="staff-card" id="ownerPlacementCard" hidden>
+        <h2 class="staff-h2">店内配置</h2>
+        <p class="staff-muted">「出勤」と判断したキャストからランダムに決めます。何度でもやり直せます。</p>
+        <button type="button" class="btn btn-primary staff-assign" id="assignBtn">配置を抽選する</button>
         <p class="staff-message" id="placementMessage" role="alert"></p>
-        <div id="placementView"></div>
-      </div>
-    </div>
-
-    <!-- 管理 -->
-    <div class="staff-panel" id="panel-admin" hidden>
-      <div class="staff-card">
-        <h2 class="staff-h2">日別の出勤状況</h2>
-        <label class="staff-field staff-field-inline">
-          <span>日付</span>
-          <input type="date" id="overviewDate">
-        </label>
-        <div class="staff-table-wrap">
-          <table class="staff-table">
-            <thead><tr><th>名前</th><th>出勤予定</th><th>出勤</th><th>退勤</th><th>勤務時間</th></tr></thead>
-            <tbody id="overviewBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="staff-card">
-        <h2 class="staff-h2">月別の集計</h2>
-        <label class="staff-field staff-field-inline">
-          <span>月</span>
-          <input type="month" id="monthPicker">
-        </label>
-        <div class="staff-table-wrap">
-          <table class="staff-table">
-            <thead><tr><th>名前</th><th>出勤日数</th><th>合計勤務時間</th></tr></thead>
-            <tbody id="monthBody"></tbody>
-          </table>
-        </div>
+        <div id="ownerPlacement"></div>
       </div>
     </div>
   </section>
