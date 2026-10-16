@@ -224,7 +224,7 @@
         const e = current();
         if (!e) return fail('現在、出勤の確認はありません');
         if (phase(e) === 'closed') return fail('締め切られました。オーナーに直接ご連絡ください');
-        e.responses[user.name] = { ...(e.responses[user.name] || {}), answer: p.answer };
+        e.responses[user.name] = { ...(e.responses[user.name] || {}), answer: p.answer, final: '' };
         demoSave(db);
         return ok(stateOf());
       }
@@ -252,6 +252,21 @@
         const e = current();
         if (!e) return fail('現在、出勤の確認はありません');
         e.deadline = jstNowMinute(); demoSave(db);
+        return ok(stateOf());
+      }
+      case 'reopen': {
+        if (needOwner()) return needOwner();
+        const e = current();
+        if (!e) return fail('現在、出勤の確認はありません');
+        if (phase(e) !== 'closed') return fail('すでに回答を受け付けています');
+        const deadline = String(p.deadline || '').replace('T', ' ').slice(0, 16);
+        if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(deadline)) return fail('回答期限の形式が正しくありません');
+        if (deadline <= jstNowMinute()) return fail('回答期限は現在より後の日時にしてください');
+        if (deadline > `${e.date} ${e.startTime}`) return fail('回答期限は営業開始より前にしてください');
+        e.deadline = deadline;
+        delete db.placements[e.date];
+        if (db.published) delete db.published[e.id];
+        demoSave(db);
         return ok(stateOf());
       }
       case 'cancelEvent': {
@@ -489,6 +504,8 @@
     badge.classList.toggle('is-closed', closed);
     $('ownerMessage').textContent = e.message;
     $('closeNowBtn').hidden = closed;
+    $('reopenBtn').hidden = !closed;
+    if (!closed) $('reopenForm').hidden = true;
 
     const c = state.detail.counts;
     $('ownerCounts').textContent = `出勤できます ${c.yes}名 ／ 出勤できません ${c.no}名 ／ 未回答 ${c.none}名`;
@@ -879,6 +896,14 @@
     $('ownerCopy').addEventListener('click', () => copyText('ownerMessage', 'ownerMessageText'));
     $('closeNowBtn').addEventListener('click', () => {
       if (confirm('今すぐ回答を締め切ります。以降、キャストは回答できなくなります。よろしいですか？')) ownerAction('closeNow', {}, '締め切りました。');
+    });
+    $('reopenBtn').addEventListener('click', () => { $('reopenForm').hidden = !$('reopenForm').hidden; });
+    $('reopenCancel').addEventListener('click', () => { $('reopenForm').hidden = true; });
+    $('reopenForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!confirm('もう一度、回答を受け付けます。配置の抽選結果は取り消されます。よろしいですか？')) return;
+      await ownerAction('reopen', { deadline: $('reopenDeadline').value }, '再募集を始めました。キャスト・スタッフが、新しい締め切りまで回答できます。上の文面をコピーして連絡してください。');
+      if (currentState && currentState.event && currentState.event.phase === 'open') $('reopenForm').hidden = true;
     });
     $('cancelEventBtn').addEventListener('click', () => {
       if (confirm('この出勤確認を取り消します。キャストの回答も見えなくなります。よろしいですか？')) ownerAction('cancelEvent', {}, '取り消しました。');

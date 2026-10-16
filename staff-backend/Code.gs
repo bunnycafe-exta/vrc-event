@@ -62,7 +62,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 9 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 10 });
 }
 
 function doPost(e) {
@@ -101,6 +101,7 @@ function route_(req) {
     case 'createEvent': requireOwner_(user); return withLock_(() => createEvent_(user, req));
     case 'closeNow': requireOwner_(user); return withLock_(() => closeNow_(user));
     case 'cancelEvent': requireOwner_(user); return withLock_(() => cancelEvent_(user));
+    case 'reopen': requireOwner_(user); return withLock_(() => reopen_(user, req));
     case 'setFinal': requireOwner_(user); return withLock_(() => setFinal_(user, req));
     case 'history': requireOwner_(user); return history_(req);
     case 'staffList': requireOwner_(user); return staffList_();
@@ -319,6 +320,21 @@ function closeNow_(user) {
   return state_(user);
 }
 
+// 締め切り済みの出勤確認を、新しい締め切りでもう一度受け付ける。回答はそのまま残し、配置の抽選結果は取り消す
+function reopen_(user, req) {
+  const e = currentEvent_();
+  if (!e) fail_('現在、出勤の確認はありません');
+  if (phaseOf_(e) !== 'closed') fail_('すでに回答を受け付けています');
+  const deadline = String(req.deadline || '').replace('T', ' ').slice(0, 16);
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(deadline)) fail_('回答期限の形式が正しくありません');
+  if (deadline <= nowMinute_()) fail_('回答期限は現在より後の日時にしてください');
+  if (deadline > e.date + ' ' + e.startTime) fail_('回答期限は営業開始より前にしてください');
+  sheet_('Events').getRange(e._row, 5).setValue(deadline);
+  clearPlacement_(e.date);
+  setPublished_(e.id, false);
+  return state_(user);
+}
+
 function cancelEvent_(user) {
   const e = currentEvent_();
   if (!e) fail_('現在、出勤の確認はありません');
@@ -400,6 +416,7 @@ function answer_(user, req) {
   const stamp = nowSecond_();
   if (existing) {
     sh.getRange(existing._row, 4).setValue(answer);
+    sh.getRange(existing._row, 5).setValue(''); // 回答し直した人は、オーナーが決めた出勤／欠勤より新しい回答を優先する
     sh.getRange(existing._row, 6).setValue(stamp);
   } else {
     sh.appendRow([e.id, user.id, user.name, answer, '', stamp]);
