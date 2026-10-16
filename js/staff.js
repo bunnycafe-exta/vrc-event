@@ -164,9 +164,9 @@
     p.rotations.forEach((rot) => {
       lines.push('', `【${names[rot.rotation] || `第${rot.rotation}`}ローテ】`, '🐇キャスト');
       rot.slots.forEach((s, i) => lines.push(`${'①②③④⑤⑥'[i]}${s.name || '—'}`));
-      lines.push('', '🎩スタッフ', ...sides('①～③サイド', rot.staffSides.A), '', ...sides('③～⑤サイド', rot.staffSides.B));
+      lines.push('', '🎩スタッフ', ...sides('①～③サイド', rot.staffSides.A), '', ...sides('③～⑥サイド', rot.staffSides.B));
     });
-    if (!p.rotations.length && p.staff) lines.push('', '🎩スタッフ', ...sides('①～③サイド', p.staff.A), '', ...sides('③～⑤サイド', p.staff.B));
+    if (!p.rotations.length && p.staff) lines.push('', '🎩スタッフ', ...sides('①～③サイド', p.staff.A), '', ...sides('③～⑥サイド', p.staff.B));
     lines.push(rule);
     return lines.join('\n');
   }
@@ -399,7 +399,7 @@
 
   const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
   const ROTATION_NAMES = ['', '第一', '第二'];
-  const SIDE_LABELS = { A: '①～③サイド', B: '③～⑤サイド' };
+  const SIDE_LABELS = { A: '①～③サイド', B: '③～⑥サイド' };
 
   function renderSides(container, sides) {
     container.append(el('p', 'placement-note', '🎩スタッフ'));

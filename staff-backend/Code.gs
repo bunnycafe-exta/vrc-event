@@ -12,7 +12,7 @@
  *   デプロイ → デプロイを管理 → 鉛筆アイコン → バージョン「新バージョン」→ デプロイ（URLは変わらない）
  * スタッフ追加・パスワード再発行・無効化: オーナー画面の「スタッフ管理」からできる
  *   （画面を使わない場合は、下の TARGETS に名前と役割を書いて「issueCredentials」を実行）
- *   役割: cast=キャスト（①〜⑥の配置） / staff=スタッフ（①～③サイド・③～⑤サイド） / owner=オーナー（配置の対象外）
+ *   役割: cast=キャスト（①〜⑥の配置） / staff=スタッフ（①～③サイド・③～⑥サイド） / owner=オーナー（配置の対象外）
  */
 
 // スプレッドシートに紐づけず script.google.com で単独のプロジェクトとして作る場合のみ、
@@ -27,7 +27,7 @@ const MAX_FAILS = 5;           // ログイン失敗の許容回数
 const LOCK_SECONDS = 600;      // 超えた場合のロック時間（10分）
 const POSITIONS_PER_ROTATION = 6; // 1ローテーションの人数（店内番号1〜12を2つずつ担当）
 // スタッフ側の2つのサイド（スタッフを半分ずつに分け、あふれたキャストは人数の少ないほうへ）
-const SIDE_LABELS = { A: '①～③サイド', B: '③～⑤サイド' };
+const SIDE_LABELS = { A: '①～③サイド', B: '③～⑥サイド' };
 const ROTATION_NAMES = ['', '第一', '第二'];
 const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
 
@@ -62,7 +62,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 8 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 9 });
 }
 
 function doPost(e) {
