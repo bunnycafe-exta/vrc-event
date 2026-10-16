@@ -316,6 +316,32 @@
           })
         });
       }
+      case 'staffList': case 'reissue': case 'addStaff': case 'setActive': {
+        if (needOwner()) return needOwner();
+        if (!db.people) {
+          db.people = [{ name: 'てとら', role: 'owner', id: '1111', active: true }, ...DEMO_ALL.map((x, i) => ({ name: x.name, role: x.role, id: x.name === 'ぷにねこ' ? '2222' : String(3000 + i), active: true }))];
+        }
+        const randomPassword = () => Array.from({ length: 10 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join('');
+        const name = String(p.name || '').trim();
+        const person = db.people.find((x) => x.name === name);
+        if (action === 'staffList') return ok({ people: db.people });
+        if (action === 'reissue') {
+          if (!person) return fail('対象の人が見つかりません');
+          return ok({ credential: { name, id: person.id, password: randomPassword() } });
+        }
+        if (action === 'setActive') {
+          if (!person) return fail('対象の人が見つかりません');
+          if (person.role === 'owner') return fail('オーナーは無効にできません');
+          person.active = Boolean(p.active); demoSave(db);
+          return ok({ people: db.people });
+        }
+        if (!name || name.length > 20) return fail('名前は1〜20文字で入力してください');
+        if (p.role !== 'cast' && p.role !== 'staff') return fail('役割はキャストかスタッフを選んでください');
+        if (person) return fail('同じ名前の人がすでにいます');
+        const id = String(1000 + Math.floor(Math.random() * 9000));
+        db.people.push({ name, role: p.role, id, active: true }); demoSave(db);
+        return ok({ credential: { name, id, password: randomPassword() }, people: db.people });
+      }
       case 'publishPlacement': {
         if (needOwner()) return needOwner();
         const e = current();
@@ -354,6 +380,10 @@
     setToken('');
     me = null;
     currentState = null;
+    manageLoaded = false;
+    lastHistoryLoad = 0;
+    $('issuedList').replaceChildren(); // 発行したパスワードを画面に残さない
+    $('manageBody').replaceChildren();
     $('loginPassword').value = '';
     showView('login');
   }
@@ -446,6 +476,7 @@
 
   function renderOwner(state) {
     loadHistory(false);
+    loadManage(false);
     const e = state.event;
     $('ownerEmpty').hidden = Boolean(e);
     $('ownerEvent').hidden = !e;
@@ -605,6 +636,121 @@
     if (successText) say(msg, successText, true);
   }
 
+  /* Staff management (owner): IDs, password reissue, add / disable */
+
+  const STAFF_PAGE_URL = 'https://bunnycafe-exta.github.io/vrc-event/staff.html';
+  const ROLE_LABEL = { owner: 'オーナー', cast: 'キャスト', staff: 'スタッフ' };
+  let manageLoaded = false;
+
+  function credentialMessage(c) {
+    return ['【EXTA スタッフページ】', `${c.name}さん`, '', `ログインID：${c.id}`, `パスワード：${c.password}`, '', '▼ログインはこちら', STAFF_PAGE_URL, '', '※他の人には共有しないでください。'].join('\n');
+  }
+
+  async function copyValue(text, button, okLabel) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      const ta = el('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+    const original = button.textContent;
+    button.textContent = okLabel || 'コピーしました';
+    button.classList.add('is-ok');
+    window.setTimeout(() => { button.textContent = original; button.classList.remove('is-ok'); }, 1400);
+  }
+
+  function addIssuedCard(c) {
+    const card = el('div', 'issued-card');
+    card.append(el('p', 'issued-title', `${c.name}さんの新しいログイン情報`), el('p', 'issued-sub', 'この表示は、画面を閉じる・再読み込みすると消えます。先にコピーして送ってください。'));
+    [['ログインID', c.id], ['パスワード', c.password]].forEach(([label, value]) => {
+      const row = el('div', 'issued-row');
+      const btn = el('button', 'mini-btn', 'コピー');
+      btn.type = 'button';
+      btn.addEventListener('click', () => copyValue(value, btn));
+      row.append(el('span', 'issued-label', label), el('span', 'issued-value', value), btn);
+      card.append(row);
+    });
+    const actions = el('div', 'issued-actions');
+    const all = el('button', 'mini-btn', 'まとめてコピー（そのまま送れる文面）');
+    all.type = 'button';
+    all.addEventListener('click', () => copyValue(credentialMessage(c), all));
+    const close = el('button', 'mini-btn is-ghost', '閉じる');
+    close.type = 'button';
+    close.addEventListener('click', () => card.remove());
+    actions.append(all, close);
+    card.append(actions);
+    $('issuedList').prepend(card);
+  }
+
+  function renderManage(people) {
+    const body = $('manageBody');
+    body.replaceChildren();
+    people.forEach((p) => {
+      const tr = el('tr', p.active ? '' : 'staff-inactive');
+      const name = el('td', '', p.name);
+      name.append(el('small', 'staff-user-role', ROLE_LABEL[p.role] || p.role));
+      const idCell = el('td');
+      idCell.append(document.createTextNode(`${p.id} `));
+      const copyId = el('button', 'mini-btn is-ghost', 'コピー');
+      copyId.type = 'button';
+      copyId.addEventListener('click', () => copyValue(p.id, copyId));
+      idCell.append(copyId);
+
+      const actions = el('td');
+      const reissueBtn = el('button', 'mini-btn', 'パスワードを再発行');
+      reissueBtn.type = 'button';
+      reissueBtn.addEventListener('click', () => reissue(p.name));
+      actions.append(reissueBtn);
+      if (p.role !== 'owner') {
+        const toggle = el('button', 'mini-btn is-ghost', p.active ? '無効にする' : '有効にする');
+        toggle.type = 'button';
+        toggle.style.marginLeft = '6px';
+        toggle.addEventListener('click', () => setActive(p.name, !p.active));
+        actions.append(toggle);
+      }
+      tr.append(name, idCell, el('td', '', p.active ? '有効' : '無効'), actions);
+      body.append(tr);
+    });
+  }
+
+  async function loadManage(force) {
+    if (!force && manageLoaded) return;
+    manageLoaded = true;
+    const res = await api('staffList');
+    if (!res.ok) { if (!handleAuthError(res)) say($('manageMessage'), res.error); return; }
+    renderManage(res.people);
+  }
+
+  async function reissue(name) {
+    if (!confirm(`${name}さんのパスワードを再発行します。今のパスワードは使えなくなります。よろしいですか？`)) return;
+    say($('manageMessage'), '');
+    const res = await api('reissue', { name });
+    if (!res.ok) { if (!handleAuthError(res)) say($('manageMessage'), res.error); return; }
+    addIssuedCard(res.credential);
+    say($('manageMessage'), `${name}さんの新しいパスワードを作りました。上の枠からコピーして送ってください。`, true);
+  }
+
+  async function setActive(name, active) {
+    if (!active && !confirm(`${name}さんを無効にします。ログインできなくなり、出勤確認・配置・出勤率の対象から外れます。よろしいですか？`)) return;
+    say($('manageMessage'), '');
+    const res = await api('setActive', { name, active });
+    if (!res.ok) { if (!handleAuthError(res)) say($('manageMessage'), res.error); return; }
+    renderManage(res.people);
+    loadHistory(true);
+  }
+
+  async function addStaff(e) {
+    e.preventDefault();
+    say($('manageMessage'), '');
+    const res = await api('addStaff', { name: $('addName').value, role: $('addRole').value });
+    if (!res.ok) { if (!handleAuthError(res)) say($('manageMessage'), res.error); return; }
+    $('addName').value = '';
+    addIssuedCard(res.credential);
+    renderManage(res.people);
+    say($('manageMessage'), `${res.credential.name}さんを追加しました。上の枠からコピーして送ってください。`, true);
+  }
+
   /* History (owner) */
 
   let lastHistoryLoad = 0;
@@ -723,6 +869,7 @@
     $('assignBtn').addEventListener('click', assign);
     $('publishBtn').addEventListener('click', publishPlacement);
     $('historyRange').addEventListener('change', () => loadHistory(true));
+    $('addStaffForm').addEventListener('submit', addStaff);
     $('placementCopy').addEventListener('click', () => copyText('placementMessageBox', 'placementMessage'));
 
     window.setInterval(() => {

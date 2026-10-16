@@ -10,7 +10,8 @@
  *
  * コードを更新したとき: 「setup」を再実行（足りないシートだけ追加される）→
  *   デプロイ → デプロイを管理 → 鉛筆アイコン → バージョン「新バージョン」→ デプロイ（URLは変わらない）
- * スタッフ追加・パスワード再発行: 下の TARGETS に名前と役割を書いて「issueCredentials」を実行
+ * スタッフ追加・パスワード再発行・無効化: オーナー画面の「スタッフ管理」からできる
+ *   （画面を使わない場合は、下の TARGETS に名前と役割を書いて「issueCredentials」を実行）
  *   役割: cast=キャスト（①〜⑥の配置） / staff=スタッフ（①～③サイド・③～⑤サイド） / owner=オーナー（配置の対象外）
  */
 
@@ -61,7 +62,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 7 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 8 });
 }
 
 function doPost(e) {
@@ -102,6 +103,10 @@ function route_(req) {
     case 'cancelEvent': requireOwner_(user); return withLock_(() => cancelEvent_(user));
     case 'setFinal': requireOwner_(user); return withLock_(() => setFinal_(user, req));
     case 'history': requireOwner_(user); return history_(req);
+    case 'staffList': requireOwner_(user); return staffList_();
+    case 'addStaff': requireOwner_(user); return withLock_(() => addStaff_(req));
+    case 'reissue': requireOwner_(user); return withLock_(() => reissue_(req));
+    case 'setActive': requireOwner_(user); return withLock_(() => setActive_(req));
     case 'assign': requireOwner_(user); return withLock_(() => assign_(user));
     case 'publishPlacement': requireOwner_(user); return withLock_(() => publishPlacement_(user));
     default: return fail_('不明な操作です');
@@ -420,6 +425,58 @@ function setFinal_(user, req) {
     sh.appendRow([e.id, String(cast.id), String(cast.name), '', value, nowSecond_()]);
   }
   return state_(user);
+}
+
+/* ---------- Staff management (owner) ---------- */
+// パスワードはハッシュで保存しているため、あとから表示はできない。再発行・追加のときだけ、その場で一度だけ返す。
+
+function staffList_() {
+  return {
+    ok: true,
+    people: readRows_('Staff').map(r => ({
+      name: String(r.name),
+      role: String(r.role),
+      id: String(r.id),
+      active: String(r.active).toUpperCase() !== 'FALSE'
+    }))
+  };
+}
+
+function reissue_(req) {
+  const name = String(req.name || '').trim();
+  const row = readRows_('Staff').find(r => String(r.name) === name);
+  if (!row) fail_('対象の人が見つかりません');
+  const password = randomString_(10);
+  const salt = randomString_(16);
+  sheet_('Staff').getRange(row._row, 4, 1, 2).setValues([[salt, hash_(salt, password)]]);
+  CacheService.getScriptCache().remove('fail_' + String(row.id)); // ロック中でも新しいパスワードで入れるようにする
+  return { ok: true, credential: { name: name, id: String(row.id), password: password } };
+}
+
+function addStaff_(req) {
+  const name = String(req.name || '').trim();
+  const role = String(req.role);
+  if (!name || name.length > 20) fail_('名前は1〜20文字で入力してください');
+  if (role !== 'cast' && role !== 'staff') fail_('役割はキャストかスタッフを選んでください');
+  const rows = readRows_('Staff');
+  if (rows.some(r => String(r.name) === name)) fail_('同じ名前の人がすでにいます');
+
+  const used = {};
+  rows.forEach(r => { used[String(r.id)] = true; });
+  const id = randomId_(used);
+  const password = randomString_(10);
+  const salt = randomString_(16);
+  sheet_('Staff').appendRow([id, name, role, salt, hash_(salt, password), 'TRUE', Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')]);
+  return { ok: true, credential: { name: name, id: id, password: password }, people: staffList_().people };
+}
+
+function setActive_(req) {
+  const name = String(req.name || '').trim();
+  const row = readRows_('Staff').find(r => String(r.name) === name);
+  if (!row) fail_('対象の人が見つかりません');
+  if (String(row.role) === 'owner') fail_('オーナーは無効にできません');
+  sheet_('Staff').getRange(row._row, 6).setValue(req.active ? 'TRUE' : 'FALSE');
+  return staffList_();
 }
 
 /* ---------- History (owner) ---------- */
