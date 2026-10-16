@@ -54,7 +54,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API' });
+  return json_({ ok: true, service: 'EXTA staff API', version: 2 });
 }
 
 function doPost(e) {
