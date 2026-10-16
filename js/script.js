@@ -4,6 +4,16 @@ const consentOverlay = document.getElementById('consentOverlay');
 const consentEnterSound = document.getElementById('consentEnterSound');
 const consentEnterSilent = document.getElementById('consentEnterSilent');
 const MUTE_STORAGE_KEY = 'exta-bgm-muted';
+const CONSENT_DATE_KEY = 'exta-consent-date';
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function hasChosenToday() {
+  try { return localStorage.getItem(CONSENT_DATE_KEY) === todayKey(); } catch (e) { return false; }
+}
 
 // Intro / welcome splash: logo drops in, bounces, then dives into its own eye
 const introOverlay = document.getElementById('introOverlay');
@@ -39,6 +49,7 @@ const bgmAudio = document.getElementById('bgmAudio');
 const bgmToggle = document.getElementById('bgmToggle');
 let userMuted = true;
 let playBgm = () => {};
+let playBgmWhenAllowed = () => {};
 let pauseBgm = () => {};
 
 if (bgmAudio && bgmToggle) {
@@ -79,6 +90,24 @@ if (bgmAudio && bgmToggle) {
     });
   };
 
+  // Used when the visitor already chose today and no click has happened yet:
+  // browsers may block autoplay, so retry on the first real interaction.
+  playBgmWhenAllowed = () => {
+    bgmAudio.play().then(() => {
+      fadeIn();
+      setToggleState(true);
+    }).catch(() => {
+      setToggleState(false);
+      const events = ['click', 'keydown', 'touchend'];
+      const resume = (e) => {
+        if (e.target.closest && e.target.closest('#bgmToggle')) return;
+        events.forEach((name) => window.removeEventListener(name, resume));
+        if (!userMuted && bgmAudio.paused) playBgm();
+      };
+      events.forEach((name) => window.addEventListener(name, resume));
+    });
+  };
+
   pauseBgm = () => {
     window.clearInterval(fadeTimer);
     bgmAudio.pause();
@@ -100,13 +129,17 @@ if (bgmAudio && bgmToggle) {
 
 // Wire up the consent gate: locks scroll immediately, and only proceeds
 // (starting the welcome splash, with or without BGM) once the visitor picks one.
-if (consentOverlay && consentEnterSound && consentEnterSilent) {
+// The choice is remembered for the rest of the day, so it is only asked once per day per device.
+if (consentOverlay && consentEnterSound && consentEnterSilent && !hasChosenToday()) {
   document.documentElement.classList.add('intro-locked');
 
   const proceed = (withSound) => {
     consentOverlay.classList.add('is-hidden');
     userMuted = !withSound;
-    localStorage.setItem(MUTE_STORAGE_KEY, withSound ? '0' : '1');
+    try {
+      localStorage.setItem(MUTE_STORAGE_KEY, withSound ? '0' : '1');
+      localStorage.setItem(CONSENT_DATE_KEY, todayKey());
+    } catch (e) { /* storage unavailable: asked again next visit */ }
     if (withSound) playBgm();
     startWelcomeSequence();
     window.setTimeout(() => consentOverlay.remove(), 500);
@@ -119,8 +152,9 @@ if (consentOverlay && consentEnterSound && consentEnterSilent) {
     if (e.target === consentOverlay) consentOverlay.remove();
   });
 } else {
+  if (consentOverlay) consentOverlay.remove();
   document.documentElement.classList.add('intro-locked');
-  if (!userMuted) playBgm();
+  if (!userMuted) playBgmWhenAllowed();
   startWelcomeSequence();
 }
 
