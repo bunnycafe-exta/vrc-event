@@ -2,7 +2,7 @@
   'use strict';
 
   // Apps Script のウェブアプリURL（staff-backend/Code.gs をデプロイして発行されるURL）
-  const API_URL = 'https://script.google.com/macros/s/AKfycbyMTBxWcYZFxXXFRzoOnJ3ZdsJ1ZCnIQ80spkHgVLjB87Z5vfYqejeynore-E80IGLLpw/exec';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwR3fCYzkomwb4pbTgn6PiHk-U8juq3IxLj3tEc0Z26KchVFKD0ZJUqgpgyu-sR22X6Pw/exec';
 
   const IS_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
   const DEMO = IS_LOCAL && (!API_URL || new URLSearchParams(location.search).has('demo'));
