@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/staff.css?v=20">
+<link rel="stylesheet" href="css/staff.css?v=23">
 </head>
 <body class="staff-body">
 
@@ -95,6 +95,15 @@
     <!-- ===== Owner ===== -->
     <div id="ownerView" hidden>
 
+      <nav class="staff-tabs" id="ownerTabs" aria-label="オーナーメニュー">
+        <button type="button" class="staff-tab is-active" data-tab="status">出勤状況</button>
+        <button type="button" class="staff-tab" data-tab="create">新規作成</button>
+        <button type="button" class="staff-tab" data-tab="placement">配置</button>
+        <button type="button" class="staff-tab" data-tab="history">履歴</button>
+        <button type="button" class="staff-tab" data-tab="manage">管理</button>
+      </nav>
+
+      <div class="staff-tabpanel" data-panel="create" hidden>
       <div class="staff-card">
         <h2 class="staff-h2">営業日の出勤確認を作成</h2>
         <form id="eventForm">
@@ -137,9 +146,15 @@
         </div>
       </div>
 
+      </div>
+
+      <div class="staff-tabpanel" data-panel="status">
       <div class="staff-card">
         <h2 class="staff-h2">現在の出勤確認</h2>
-        <p class="staff-muted" id="ownerEmpty" hidden>まだ出勤確認を作成していません。</p>
+        <div id="ownerEmpty" hidden>
+          <p class="staff-muted">まだ出勤確認を作成していません。</p>
+          <button type="button" class="btn btn-primary" id="goCreate">営業日を作る</button>
+        </div>
 
         <div id="ownerEvent" hidden>
           <p><span class="staff-badge" id="ownerPhase"></span></p>
@@ -175,6 +190,10 @@
         </div>
       </div>
 
+      </div>
+
+      <div class="staff-tabpanel" data-panel="placement" hidden>
+      <p class="staff-muted" id="placementEmpty">出勤確認を作って締め切ると、ここで配置を抽選できます。</p>
       <div class="staff-card" id="ownerPlacementCard" hidden>
         <h2 class="staff-h2">店内配置</h2>
         <p class="staff-muted">「出勤」と判断した人からランダムに決めます。</p>
@@ -199,6 +218,9 @@
         </div>
       </div>
 
+      </div>
+
+      <div class="staff-tabpanel" data-panel="history" hidden>
       <div class="staff-card" id="historyCard">
         <h2 class="staff-h2">出勤履歴・出勤率</h2>
         <label class="staff-field staff-field-inline">
@@ -228,6 +250,9 @@
         </div>
       </div>
 
+      </div>
+
+      <div class="staff-tabpanel" data-panel="manage" hidden>
       <div class="staff-card" id="manageCard">
         <h2 class="staff-h2">スタッフ管理（ログイン情報）</h2>
         <p class="staff-muted staff-small"><strong>名前をタップ</strong>すると、新しいパスワードを作って、送る文面（ログインID・パスワード・URL）を自動でコピーします。パスワードは暗号化して保存しているため、今のパスワードを表示することはできません。タップすると、それまでのパスワードは使えなくなります。表示は、この画面を閉じると消えるので、先にコピーして送ってください。</p>
@@ -258,11 +283,12 @@
           <button type="submit" class="btn btn-outline">追加してID・パスワードを作る</button>
         </form>
       </div>
+      </div>
     </div>
   </section>
 
 </main>
 
-<script src="js/staff.js?v=20"></script>
+<script src="js/staff.js?v=23"></script>
 </body>
 </html>

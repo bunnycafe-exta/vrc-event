@@ -391,10 +391,30 @@
     appView.hidden = name !== 'app';
   }
 
+  const OWNER_TAB_KEY = 'exta-owner-tab';
+  const OWNER_TABS = ['status', 'create', 'placement', 'history', 'manage'];
+  let ownerTabReady = false;
+
+  // オーナー画面のタブ切り替え。選んだタブは、再読み込みしても覚えている
+  function activateOwnerTab(name, scrollTop) {
+    if (!OWNER_TABS.includes(name)) name = 'status';
+    document.querySelectorAll('#ownerTabs .staff-tab').forEach((b) => b.classList.toggle('is-active', b.dataset.tab === name));
+    document.querySelectorAll('.staff-tabpanel').forEach((p) => { p.hidden = p.dataset.panel !== name; });
+    try { sessionStorage.setItem(OWNER_TAB_KEY, name); } catch (e) { /* storage unavailable */ }
+    if (scrollTop) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function restoreOwnerTab() {
+    let saved = 'status';
+    try { saved = sessionStorage.getItem(OWNER_TAB_KEY) || 'status'; } catch (e) { /* storage unavailable */ }
+    activateOwnerTab(saved, false);
+  }
+
   function logout() {
     setToken('');
     me = null;
     currentState = null;
+    ownerTabReady = false;
     manageLoaded = false;
     lastHistoryLoad = 0;
     $('issuedList').replaceChildren(); // 発行したパスワードを画面に残さない
@@ -496,6 +516,7 @@
     $('ownerEmpty').hidden = Boolean(e);
     $('ownerEvent').hidden = !e;
     $('ownerPlacementCard').hidden = !e;
+    $('placementEmpty').hidden = Boolean(e);
     if (!e) return;
 
     const closed = e.phase === 'closed';
@@ -558,7 +579,12 @@
     $('userRole').textContent = { owner: 'OWNER', cast: 'CAST', staff: 'STAFF' }[me.role] || '';
     $('castView').hidden = me.role === 'owner';
     $('ownerView').hidden = me.role !== 'owner';
-    if (me.role === 'owner') renderOwner(state); else renderCast(state);
+    if (me.role === 'owner') {
+      if (!ownerTabReady) { ownerTabReady = true; restoreOwnerTab(); }
+      renderOwner(state);
+    } else {
+      renderCast(state);
+    }
   }
 
   async function loadState(silent) {
@@ -630,7 +656,9 @@
     $('eventNote').value = '';
     renderState(res);
     loadHistory(true);
-    say(msg, '確定しました。キャストの画面に表示されます。下の「現在の出勤確認」から文面をコピーして、連絡にお使いください。', true);
+    activateOwnerTab('status', true);
+    say($('ownerMessageText'), '確定しました。キャストの画面に表示されます。下の「文面をコピー」を押して、連絡にお使いください。', true);
+    say(msg, '');
   }
 
   async function copyText(sourceId, msgId) {
@@ -910,6 +938,11 @@
     });
     $('assignBtn').addEventListener('click', assign);
     $('publishBtn').addEventListener('click', publishPlacement);
+    $('ownerTabs').addEventListener('click', (e) => {
+      const tab = e.target.closest('.staff-tab');
+      if (tab) activateOwnerTab(tab.dataset.tab, true);
+    });
+    $('goCreate').addEventListener('click', () => activateOwnerTab('create', true));
     $('historyRange').addEventListener('change', () => loadHistory(true));
     $('addStaffForm').addEventListener('submit', addStaff);
     $('placementCopy').addEventListener('click', () => copyText('placementMessageBox', 'placementMessage'));

@@ -138,6 +138,45 @@
   line-height: 1.7;
 }
 
+/* Owner tabs (stay at the top while scrolling) */
+.staff-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+  margin: 0 -8px 16px;
+  padding: 10px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: rgba(24, 16, 30, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(201, 162, 75, 0.2);
+}
+
+.staff-tabs::-webkit-scrollbar { display: none; }
+
+.staff-tab {
+  flex: 1 0 auto;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-brown-soft);
+  background: rgba(30, 26, 43, 0.9);
+  border: 1px solid rgba(201, 162, 75, 0.3);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.staff-tab.is-active {
+  color: #1B1308;
+  background: var(--gradient-gold);
+  border-color: transparent;
+}
+
 /* User bar */
 .staff-userbar {
   display: flex;
@@ -292,7 +331,10 @@
   font-weight: 700;
 }
 
-.staff-table-wrap { overflow-x: auto; }
+.staff-table-wrap {
+  overflow-x: auto;
+  scrollbar-color: rgba(201, 162, 75, 0.5) transparent;
+}
 
 .staff-table {
   width: 100%;
