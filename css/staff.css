@@ -350,6 +350,15 @@
 
 .staff-delete:hover { color: var(--color-white); border-color: #E8927A; }
 
+.staff-rules {
+  margin: 8px 0 0;
+  padding-left: 1.3em;
+  list-style: disc;
+  font-size: 0.82rem;
+  color: var(--color-brown-soft);
+  line-height: 1.8;
+}
+
 .staff-assign { margin-top: 14px; }
 
 .staff-assign:disabled {
@@ -400,6 +409,14 @@
   font-weight: 700;
   color: var(--color-brown);
   word-break: break-all;
+}
+
+.placement-slot.is-empty .placement-name { color: var(--color-brown-soft); font-weight: 400; }
+
+.placement-note {
+  margin: 12px 0 6px;
+  font-size: 0.8rem;
+  color: var(--color-brown-soft);
 }
 
 .placement-slot.is-me {

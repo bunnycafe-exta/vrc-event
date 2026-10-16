@@ -62,7 +62,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 4 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 5 });
 }
 
 function doPost(e) {
@@ -103,6 +103,7 @@ function route_(req) {
     case 'cancelEvent': requireOwner_(user); return withLock_(() => cancelEvent_(user));
     case 'setFinal': requireOwner_(user); return withLock_(() => setFinal_(user, req));
     case 'assign': requireOwner_(user); return withLock_(() => assign_(user));
+    case 'publishPlacement': requireOwner_(user); return withLock_(() => publishPlacement_(user));
     default: return fail_('不明な操作です');
   }
 }
@@ -297,6 +298,7 @@ function createEvent_(user, req) {
   const sh = sheet_('Events');
   readRows_('Events').filter(r => String(r.status) === 'active')
     .forEach(r => sh.getRange(r._row, 7).setValue('cancelled'));
+  clearPlacement_(input.date); // 同じ日付の古い配置が新しい出勤確認に混ざらないようにする
   sh.appendRow([
     Utilities.getUuid().slice(0, 8), input.date, input.startTime, input.endTime,
     input.deadline, input.note, 'active', nowSecond_()
@@ -371,7 +373,14 @@ function state_(user) {
     const mine = responses.find(r => String(r.staffId) === user.id);
     out.myAnswer = mine ? String(mine.answer) : '';
   }
-  out.placement = getPlacement_(e.date);
+  const placement = getPlacement_(e.date);
+  if (user.role === 'owner') {
+    out.placement = placement;
+    out.placementStatus = placement ? (isPublished_(e.id) ? 'published' : 'draft') : 'none';
+    out.placementMessage = placement ? buildPlacementMessage_(e, placement) : '';
+  } else {
+    out.placement = placement && isPublished_(e.id) ? placement : null; // 確定するまではキャストに見せない
+  }
   return out;
 }
 
@@ -417,23 +426,24 @@ function setFinal_(user, req) {
 
 /* ---------- Placement ---------- */
 
-// Placements シートの rotation 列: 数字=キャストのローテーション番号 / A・B=スタッフのグループ / W=スタッフの待機
+// Placements シートの rotation 列:
+//   数字(1,2)=キャストのローテーション番号 / A1・B2 など=そのローテーションで「あふれて」スタッフグループに加わるキャスト
+//   A・B=スタッフのグループ / W=スタッフの待機
 function getPlacement_(date) {
   const rows = readRows_('Placements').filter(r => asDate_(r.date) === date);
   if (!rows.length) return null;
   const rotations = {};
+  const overflow = {};
   const groups = { A: [], B: [], W: [] };
   let hasStaff = false;
   rows.forEach(r => {
     const key = String(r.rotation);
+    const joined = key.match(/^([AB])(\d+)$/);
     if (/^\d+$/.test(key)) {
-      const rot = Number(key);
-      const pos = Number(r.position);
-      (rotations[rot] = rotations[rot] || []).push({
-        position: pos,
-        stations: [pos * 2 - 1, pos * 2],
-        name: String(r.name)
-      });
+      (rotations[Number(key)] = rotations[Number(key)] || []).push({ position: Number(r.position), name: String(r.name) });
+    } else if (joined) {
+      const rot = Number(joined[2]);
+      (overflow[rot] = overflow[rot] || { A: [], B: [] })[joined[1]].push(String(r.name));
     } else if (groups[key]) {
       groups[key].push(String(r.name));
       hasStaff = true;
@@ -441,12 +451,50 @@ function getPlacement_(date) {
   });
   return {
     date: date,
-    rotations: Object.keys(rotations).map(Number).sort((a, b) => a - b).map(rot => ({
-      rotation: rot,
-      slots: rotations[rot].sort((a, b) => a.position - b.position)
-    })),
+    rotations: Object.keys(rotations).map(Number).sort((a, b) => a - b).map(rot => {
+      const slots = [];
+      for (let p = 1; p <= POSITIONS_PER_ROTATION; p++) {
+        const found = rotations[rot].find(s => s.position === p);
+        slots.push({ position: p, stations: [p * 2 - 1, p * 2], name: found ? found.name : '' });
+      }
+      return { rotation: rot, slots: slots, overflow: overflow[rot] || { A: [], B: [] } };
+    }),
     staff: hasStaff ? { A: groups.A, B: groups.B, waiting: groups.W } : null
   };
+}
+
+/* 配置の公開状態（抽選しただけの「仮」か、キャストに見せる「確定」か）はスクリプトのプロパティに保存 */
+
+function isPublished_(eventId) {
+  return PropertiesService.getScriptProperties().getProperty('placementPublished_' + eventId) === '1';
+}
+
+function setPublished_(eventId, published) {
+  const props = PropertiesService.getScriptProperties();
+  if (published) props.setProperty('placementPublished_' + eventId, '1');
+  else props.deleteProperty('placementPublished_' + eventId);
+}
+
+function buildPlacementMessage_(e, p) {
+  const lines = [
+    '【EXTA 配置のお知らせ】',
+    dateJa_(e.date) + ' ' + e.startTime + '〜' + e.endTime + ' の配置が決まりました。'
+  ];
+  p.rotations.forEach(rot => {
+    lines.push('', '■第' + rot.rotation + 'ローテーション');
+    rot.slots.forEach(s => lines.push(s.stations.join('・') + '番：' + (s.name || '—')));
+    ['A', 'B'].forEach(g => {
+      if (rot.overflow[g].length) lines.push(g + 'グループ（スタッフ側）に加わる：' + rot.overflow[g].join('、'));
+    });
+  });
+  if (p.staff) {
+    lines.push('', '■スタッフ');
+    lines.push('Aグループ：' + (p.staff.A.join('、') || '—'));
+    lines.push('Bグループ：' + (p.staff.B.join('、') || '—'));
+    if (p.staff.waiting.length) lines.push('待機：' + p.staff.waiting.join('、'));
+  }
+  lines.push('', 'よろしくお願いします！', '', '▼確認はこちら', STAFF_PAGE_URL);
+  return lines.join('\n');
 }
 
 function shuffle_(arr) {
@@ -458,6 +506,64 @@ function shuffle_(arr) {
   return a;
 }
 
+// names を P 個の場所にランダムに置く。prevPos[name] に書かれた場所(0始まり)は避ける。置けない場所は ''
+function placeAvoiding_(names, prevPos) {
+  const P = POSITIONS_PER_ROTATION;
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const slots = [];
+    for (let i = 0; i < P; i++) slots.push('');
+    let ok = true;
+    const free = shuffle_(Array.from({ length: P }, (_, i) => i));
+    for (const name of shuffle_(names)) {
+      const idx = free.findIndex(p => p !== prevPos[name]);
+      if (idx < 0) { ok = false; break; }
+      slots[free.splice(idx, 1)[0]] = name;
+    }
+    if (ok) return slots;
+  }
+  // まず起こらないが、見つからない場合は「前の場所の次」にずらして必ず条件を満たす
+  const slots = [];
+  for (let i = 0; i < P; i++) slots.push('');
+  const rest = [];
+  names.forEach(name => {
+    if (prevPos[name] === undefined) rest.push(name);
+    else slots[(prevPos[name] + 1) % P] = name;
+  });
+  rest.forEach(name => { slots[slots.indexOf('')] = name; });
+  return slots;
+}
+
+// あふれたキャストを、スタッフの人数が少ないほうのグループに入れる（同数ならランダム）
+function spreadOverflow_(names, counts) {
+  const size = { A: counts.A, B: counts.B };
+  const result = { A: [], B: [] };
+  shuffle_(names).forEach(name => {
+    const g = size.A < size.B ? 'A' : (size.B < size.A ? 'B' : (Math.random() < 0.5 ? 'A' : 'B'));
+    result[g].push(name);
+    size[g]++;
+  });
+  return result;
+}
+
+// キャストを第1・第2ローテーションに配置する。
+//  - 同じキャストが両方に入ってよい（第2は第1であふれた人を優先）
+//  - 第2では、第1と同じ場所には置かない
+//  - ローテーションごとにあふれた人は、スタッフのAかBグループに回す
+function planCasts_(castNames, staffCounts) {
+  const P = POSITIONS_PER_ROTATION;
+  const all = shuffle_(castNames);
+  const first = all.slice(0, P);
+  const secondMembers = all.slice(P).concat(shuffle_(first)).slice(0, P);
+  const firstSlots = placeAvoiding_(first, {});
+  const firstPos = {};
+  firstSlots.forEach((name, i) => { if (name) firstPos[name] = i; });
+  const secondSlots = placeAvoiding_(secondMembers, firstPos);
+  return [
+    { rotation: 1, slots: firstSlots, overflow: spreadOverflow_(all.filter(n => first.indexOf(n) < 0), staffCounts) },
+    { rotation: 2, slots: secondSlots, overflow: spreadOverflow_(all.filter(n => secondMembers.indexOf(n) < 0), staffCounts) }
+  ];
+}
+
 function assign_(user) {
   const e = currentEvent_();
   if (!e) fail_('現在、出勤の確認はありません');
@@ -465,26 +571,48 @@ function assign_(user) {
 
   const responses = responsesOf_(e.id);
   const attending = role => activeMembers_().filter(c => String(c.role) === role &&
-    effectiveOf_(responses.find(r => String(r.staffId) === String(c.id))) === 'ok');
-  const castNames = shuffle_(attending('cast').map(r => String(r.name)));
-  const staffNames = shuffle_(attending('staff').map(r => String(r.name)));
+    effectiveOf_(responses.find(r => String(r.staffId) === String(c.id))) === 'ok')
+    .map(r => String(r.name));
+  const castNames = attending('cast');
+  const staffNames = shuffle_(attending('staff'));
   if (!castNames.length && !staffNames.length) fail_('出勤する人がいません');
 
   const stamp = nowSecond_();
   const out = [];
-  castNames.forEach((name, i) => {
-    out.push([e.date, Math.floor(i / POSITIONS_PER_ROTATION) + 1, (i % POSITIONS_PER_ROTATION) + 1, name, stamp]);
-  });
   // スタッフはAかBの二択。各グループ STAFF_PER_GROUP 名まで、あふれた人は待機
   staffNames.forEach((name, i) => {
     const slot = Math.floor(i / STAFF_PER_GROUP);
     out.push([e.date, slot < STAFF_GROUPS.length ? STAFF_GROUPS[slot] : 'W', (i % STAFF_PER_GROUP) + 1, name, stamp]);
   });
+  if (castNames.length) {
+    const staffCounts = {
+      A: Math.min(STAFF_PER_GROUP, staffNames.length),
+      B: Math.max(0, Math.min(STAFF_PER_GROUP, staffNames.length - STAFF_PER_GROUP))
+    };
+    planCasts_(castNames, staffCounts).forEach(rot => {
+      rot.slots.forEach((name, i) => { if (name) out.push([e.date, rot.rotation, i + 1, name, stamp]); });
+      ['A', 'B'].forEach(g => rot.overflow[g].forEach((name, i) => out.push([e.date, g + rot.rotation, i + 1, name, stamp])));
+    });
+  }
 
+  clearPlacement_(e.date);
   const sh = sheet_('Placements');
-  readRows_('Placements').filter(r => asDate_(r.date) === e.date)
-    .map(r => r._row).sort((a, b) => b - a).forEach(row => sh.deleteRow(row));
   sh.getRange(sh.getLastRow() + 1, 1, out.length, 5).setValues(out);
+  setPublished_(e.id, false); // 抽選し直したら、確定前（仮）に戻す
+  return state_(user);
+}
+
+function clearPlacement_(date) {
+  const sh = sheet_('Placements');
+  readRows_('Placements').filter(r => asDate_(r.date) === date)
+    .map(r => r._row).sort((a, b) => b - a).forEach(row => sh.deleteRow(row));
+}
+
+function publishPlacement_(user) {
+  const e = currentEvent_();
+  if (!e) fail_('現在、出勤の確認はありません');
+  if (!getPlacement_(e.date)) fail_('先に配置を抽選してください');
+  setPublished_(e.id, true);
   return state_(user);
 }
 

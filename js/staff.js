@@ -89,20 +89,72 @@
     try { localStorage.setItem(DEMO_KEY, JSON.stringify(db)); } catch (e) { /* ignore */ }
   }
 
-  function demoPlacement(db, date) {
-    const rows = db.placements[date];
-    if (!rows) return null;
-    const rotations = {};
-    const groups = { A: [], B: [], W: [] };
-    rows.forEach((r) => {
-      if (typeof r.rotation === 'number') (rotations[r.rotation] = rotations[r.rotation] || []).push({ position: r.position, stations: [r.position * 2 - 1, r.position * 2], name: r.name });
-      else groups[r.rotation].push(r.name);
+  // The placement logic below mirrors staff-backend/Code.gs (planCasts_ and friends) so the demo behaves like the real thing.
+  const DEMO_POSITIONS = 6;
+
+  function demoShuffle(list) {
+    const a = list.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+
+  function demoPlaceAvoiding(names, prevPos) {
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const slots = Array(DEMO_POSITIONS).fill('');
+      const free = demoShuffle([...Array(DEMO_POSITIONS).keys()]);
+      let ok = true;
+      for (const name of demoShuffle(names)) {
+        const idx = free.findIndex((x) => x !== prevPos[name]);
+        if (idx < 0) { ok = false; break; }
+        slots[free.splice(idx, 1)[0]] = name;
+      }
+      if (ok) return slots;
+    }
+    return Array(DEMO_POSITIONS).fill('');
+  }
+
+  function demoSpread(names, counts) {
+    const size = { A: counts.A, B: counts.B };
+    const result = { A: [], B: [] };
+    demoShuffle(names).forEach((name) => {
+      const g = size.A < size.B ? 'A' : (size.B < size.A ? 'B' : (Math.random() < 0.5 ? 'A' : 'B'));
+      result[g].push(name); size[g]++;
     });
-    return {
-      date,
-      rotations: Object.keys(rotations).map(Number).sort((a, b) => a - b).map((rot) => ({ rotation: rot, slots: rotations[rot].sort((a, b) => a.position - b.position) })),
-      staff: rows.some((r) => typeof r.rotation !== 'number') ? { A: groups.A, B: groups.B, waiting: groups.W } : null
-    };
+    return result;
+  }
+
+  function demoPlanCasts(castNames, staffCounts) {
+    const all = demoShuffle(castNames);
+    const first = all.slice(0, DEMO_POSITIONS);
+    const secondMembers = all.slice(DEMO_POSITIONS).concat(demoShuffle(first)).slice(0, DEMO_POSITIONS);
+    const firstSlots = demoPlaceAvoiding(first, {});
+    const firstPos = {};
+    firstSlots.forEach((name, i) => { if (name) firstPos[name] = i; });
+    const secondSlots = demoPlaceAvoiding(secondMembers, firstPos);
+    const toSlots = (slots) => slots.map((name, i) => ({ position: i + 1, stations: [i * 2 + 1, i * 2 + 2], name }));
+    return [
+      { rotation: 1, slots: toSlots(firstSlots), overflow: demoSpread(all.filter((n) => !first.includes(n)), staffCounts) },
+      { rotation: 2, slots: toSlots(secondSlots), overflow: demoSpread(all.filter((n) => !secondMembers.includes(n)), staffCounts) }
+    ];
+  }
+
+  function demoPlacement(db, date) {
+    return db.placements[date] || null;
+  }
+
+  function demoPlacementMessage(e, p) {
+    const lines = ['【EXTA 配置のお知らせ】', `${demoDateJa(e.date)} ${e.startTime}〜${e.endTime} の配置が決まりました。`];
+    p.rotations.forEach((rot) => {
+      lines.push('', `■第${rot.rotation}ローテーション`);
+      rot.slots.forEach((s) => lines.push(`${s.stations.join('・')}番：${s.name || '—'}`));
+      ['A', 'B'].forEach((g) => { if (rot.overflow[g].length) lines.push(`${g}グループ（スタッフ側）に加わる：${rot.overflow[g].join('、')}`); });
+    });
+    if (p.staff) {
+      lines.push('', '■スタッフ', `Aグループ：${p.staff.A.join('、') || '—'}`, `Bグループ：${p.staff.B.join('、') || '—'}`);
+      if (p.staff.waiting.length) lines.push(`待機：${p.staff.waiting.join('、')}`);
+    }
+    lines.push('', 'よろしくお願いします！', '', '▼確認はこちら', 'https://bunnycafe-exta.github.io/vrc-event/staff.html');
+    return lines.join('\n');
   }
 
   function demoApi(action, p) {
@@ -130,7 +182,15 @@
         const rows = DEMO_ALL.map(({ name, role }) => ({ name, role, answer: (e.responses[name] || {}).answer || '', final: (e.responses[name] || {}).final || '', effective: eff(e, name) }));
         out.detail = { rows, counts: { yes: rows.filter((r) => r.answer === 'yes').length, no: rows.filter((r) => r.answer === 'no').length, none: rows.filter((r) => !r.answer).length, attend: rows.filter((r) => r.effective === 'ok').length } };
       }
-      out.placement = demoPlacement(db, e.date);
+      const placement = demoPlacement(db, e.date);
+      const published = Boolean((db.published || {})[e.id]);
+      if (user.role === 'owner') {
+        out.placement = placement;
+        out.placementStatus = placement ? (published ? 'published' : 'draft') : 'none';
+        out.placementMessage = placement ? demoPlacementMessage(e, placement) : '';
+      } else {
+        out.placement = placement && published ? placement : null;
+      }
       return out;
     };
     const parseInput = () => {
@@ -201,14 +261,27 @@
         const e = current();
         if (!e) return fail('現在、出勤の確認はありません');
         if (phase(e) !== 'closed') return fail('回答の締め切り後に抽選できます');
-        const shuffled = (list) => { const a = list.filter((n) => eff(e, n) === 'ok'); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-        const names = shuffled(DEMO_CASTS);
-        const staffNames = shuffled(DEMO_STAFF);
-        if (!names.length && !staffNames.length) return fail('出勤する人がいません');
-        db.placements[e.date] = [
-          ...names.map((name, i) => ({ rotation: Math.floor(i / 6) + 1, position: (i % 6) + 1, name })),
-          ...staffNames.map((name, i) => ({ rotation: Math.floor(i / 2) < 2 ? ['A', 'B'][Math.floor(i / 2)] : 'W', position: (i % 2) + 1, name }))
-        ];
+        const castNames = DEMO_CASTS.filter((n) => eff(e, n) === 'ok');
+        const staffNames = demoShuffle(DEMO_STAFF.filter((n) => eff(e, n) === 'ok'));
+        if (!castNames.length && !staffNames.length) return fail('出勤する人がいません');
+        const staffCounts = { A: Math.min(2, staffNames.length), B: Math.max(0, Math.min(2, staffNames.length - 2)) };
+        db.placements[e.date] = {
+          date: e.date,
+          rotations: castNames.length ? demoPlanCasts(castNames, staffCounts) : [],
+          staff: staffNames.length ? { A: staffNames.slice(0, 2), B: staffNames.slice(2, 4), waiting: staffNames.slice(4) } : null
+        };
+        db.published = db.published || {};
+        delete db.published[e.id];
+        demoSave(db);
+        return ok(stateOf());
+      }
+      case 'publishPlacement': {
+        if (needOwner()) return needOwner();
+        const e = current();
+        if (!e) return fail('現在、出勤の確認はありません');
+        if (!demoPlacement(db, e.date)) return fail('先に配置を抽選してください');
+        db.published = db.published || {};
+        db.published[e.id] = true;
         demoSave(db);
         return ok(stateOf());
       }
@@ -260,11 +333,25 @@
       container.append(el('h3', 'staff-rot-title', `第${rot.rotation}ローテーション`));
       const grid = el('div', 'placement-grid');
       rot.slots.forEach((slot) => {
-        const card = el('div', 'placement-slot' + (me && slot.name === me.name ? ' is-me' : ''));
-        card.append(el('span', 'placement-stations', `${slot.stations.join('・')}番`), el('span', 'placement-name', slot.name));
+        const card = el('div', 'placement-slot' + (slot.name ? '' : ' is-empty') + (me && slot.name === me.name ? ' is-me' : ''));
+        card.append(el('span', 'placement-stations', `${slot.stations.join('・')}番`), el('span', 'placement-name', slot.name || '—'));
         grid.append(card);
       });
       container.append(grid);
+
+      const overflow = rot.overflow || { A: [], B: [] };
+      const joined = [['A', overflow.A], ['B', overflow.B]].filter(([, names]) => names.length);
+      if (joined.length) {
+        container.append(el('p', 'placement-note', 'スタッフ側のグループに加わるキャスト'));
+        const extra = el('div', 'placement-grid placement-grid-staff');
+        joined.forEach(([label, names]) => {
+          const card = el('div', 'placement-slot' + (me && names.includes(me.name) ? ' is-me' : ''));
+          card.append(el('span', 'placement-stations', `${label}グループ`));
+          names.forEach((n) => card.append(el('span', 'placement-name', n)));
+          extra.append(card);
+        });
+        container.append(extra);
+      }
     });
 
     if (placement.staff) {
@@ -364,7 +451,18 @@
       : '締め切り後に、各キャストの出勤の可否を決められます。';
 
     $('assignBtn').disabled = !closed;
+    $('assignBtn').textContent = state.placement ? 'もう一度抽選する' : '配置を抽選する';
     renderPlacement($('ownerPlacement'), state.placement);
+
+    const status = state.placementStatus;
+    $('placementPreview').hidden = !state.placement;
+    if (state.placement) {
+      $('placementMessageBox').textContent = state.placementMessage;
+      const badge = $('placementBadge');
+      badge.textContent = status === 'published' ? '確定済み（キャスト・スタッフの画面に表示中）' : '抽選結果（確定するまで、あなたにだけ見えます）';
+      badge.classList.toggle('is-closed', status !== 'published');
+      $('publishBtn').hidden = status === 'published';
+    }
   }
 
   function renderState(state) {
@@ -471,10 +569,21 @@
   async function assign() {
     const msg = $('placementMessage');
     say(msg, '');
+    if (currentState && currentState.placementStatus === 'published' &&
+      !confirm('確定済みの配置を取り消して、抽選し直します。キャストの画面からは、確定するまで配置が消えます。よろしいですか？')) return;
     const res = await api('assign');
     if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
     renderState(res);
-    say(msg, '配置を抽選しました。キャストの画面にも表示されます。', true);
+    say(msg, '配置を抽選しました。内容を確認して、よければ下の「確定」を押してください。', true);
+  }
+
+  async function publishPlacement() {
+    const msg = $('placementMessage');
+    say(msg, '');
+    const res = await api('publishPlacement');
+    if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
+    renderState(res);
+    say(msg, '確定しました。キャスト・スタッフの画面に表示されます。下の文面をコピーして、お知らせにお使いください。', true);
   }
 
   /* ---------- Wiring ---------- */
@@ -518,6 +627,8 @@
       if (confirm('この出勤確認を取り消します。キャストの回答も見えなくなります。よろしいですか？')) ownerAction('cancelEvent', {}, '取り消しました。');
     });
     $('assignBtn').addEventListener('click', assign);
+    $('publishBtn').addEventListener('click', publishPlacement);
+    $('placementCopy').addEventListener('click', () => copyText('placementMessageBox', 'placementMessage'));
 
     window.setInterval(() => {
       if (!appView.hidden && document.visibilityState === 'visible') loadState(true);
