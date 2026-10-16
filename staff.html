@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>スタッフログイン | BunnyCafe-EXTA</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/staff.css">
+</head>
+<body class="staff-body">
+
+<header class="staff-header">
+  <a href="index.html" class="logo">
+    <span class="logo-mark" role="img" aria-label="EXTA"></span>
+    <span class="logo-text">
+      <span class="logo-genre">Bunny Cafe</span>
+      <span class="logo-name">EXTA</span>
+    </span>
+  </a>
+  <a href="index.html" class="staff-back">サイトへ戻る</a>
+</header>
+
+<main class="staff-main">
+
+  <!-- ===== Login ===== -->
+  <section id="loginView" class="staff-card staff-login" hidden>
+    <p class="section-eyebrow">Staff Only</p>
+    <h1 class="staff-title">スタッフログイン</h1>
+    <p class="staff-note">配布されたIDとパスワードでログインしてください。</p>
+
+    <form id="loginForm" autocomplete="off">
+      <label class="staff-field">
+        <span>ログインID</span>
+        <input type="text" id="loginId" inputmode="numeric" autocomplete="username" required>
+      </label>
+      <label class="staff-field">
+        <span>パスワード</span>
+        <input type="password" id="loginPassword" autocomplete="current-password" required>
+      </label>
+      <p class="staff-message" id="loginMessage" role="alert"></p>
+      <button type="submit" class="btn btn-primary staff-submit" id="loginSubmit">ログイン</button>
+    </form>
+
+    <p class="staff-demo-hint" id="demoHint" hidden></p>
+  </section>
+
+  <!-- ===== Not configured ===== -->
+  <section id="offlineView" class="staff-card staff-login" hidden>
+    <p class="section-eyebrow">Staff Only</p>
+    <h1 class="staff-title">スタッフログイン</h1>
+    <p class="staff-note">現在準備中です。公開までしばらくお待ちください。</p>
+  </section>
+
+  <!-- ===== App ===== -->
+  <section id="appView" hidden>
+    <div class="staff-userbar">
+      <p><span id="userName" class="staff-user-name"></span><span id="userRole" class="staff-user-role"></span></p>
+      <button type="button" class="staff-logout" id="logoutBtn">ログアウト</button>
+    </div>
+
+    <nav class="staff-tabs" id="staffTabs" aria-label="スタッフメニュー">
+      <button type="button" class="staff-tab is-active" data-tab="punch">打刻</button>
+      <button type="button" class="staff-tab" data-tab="history">勤怠履歴</button>
+      <button type="button" class="staff-tab" data-tab="shift">出勤予定</button>
+      <button type="button" class="staff-tab" data-tab="placement">配置</button>
+      <button type="button" class="staff-tab" data-tab="admin" id="adminTab" hidden>管理</button>
+    </nav>
+
+    <!-- 打刻 -->
+    <div class="staff-panel" id="panel-punch">
+      <div class="staff-card staff-punch">
+        <p class="staff-date" id="clockDate"></p>
+        <p class="staff-clock" id="clockTime">--:--:--</p>
+        <p class="staff-status" id="punchStatus"></p>
+        <div class="staff-punch-actions">
+          <button type="button" class="btn btn-primary" id="punchIn">出勤</button>
+          <button type="button" class="btn btn-outline" id="punchOut">退勤</button>
+        </div>
+        <p class="staff-message" id="punchMessage" role="alert"></p>
+        <ul class="staff-records" id="todayRecords"></ul>
+      </div>
+
+      <div class="staff-card">
+        <h2 class="staff-h2">本日の配置</h2>
+        <div id="todayPlacement"></div>
+      </div>
+    </div>
+
+    <!-- 勤怠履歴 -->
+    <div class="staff-panel" id="panel-history" hidden>
+      <div class="staff-card">
+        <h2 class="staff-h2">自分の勤怠履歴</h2>
+        <div class="staff-table-wrap">
+          <table class="staff-table">
+            <thead><tr><th>日付</th><th>出勤</th><th>退勤</th><th>勤務時間</th></tr></thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 出勤予定 -->
+    <div class="staff-panel" id="panel-shift" hidden>
+      <div class="staff-card">
+        <h2 class="staff-h2">出勤予定を登録</h2>
+        <form id="shiftForm" class="staff-inline-form">
+          <label class="staff-field">
+            <span>日付</span>
+            <input type="date" id="shiftDate" required>
+          </label>
+          <label class="staff-field">
+            <span>状態</span>
+            <select id="shiftStatus">
+              <option value="available">出勤できます</option>
+              <option value="absent">欠席です</option>
+            </select>
+          </label>
+          <button type="submit" class="btn btn-primary">登録</button>
+        </form>
+        <p class="staff-message" id="shiftMessage" role="alert"></p>
+        <ul class="staff-shift-list" id="shiftList"></ul>
+      </div>
+    </div>
+
+    <!-- 配置 -->
+    <div class="staff-panel" id="panel-placement" hidden>
+      <div class="staff-card">
+        <h2 class="staff-h2">店内配置</h2>
+        <div class="staff-inline-form">
+          <label class="staff-field">
+            <span>日付</span>
+            <input type="date" id="placementDate">
+          </label>
+          <div class="staff-owner-only" id="assignControls" hidden>
+            <label class="staff-field">
+              <span>抽選の対象</span>
+              <select id="assignSource">
+                <option value="attendance">出勤打刻したキャスト</option>
+                <option value="shift">出勤予定のキャスト</option>
+              </select>
+            </label>
+            <button type="button" class="btn btn-primary" id="assignBtn">配置を抽選する</button>
+          </div>
+        </div>
+        <p class="staff-message" id="placementMessage" role="alert"></p>
+        <div id="placementView"></div>
+      </div>
+    </div>
+
+    <!-- 管理 -->
+    <div class="staff-panel" id="panel-admin" hidden>
+      <div class="staff-card">
+        <h2 class="staff-h2">日別の出勤状況</h2>
+        <label class="staff-field staff-field-inline">
+          <span>日付</span>
+          <input type="date" id="overviewDate">
+        </label>
+        <div class="staff-table-wrap">
+          <table class="staff-table">
+            <thead><tr><th>名前</th><th>出勤予定</th><th>出勤</th><th>退勤</th><th>勤務時間</th></tr></thead>
+            <tbody id="overviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="staff-card">
+        <h2 class="staff-h2">月別の集計</h2>
+        <label class="staff-field staff-field-inline">
+          <span>月</span>
+          <input type="month" id="monthPicker">
+        </label>
+        <div class="staff-table-wrap">
+          <table class="staff-table">
+            <thead><tr><th>名前</th><th>出勤日数</th><th>合計勤務時間</th></tr></thead>
+            <tbody id="monthBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/staff.js"></script>
+</body>
+</html>
