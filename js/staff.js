@@ -681,6 +681,7 @@
     actions.append(all, close);
     card.append(actions);
     $('issuedList').prepend(card);
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function renderManage(people) {
