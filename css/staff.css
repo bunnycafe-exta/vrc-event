@@ -21,14 +21,6 @@
 
 .staff-header .logo { color: var(--color-white); }
 
-.staff-back {
-  font-size: 0.85rem;
-  color: var(--color-brown-soft);
-  letter-spacing: 0.08em;
-}
-
-.staff-back:hover { color: var(--color-gold); }
-
 .staff-main {
   max-width: 760px;
   margin: 0 auto;

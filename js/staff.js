@@ -57,7 +57,7 @@
   const DEMO_STAFF = ['やさい', 'てばちゃ', 'お兄ちゃん', 'めいるな'];
   const DEMO_ALL = [...DEMO_CASTS.map((name) => ({ name, role: 'cast' })), ...DEMO_STAFF.map((name) => ({ name, role: 'staff' }))];
 
-  function demoNowMinute() {
+  function jstNowMinute() {
     const p = {};
     new Intl.DateTimeFormat('en-GB', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
       .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
@@ -118,7 +118,7 @@
     if (!user) return fail('ログインの有効期限が切れました。もう一度ログインしてください');
 
     const current = () => db.events.filter((e) => e.status === 'active').sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] || null;
-    const phase = (e) => (demoNowMinute() >= e.deadline ? 'closed' : 'open');
+    const phase = (e) => (jstNowMinute() >= e.deadline ? 'closed' : 'open');
     const eff = (e, name) => { const r = e.responses[name]; if (r && r.final) return r.final; return r && r.answer === 'yes' ? 'ok' : 'ng'; };
     const stateOf = () => {
       const e = current();
@@ -137,7 +137,7 @@
       const deadline = String(p.deadline || '').replace('T', ' ').slice(0, 16);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(p.date || '')) return { error: '日付の形式が正しくありません' };
       if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(deadline)) return { error: '回答期限の形式が正しくありません' };
-      if (deadline <= demoNowMinute()) return { error: '回答期限は現在より後の日時にしてください' };
+      if (deadline <= jstNowMinute()) return { error: '回答期限は現在より後の日時にしてください' };
       if (deadline > `${p.date} ${p.startTime}`) return { error: '回答期限は営業開始より前にしてください' };
       return { value: { date: p.date, startTime: p.startTime, endTime: p.endTime, deadline, note: String(p.note || '').trim().slice(0, 300) } };
     };
@@ -177,7 +177,7 @@
         if (needOwner()) return needOwner();
         const e = current();
         if (!e) return fail('現在、出勤の確認はありません');
-        e.deadline = demoNowMinute(); demoSave(db);
+        e.deadline = jstNowMinute(); demoSave(db);
         return ok(stateOf());
       }
       case 'cancelEvent': {
@@ -284,6 +284,12 @@
 
   const ANSWER_LABEL = { yes: '出勤できます', no: '出勤できません', '': '未回答' };
 
+  function deadlineLabel(deadline) {
+    const [date, time] = deadline.split(' ');
+    const [, m, d] = date.split('-').map(Number);
+    return `${m}月${d}日 ${time}`;
+  }
+
   function renderCast(state) {
     const e = state.event;
     $('castEmpty').hidden = Boolean(e);
@@ -293,6 +299,9 @@
     if (!e) return;
 
     const closed = e.phase === 'closed';
+    const badge = $('castPhase');
+    badge.textContent = closed ? '回答は締め切られました' : `回答受付中（${deadlineLabel(e.deadline)}まで）`;
+    badge.classList.toggle('is-closed', closed);
     $('castMessage').textContent = e.message;
     $('castAnswerBlock').hidden = closed && !state.myAnswer;
     $('castAnswerBlock').querySelector('.staff-ask').textContent = closed ? 'あなたの回答' : 'この日時に出勤できますか？';
@@ -305,6 +314,7 @@
     const info = [];
     if (closed) info.push('回答は締め切られました。変更・追加はオーナーに直接ご連絡ください。');
     else if (state.myAnswer) info.push('回答を受け付けました。（締め切りまでは変更できます）');
+    else info.push('締め切りまでに、どちらかを選んでください。');
     if (state.myAnswer && !state.placement) info.push('配置場所が出るまでお待ちください。');
     $('castInfo').textContent = info.join('\n');
     $('castInfo').style.whiteSpace = 'pre-line';
@@ -512,6 +522,12 @@
     window.setInterval(() => {
       if (!appView.hidden && document.visibilityState === 'visible') loadState(true);
     }, POLL_MS);
+
+    // Lock the answer buttons as soon as the deadline passes, even if the page was left open
+    window.setInterval(() => {
+      const e = currentState && currentState.event;
+      if (!appView.hidden && e && e.phase === 'open' && jstNowMinute() >= e.deadline) loadState(true);
+    }, 5000);
 
     if (getToken() && await loadState()) showView('app');
     else showView('login');
