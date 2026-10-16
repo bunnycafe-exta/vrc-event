@@ -44,16 +44,13 @@ const STAFF_LIST = [
   { name: 'はるるん', role: 'cast' }
 ];
 
-// issueCredentials の対象。すでに登録済みの名前は、reissue: true を付けたときだけパスワードを再発行する
+// issueCredentials の対象（例: { name: 'ひなた', role: 'staff' },）。
+// すでに登録済みの名前は、{ name: '…', role: '…', reissue: true } としたときだけパスワードを再発行する
 const TARGETS = [
-  { name: 'やさい', role: 'staff' },
-  { name: 'てばちゃ', role: 'staff' },
-  { name: 'お兄ちゃん', role: 'staff' },
-  { name: 'めいるな', role: 'staff' }
 ];
 
 const SHEETS = {
-  Staff: ['id', 'name', 'role', 'salt', 'hash', 'active'],
+  Staff: ['id', 'name', 'role', 'salt', 'hash', 'active', 'joinedAt'],
   Events: ['eventId', 'date', 'startTime', 'endTime', 'deadline', 'note', 'status', 'createdAt'],
   Responses: ['eventId', 'staffId', 'name', 'answer', 'final', 'updatedAt'],
   Placements: ['date', 'rotation', 'position', 'name', 'createdAt']
@@ -64,7 +61,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 6 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 7 });
 }
 
 function doPost(e) {
@@ -104,6 +101,7 @@ function route_(req) {
     case 'closeNow': requireOwner_(user); return withLock_(() => closeNow_(user));
     case 'cancelEvent': requireOwner_(user); return withLock_(() => cancelEvent_(user));
     case 'setFinal': requireOwner_(user); return withLock_(() => setFinal_(user, req));
+    case 'history': requireOwner_(user); return history_(req);
     case 'assign': requireOwner_(user); return withLock_(() => assign_(user));
     case 'publishPlacement': requireOwner_(user); return withLock_(() => publishPlacement_(user));
     default: return fail_('不明な操作です');
@@ -298,8 +296,9 @@ function previewEvent_(req) {
 function createEvent_(user, req) {
   const input = parseEventInput_(req);
   const sh = sheet_('Events');
-  readRows_('Events').filter(r => String(r.status) === 'active')
-    .forEach(r => sh.getRange(r._row, 7).setValue('cancelled'));
+  // 前の出勤確認が締め切り済みなら「履歴に保存(archived)」、締め切り前の作り直しなら「取り消し(cancelled)」
+  readRows_('Events').map(eventFromRow_).filter(e => e.status === 'active')
+    .forEach(e => sh.getRange(e._row, 7).setValue(phaseOf_(e) === 'closed' ? 'archived' : 'cancelled'));
   clearPlacement_(input.date); // 同じ日付の古い配置が新しい出勤確認に混ざらないようにする
   sh.appendRow([
     Utilities.getUuid().slice(0, 8), input.date, input.startTime, input.endTime,
@@ -421,6 +420,46 @@ function setFinal_(user, req) {
     sh.appendRow([e.id, String(cast.id), String(cast.name), '', value, nowSecond_()]);
   }
   return state_(user);
+}
+
+/* ---------- History (owner) ---------- */
+
+function joinedOf_(person) {
+  return person.joinedAt ? asDate_(person.joinedAt) : ''; // 空=最初から（すべての営業日が対象）
+}
+
+// 締め切り済みの営業日ごとの出勤状況と、全員の出勤率。limit=直近N回（0なら全期間）
+function history_(req) {
+  const limit = Math.max(0, Math.min(60, Number(req.limit) || 0));
+  let events = readRows_('Events').map(eventFromRow_)
+    .filter(e => (e.status === 'active' || e.status === 'archived') && phaseOf_(e) === 'closed')
+    .sort((a, b) => a.date !== b.date ? (a.date < b.date ? 1 : -1) : (a.createdAt < b.createdAt ? 1 : -1));
+  if (limit) events = events.slice(0, limit);
+
+  const people = readRows_('Staff').filter(r => String(r.role) !== 'owner' && String(r.active).toUpperCase() !== 'FALSE');
+  const byEvent = {};
+  readRows_('Responses').forEach(r => { (byEvent[String(r.eventId)] = byEvent[String(r.eventId)] || []).push(r); });
+  const markOf = (p, e) => {
+    if (joinedOf_(p) > e.date) return ''; // 登録前の営業日は対象外
+    const resp = (byEvent[e.id] || []).find(r => String(r.staffId) === String(p.id));
+    return effectiveOf_(resp) === 'ok' ? 'ok' : 'ng';
+  };
+
+  const eventsOut = events.map(e => ({
+    id: e.id, date: e.date, startTime: e.startTime, endTime: e.endTime,
+    attend: people.filter(p => markOf(p, e) === 'ok').map(p => String(p.name)),
+    absent: people.filter(p => markOf(p, e) === 'ng').map(p => String(p.name))
+  }));
+  const peopleOut = people.map(p => {
+    const marks = events.map(e => markOf(p, e));
+    const attended = marks.filter(m => m === 'ok').length;
+    const total = marks.filter(m => m !== '').length;
+    return {
+      name: String(p.name), role: String(p.role), attended: attended, total: total,
+      rate: total ? Math.round(attended / total * 1000) / 10 : null, marks: marks
+    };
+  });
+  return { ok: true, events: eventsOut, people: peopleOut };
 }
 
 /* ---------- Placement ---------- */
@@ -655,6 +694,12 @@ function ensureSheets_() {
       sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).setNumberFormat('@');
       sh.getRange(1, 1, 1, SHEETS[name].length).setValues([SHEETS[name]]).setFontWeight('bold');
       sh.setFrozenRows(1);
+    } else {
+      // 以前のバージョンで作ったシートに、あとから増えた列の見出しを足す
+      const header = sh.getRange(1, 1, 1, SHEETS[name].length).getValues()[0];
+      SHEETS[name].forEach((title, i) => {
+        if (String(header[i]) !== title) sh.getRange(1, i + 1).setValue(title).setFontWeight('bold');
+      });
     }
   });
 }
@@ -684,10 +729,10 @@ function setup() {
     const id = randomId_(used);
     const password = randomString_(10);
     const salt = randomString_(16);
-    rows.push([id, s.name, s.role, salt, hash_(salt, password), 'TRUE']);
+    rows.push([id, s.name, s.role, salt, hash_(salt, password), 'TRUE', '']);
     creds.push([s.name, id, password, s.role === 'owner' ? 'オーナー' : '']);
   });
-  staff.getRange(2, 1, rows.length, 6).setValues(rows);
+  staff.getRange(2, 1, rows.length, 7).setValues(rows);
   const cs = credentialSheet_();
   cs.getRange(cs.getLastRow() + 1, 1, creds.length, 4).setValues(creds);
   notify_('完了。「配布用」シートのID/パスワードを各自に伝え、伝え終わったらシートを削除してください');
@@ -719,7 +764,8 @@ function issueCredentials() {
       staff.getRange(existing._row, 4, 1, 2).setValues([[salt, hash_(salt, password)]]);
     } else {
       id = randomId_(used);
-      staff.appendRow([id, name, t.role, salt, hash_(salt, password), 'TRUE']);
+      // joinedAt: 登録前の営業日は、出勤率の対象に入れない
+      staff.appendRow([id, name, t.role, salt, hash_(salt, password), 'TRUE', Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd')]);
     }
     cs.appendRow([name, id, password, existing ? '再発行' : '新規']);
     issued.push(name);

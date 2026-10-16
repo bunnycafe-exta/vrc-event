@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/staff.css?v=12">
+<link rel="stylesheet" href="css/staff.css?v=13">
 </head>
 <body class="staff-body">
 
@@ -185,11 +185,40 @@
           </div>
         </div>
       </div>
+
+      <div class="staff-card" id="historyCard">
+        <h2 class="staff-h2">出勤履歴・出勤率</h2>
+        <label class="staff-field staff-field-inline">
+          <span>対象の営業日</span>
+          <select id="historyRange">
+            <option value="0">すべて</option>
+            <option value="3">直近3回</option>
+            <option value="6">直近6回</option>
+            <option value="12">直近12回</option>
+          </select>
+        </label>
+        <p class="staff-message" id="historyMessage" role="alert"></p>
+        <p class="staff-muted" id="historyEmpty" hidden>まだ、締め切られた営業日がありません。</p>
+
+        <div id="historyBody" hidden>
+          <h3 class="staff-rot-title">全員の出勤率</h3>
+          <div class="staff-table-wrap">
+            <table class="staff-table staff-matrix">
+              <thead id="matrixHead"></thead>
+              <tbody id="matrixBody"></tbody>
+            </table>
+          </div>
+          <p class="staff-muted staff-small">○＝出勤　×＝欠勤（未回答を含む）　空欄＝登録前の営業日（出勤率の対象外）。回答のあとに「出勤／欠勤」を直した場合は、直した結果で数えます。</p>
+
+          <h3 class="staff-rot-title">営業日ごとの履歴</h3>
+          <div id="eventHistory"></div>
+        </div>
+      </div>
     </div>
   </section>
 
 </main>
 
-<script src="js/staff.js?v=12"></script>
+<script src="js/staff.js?v=13"></script>
 </body>
 </html>

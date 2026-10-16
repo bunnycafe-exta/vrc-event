@@ -64,14 +64,14 @@
     return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
   }
 
-  function demoDateJa(d) {
+  function dateJa(d) {
     const [y, m, day] = d.split('-').map(Number);
     const dow = '日月火水木金土'.charAt(new Date(Date.UTC(y, m - 1, day)).getUTCDay());
     return `${y}年${m}月${day}日（${dow}）`;
   }
 
   function demoMessage(e) {
-    const lines = ['【EXTA 出勤確認】', '次回の営業日が決まりました。', '', `日時：${demoDateJa(e.date)} ${e.startTime}〜${e.endTime}`, `回答期限：${demoDateJa(e.deadline.slice(0, 10))} ${e.deadline.slice(11, 16)}`];
+    const lines = ['【EXTA 出勤確認】', '次回の営業日が決まりました。', '', `日時：${dateJa(e.date)} ${e.startTime}〜${e.endTime}`, `回答期限：${dateJa(e.deadline.slice(0, 10))} ${e.deadline.slice(11, 16)}`];
     if (e.note) lines.push('', e.note);
     lines.push('', 'ご都合を「出勤できます」「出勤できません」からお選びください。', '期限を過ぎると回答できなくなります。', '', '▼回答はこちら', 'https://bunnycafe-exta.github.io/vrc-event/staff.html');
     return lines.join('\n');
@@ -82,7 +82,21 @@
       const saved = JSON.parse(localStorage.getItem(DEMO_KEY));
       if (saved) return saved;
     } catch (e) { /* ignore */ }
-    return { events: [], placements: {} };
+    return { events: demoPastEvents(), placements: {} };
+  }
+
+  // Four finished business days (about monthly) so the history view has something to show
+  function demoPastEvents() {
+    const today = jstNowMinute().slice(0, 10);
+    const [y, m, d] = today.split('-').map(Number);
+    const iso = (offsetDays) => new Date(Date.UTC(y, m - 1, d) + offsetDays * 86400000).toISOString().slice(0, 10);
+    return [1, 2, 3, 4].map((i) => {
+      const responses = {};
+      [...DEMO_CASTS, ...DEMO_STAFF].forEach((name, idx) => {
+        responses[name] = { answer: (name.length + i * 3 + idx) % 4 === 0 ? 'no' : 'yes' };
+      });
+      return { id: `past${i}`, date: iso(-28 * i), startTime: '22:00', endTime: '23:30', deadline: `${iso(-28 * i - 4)} 23:59`, note: '', status: 'archived', createdAt: `000${i}`, responses };
+    });
   }
 
   function demoSave(db) {
@@ -144,7 +158,7 @@
 
   function demoPlacementMessage(e, p) {
     const rule = '───────────────────────────────';
-    const lines = ['【EXTA 配置のお知らせ】', `${demoDateJa(e.date)} ${e.startTime}〜${e.endTime}`, rule];
+    const lines = ['【EXTA 配置のお知らせ】', `${dateJa(e.date)} ${e.startTime}〜${e.endTime}`, rule];
     const sides = (label, names) => [label, ...(names.length ? names : ['—'])];
     const names = ['', '第一', '第二'];
     p.rotations.forEach((rot) => {
@@ -223,7 +237,7 @@
         if (needOwner()) return needOwner();
         const r = parseInput();
         if (r.error) return fail(r.error);
-        db.events.forEach((e) => { if (e.status === 'active') e.status = 'cancelled'; });
+        db.events.forEach((e) => { if (e.status === 'active') e.status = phase(e) === 'closed' ? 'archived' : 'cancelled'; });
         const responses = {};
         DEMO_CASTS.slice(1, 8).forEach((n) => { responses[n] = { answer: 'yes' }; });
         DEMO_CASTS.slice(8).forEach((n) => { responses[n] = { answer: 'no' }; });
@@ -281,6 +295,26 @@
         delete db.published[e.id];
         demoSave(db);
         return ok(stateOf());
+      }
+      case 'history': {
+        if (needOwner()) return needOwner();
+        const limit = Number(p.limit) || 0;
+        let events = db.events.filter((e) => (e.status === 'active' || e.status === 'archived') && phase(e) === 'closed')
+          .sort((a, b) => (a.date !== b.date ? (a.date < b.date ? 1 : -1) : (a.createdAt < b.createdAt ? 1 : -1)));
+        if (limit) events = events.slice(0, limit);
+        const mark = (name, e) => (eff(e, name) === 'ok' ? 'ok' : 'ng');
+        return ok({
+          events: events.map((e) => ({
+            id: e.id, date: e.date, startTime: e.startTime, endTime: e.endTime,
+            attend: DEMO_ALL.filter((x) => mark(x.name, e) === 'ok').map((x) => x.name),
+            absent: DEMO_ALL.filter((x) => mark(x.name, e) === 'ng').map((x) => x.name)
+          })),
+          people: DEMO_ALL.map(({ name, role }) => {
+            const marks = events.map((e) => mark(name, e));
+            const attended = marks.filter((x) => x === 'ok').length;
+            return { name, role, attended, total: marks.length, rate: marks.length ? Math.round((attended / marks.length) * 1000) / 10 : null, marks };
+          })
+        });
       }
       case 'publishPlacement': {
         if (needOwner()) return needOwner();
@@ -411,6 +445,7 @@
   }
 
   function renderOwner(state) {
+    loadHistory(false);
     const e = state.event;
     $('ownerEmpty').hidden = Boolean(e);
     $('ownerEvent').hidden = !e;
@@ -536,13 +571,17 @@
 
   async function confirmEvent() {
     if (!pendingEvent) return;
-    if (currentState && currentState.event && !confirm('現在の出勤確認は取り消され、新しい内容に置き換わります。よろしいですか？')) return;
+    const prev = currentState && currentState.event;
+    if (prev && !confirm(prev.phase === 'closed'
+      ? '現在の出勤確認は履歴に保存され、新しい出勤確認に切り替わります。よろしいですか？'
+      : '現在の出勤確認はまだ締め切られていないため、取り消されて新しい内容に置き換わります。よろしいですか？')) return;
     const msg = $('eventFormMessage');
     const res = await api('createEvent', pendingEvent);
     if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
     hidePreview();
     $('eventNote').value = '';
     renderState(res);
+    loadHistory(true);
     say(msg, '確定しました。キャストの画面に表示されます。下の「現在の出勤確認」から文面をコピーして、連絡にお使いください。', true);
   }
 
@@ -562,7 +601,59 @@
     const res = await api(action, payload);
     if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
     renderState(res);
+    loadHistory(true);
     if (successText) say(msg, successText, true);
+  }
+
+  /* History (owner) */
+
+  let lastHistoryLoad = 0;
+
+  function renderHistory(res) {
+    $('historyEmpty').hidden = res.events.length > 0;
+    $('historyBody').hidden = res.events.length === 0;
+    if (!res.events.length) return;
+
+    const shortDate = (d) => { const [, m, day] = d.split('-').map(Number); return `${m}/${day}`; };
+    const head = $('matrixHead');
+    head.replaceChildren();
+    const headRow = el('tr');
+    ['名前', '出勤率', '出勤'].forEach((t) => headRow.append(el('th', '', t)));
+    res.events.forEach((e) => headRow.append(el('th', '', shortDate(e.date))));
+    head.append(headRow);
+
+    const people = res.people.slice().sort((a, b) => (b.rate === null) - (a.rate === null) || (b.rate || 0) - (a.rate || 0));
+    const body = $('matrixBody');
+    body.replaceChildren();
+    people.forEach((p) => {
+      const tr = el('tr');
+      tr.append(el('td', '', p.role === 'staff' ? `${p.name}（スタッフ）` : p.name));
+      tr.append(el('td', 'staff-rate', p.rate === null ? '—' : `${p.rate}%`));
+      tr.append(el('td', '', p.total ? `${p.attended}/${p.total}` : '—'));
+      p.marks.forEach((m) => tr.append(el('td', m === 'ok' ? 'staff-mark-ok' : 'staff-mark-ng', m === 'ok' ? '○' : (m === 'ng' ? '×' : ''))));
+      body.append(tr);
+    });
+
+    const list = $('eventHistory');
+    list.replaceChildren();
+    res.events.forEach((e) => {
+      const item = el('details', 'staff-history-item');
+      item.append(el('summary', '', `${dateJa(e.date)} ${e.startTime}〜${e.endTime} ／ 出勤 ${e.attend.length}名 ・ 欠勤 ${e.absent.length}名`));
+      item.append(el('p', '', `出勤：${e.attend.join('、') || '—'}`), el('p', '', `欠勤：${e.absent.join('、') || '—'}`));
+      list.append(item);
+    });
+  }
+
+  async function loadHistory(force) {
+    if (!force && Date.now() - lastHistoryLoad < 30000) return;
+    lastHistoryLoad = Date.now();
+    const res = await api('history', { limit: Number($('historyRange').value) });
+    if (!res.ok) {
+      if (!handleAuthError(res)) say($('historyMessage'), res.error);
+      return;
+    }
+    say($('historyMessage'), '');
+    renderHistory(res);
   }
 
   function setFinal(name, value) {
@@ -631,6 +722,7 @@
     });
     $('assignBtn').addEventListener('click', assign);
     $('publishBtn').addEventListener('click', publishPlacement);
+    $('historyRange').addEventListener('change', () => loadHistory(true));
     $('placementCopy').addEventListener('click', () => copyText('placementMessageBox', 'placementMessage'));
 
     window.setInterval(() => {
