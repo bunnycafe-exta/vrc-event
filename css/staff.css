@@ -390,6 +390,21 @@
 
 .staff-inactive { opacity: 0.5; }
 
+.name-link {
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-gold);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin-right: 8px;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+}
+
+.name-link:hover { color: var(--color-peach); }
+
 .staff-history-item {
   margin-bottom: 8px;
   background: rgba(20, 18, 31, 0.8);

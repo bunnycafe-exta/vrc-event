@@ -689,8 +689,12 @@
     body.replaceChildren();
     people.forEach((p) => {
       const tr = el('tr', p.active ? '' : 'staff-inactive');
-      const name = el('td', '', p.name);
-      name.append(el('small', 'staff-user-role', ROLE_LABEL[p.role] || p.role));
+      const name = el('td');
+      const nameBtn = el('button', 'name-link', p.name);
+      nameBtn.type = 'button';
+      nameBtn.title = 'タップして、ログイン情報を作ってコピー';
+      nameBtn.addEventListener('click', () => reissue(p.name));
+      name.append(nameBtn, el('small', 'staff-user-role', ROLE_LABEL[p.role] || p.role));
       const idCell = el('td');
       idCell.append(document.createTextNode(`${p.id} `));
       const copyId = el('button', 'mini-btn is-ghost', 'コピー');
@@ -723,13 +727,25 @@
     renderManage(res.people);
   }
 
+  async function tryCopy(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   async function reissue(name) {
-    if (!confirm(`${name}さんのパスワードを再発行します。今のパスワードは使えなくなります。よろしいですか？`)) return;
+    if (!confirm(`${name}さんの新しいパスワードを作って、送る文面をコピーします。\n今のパスワードは使えなくなります。よろしいですか？`)) return;
     say($('manageMessage'), '');
     const res = await api('reissue', { name });
     if (!res.ok) { if (!handleAuthError(res)) say($('manageMessage'), res.error); return; }
     addIssuedCard(res.credential);
-    say($('manageMessage'), `${name}さんの新しいパスワードを作りました。上の枠からコピーして送ってください。`, true);
+    const copied = await tryCopy(credentialMessage(res.credential));
+    say($('manageMessage'), copied
+      ? `${name}さんのログイン情報をコピーしました。そのまま貼り付けて送れます。`
+      : `${name}さんの新しいパスワードを作りました。上の枠の「まとめてコピー」を押してコピーしてください。`, true);
   }
 
   async function setActive(name, active) {
