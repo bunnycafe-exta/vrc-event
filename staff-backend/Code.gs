@@ -10,7 +10,8 @@
  *
  * コードを更新したとき: 「setup」を再実行（足りないシートだけ追加される）→
  *   デプロイ → デプロイを管理 → 鉛筆アイコン → バージョン「新バージョン」→ デプロイ（URLは変わらない）
- * スタッフ追加・パスワード再発行: 下の TARGET_NAME / TARGET_ROLE を書き換えて「issueCredentials」を実行
+ * スタッフ追加・パスワード再発行: 下の TARGETS に名前と役割を書いて「issueCredentials」を実行
+ *   役割: cast=キャスト（店内番号1〜12の配置） / staff=スタッフ（AかBの二択・各2名） / owner=オーナー
  */
 
 // スプレッドシートに紐づけず script.google.com で単独のプロジェクトとして作る場合のみ、
@@ -24,6 +25,8 @@ const SESSION_SECONDS = 21600; // ログインの有効時間（6時間）
 const MAX_FAILS = 5;           // ログイン失敗の許容回数
 const LOCK_SECONDS = 600;      // 超えた場合のロック時間（10分）
 const POSITIONS_PER_ROTATION = 6; // 1ローテーションの人数（店内番号1〜12を2つずつ担当）
+const STAFF_GROUPS = ['A', 'B'];  // スタッフの配置先（二択）
+const STAFF_PER_GROUP = 2;        // 各グループの人数
 
 const STAFF_LIST = [
   { name: 'てとら', role: 'owner' },
@@ -39,8 +42,13 @@ const STAFF_LIST = [
   { name: 'はるるん', role: 'cast' }
 ];
 
-const TARGET_NAME = '';
-const TARGET_ROLE = 'cast';
+// issueCredentials の対象。すでに登録済みの名前は、reissue: true を付けたときだけパスワードを再発行する
+const TARGETS = [
+  { name: 'やさい', role: 'staff' },
+  { name: 'てばちゃ', role: 'staff' },
+  { name: 'お兄ちゃん', role: 'staff' },
+  { name: 'めいるな', role: 'staff' }
+];
 
 const SHEETS = {
   Staff: ['id', 'name', 'role', 'salt', 'hash', 'active'],
@@ -54,7 +62,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 2 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 4 });
 }
 
 function doPost(e) {
@@ -316,8 +324,12 @@ function responsesOf_(eventId) {
   return readRows_('Responses').filter(r => String(r.eventId) === eventId);
 }
 
+function activeMembers_() {
+  return readRows_('Staff').filter(r => String(r.role) !== 'owner' && String(r.active).toUpperCase() !== 'FALSE');
+}
+
 function activeCasts_() {
-  return readRows_('Staff').filter(r => String(r.role) === 'cast' && String(r.active).toUpperCase() !== 'FALSE');
+  return activeMembers_().filter(r => String(r.role) === 'cast');
 }
 
 function effectiveOf_(resp) {
@@ -326,10 +338,11 @@ function effectiveOf_(resp) {
 }
 
 function detail_(e, responses) {
-  const rows = activeCasts_().map(c => {
+  const rows = activeMembers_().map(c => {
     const resp = responses.find(r => String(r.staffId) === String(c.id));
     return {
       name: String(c.name),
+      role: String(c.role),
       answer: resp ? String(resp.answer) : '',
       final: resp ? String(resp.final) : '',
       effective: effectiveOf_(resp)
@@ -352,18 +365,18 @@ function state_(user) {
   if (!e) return out;
   out.event = eventView_(e);
   const responses = responsesOf_(e.id);
-  if (user.role === 'cast') {
+  if (user.role === 'owner') {
+    out.detail = detail_(e, responses);
+  } else {
     const mine = responses.find(r => String(r.staffId) === user.id);
     out.myAnswer = mine ? String(mine.answer) : '';
-  } else {
-    out.detail = detail_(e, responses);
   }
   out.placement = getPlacement_(e.date);
   return out;
 }
 
 function answer_(user, req) {
-  if (user.role !== 'cast') fail_('回答できるのはキャストのみです');
+  if (user.role === 'owner') fail_('オーナーは回答の対象ではありません');
   const answer = String(req.answer);
   if (answer !== 'yes' && answer !== 'no') fail_('回答が正しくありません');
   const e = currentEvent_();
@@ -388,8 +401,8 @@ function setFinal_(user, req) {
   if (phaseOf_(e) !== 'closed') fail_('回答の締め切り後に設定できます');
   const value = String(req.final);
   if (value !== 'ok' && value !== 'ng') fail_('設定が正しくありません');
-  const cast = activeCasts_().find(c => String(c.name) === String(req.name));
-  if (!cast) fail_('対象のキャストが見つかりません');
+  const cast = activeMembers_().find(c => String(c.name) === String(req.name));
+  if (!cast) fail_('対象の人が見つかりません');
 
   const sh = sheet_('Responses');
   const existing = responsesOf_(e.id).find(r => String(r.staffId) === String(cast.id));
@@ -404,25 +417,35 @@ function setFinal_(user, req) {
 
 /* ---------- Placement ---------- */
 
+// Placements シートの rotation 列: 数字=キャストのローテーション番号 / A・B=スタッフのグループ / W=スタッフの待機
 function getPlacement_(date) {
   const rows = readRows_('Placements').filter(r => asDate_(r.date) === date);
   if (!rows.length) return null;
   const rotations = {};
+  const groups = { A: [], B: [], W: [] };
+  let hasStaff = false;
   rows.forEach(r => {
-    const rot = Number(r.rotation);
-    const pos = Number(r.position);
-    (rotations[rot] = rotations[rot] || []).push({
-      position: pos,
-      stations: [pos * 2 - 1, pos * 2],
-      name: String(r.name)
-    });
+    const key = String(r.rotation);
+    if (/^\d+$/.test(key)) {
+      const rot = Number(key);
+      const pos = Number(r.position);
+      (rotations[rot] = rotations[rot] || []).push({
+        position: pos,
+        stations: [pos * 2 - 1, pos * 2],
+        name: String(r.name)
+      });
+    } else if (groups[key]) {
+      groups[key].push(String(r.name));
+      hasStaff = true;
+    }
   });
   return {
     date: date,
     rotations: Object.keys(rotations).map(Number).sort((a, b) => a - b).map(rot => ({
       rotation: rot,
       slots: rotations[rot].sort((a, b) => a.position - b.position)
-    }))
+    })),
+    staff: hasStaff ? { A: groups.A, B: groups.B, waiting: groups.W } : null
   };
 }
 
@@ -441,16 +464,22 @@ function assign_(user) {
   if (phaseOf_(e) !== 'closed') fail_('回答の締め切り後に抽選できます');
 
   const responses = responsesOf_(e.id);
-  const present = activeCasts_().filter(c =>
+  const attending = role => activeMembers_().filter(c => String(c.role) === role &&
     effectiveOf_(responses.find(r => String(r.staffId) === String(c.id))) === 'ok');
-  if (!present.length) fail_('出勤するキャストがいません');
+  const castNames = shuffle_(attending('cast').map(r => String(r.name)));
+  const staffNames = shuffle_(attending('staff').map(r => String(r.name)));
+  if (!castNames.length && !staffNames.length) fail_('出勤する人がいません');
 
-  const names = shuffle_(present.map(r => String(r.name)));
   const stamp = nowSecond_();
   const out = [];
-  for (let i = 0; i < names.length; i++) {
-    out.push([e.date, Math.floor(i / POSITIONS_PER_ROTATION) + 1, (i % POSITIONS_PER_ROTATION) + 1, names[i], stamp]);
-  }
+  castNames.forEach((name, i) => {
+    out.push([e.date, Math.floor(i / POSITIONS_PER_ROTATION) + 1, (i % POSITIONS_PER_ROTATION) + 1, name, stamp]);
+  });
+  // スタッフはAかBの二択。各グループ STAFF_PER_GROUP 名まで、あふれた人は待機
+  staffNames.forEach((name, i) => {
+    const slot = Math.floor(i / STAFF_PER_GROUP);
+    out.push([e.date, slot < STAFF_GROUPS.length ? STAFF_GROUPS[slot] : 'W', (i % STAFF_PER_GROUP) + 1, name, stamp]);
+  });
 
   const sh = sheet_('Placements');
   readRows_('Placements').filter(r => asDate_(r.date) === e.date)
@@ -530,27 +559,38 @@ function setup() {
   notify_('完了。「配布用」シートのID/パスワードを各自に伝え、伝え終わったらシートを削除してください');
 }
 
-// TARGET_NAME が登録済みならパスワード再発行、未登録なら新規追加
+// TARGETS の人を追加する。未登録なら新規追加、登録済みなら reissue: true のときだけパスワードを再発行する
 function issueCredentials() {
-  if (!TARGET_NAME) fail_('TARGET_NAME に名前を設定してください');
   ensureSheets_();
   const staff = sheet_('Staff');
   const rows = readRows_('Staff');
   const used = {};
   rows.forEach(r => { used[String(r.id)] = true; });
-
-  const password = randomString_(10);
-  const salt = randomString_(16);
-  const existing = rows.find(r => String(r.name) === TARGET_NAME);
-  let id;
-  if (existing) {
-    id = String(existing.id);
-    staff.getRange(existing._row, 4, 1, 2).setValues([[salt, hash_(salt, password)]]);
-  } else {
-    id = randomId_(used);
-    staff.appendRow([id, TARGET_NAME, TARGET_ROLE, salt, hash_(salt, password), 'TRUE']);
-  }
   const cs = credentialSheet_();
-  cs.appendRow([TARGET_NAME, id, password, existing ? '再発行' : '新規']);
-  notify_('「配布用」シートに出力しました');
+  const issued = [];
+  const skipped = [];
+
+  TARGETS.forEach(t => {
+    const name = String(t.name || '').trim();
+    if (!name) return;
+    if (['owner', 'cast', 'staff'].indexOf(t.role) < 0) fail_('「' + name + '」の role は cast / staff / owner のどれかにしてください');
+    const existing = rows.find(r => String(r.name) === name);
+    if (existing && !t.reissue) { skipped.push(name); return; }
+
+    const password = randomString_(10);
+    const salt = randomString_(16);
+    let id;
+    if (existing) {
+      id = String(existing.id);
+      staff.getRange(existing._row, 4, 1, 2).setValues([[salt, hash_(salt, password)]]);
+    } else {
+      id = randomId_(used);
+      staff.appendRow([id, name, t.role, salt, hash_(salt, password), 'TRUE']);
+    }
+    cs.appendRow([name, id, password, existing ? '再発行' : '新規']);
+    issued.push(name);
+  });
+
+  notify_('「配布用」シートに出力: ' + (issued.join('、') || 'なし') +
+    (skipped.length ? ' ／ 登録済みのため何もしなかった人: ' + skipped.join('、') : ''));
 }

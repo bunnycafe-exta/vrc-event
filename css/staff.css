@@ -381,6 +381,8 @@
   gap: 10px;
 }
 
+.placement-grid-staff { grid-template-columns: repeat(2, 1fr); }
+
 .placement-slot {
   display: flex;
   flex-direction: column;

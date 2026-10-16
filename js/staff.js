@@ -54,6 +54,8 @@
     { id: '2222', password: 'demo', name: 'ぷにねこ', role: 'cast' }
   ];
   const DEMO_CASTS = ['ぷにねこ', 'メガスターミー', 'はやしすん', 'オロシ', 'とらまる', 'ユトロス', 'しえる', 'ムレン', 'あかきのこ', 'はるるん'];
+  const DEMO_STAFF = ['やさい', 'てばちゃ', 'お兄ちゃん', 'めいるな'];
+  const DEMO_ALL = [...DEMO_CASTS.map((name) => ({ name, role: 'cast' })), ...DEMO_STAFF.map((name) => ({ name, role: 'staff' }))];
 
   function demoNowMinute() {
     const p = {};
@@ -91,8 +93,16 @@
     const rows = db.placements[date];
     if (!rows) return null;
     const rotations = {};
-    rows.forEach((r) => { (rotations[r.rotation] = rotations[r.rotation] || []).push({ position: r.position, stations: [r.position * 2 - 1, r.position * 2], name: r.name }); });
-    return { date, rotations: Object.keys(rotations).map(Number).sort((a, b) => a - b).map((rot) => ({ rotation: rot, slots: rotations[rot].sort((a, b) => a.position - b.position) })) };
+    const groups = { A: [], B: [], W: [] };
+    rows.forEach((r) => {
+      if (typeof r.rotation === 'number') (rotations[r.rotation] = rotations[r.rotation] || []).push({ position: r.position, stations: [r.position * 2 - 1, r.position * 2], name: r.name });
+      else groups[r.rotation].push(r.name);
+    });
+    return {
+      date,
+      rotations: Object.keys(rotations).map(Number).sort((a, b) => a - b).map((rot) => ({ rotation: rot, slots: rotations[rot].sort((a, b) => a.position - b.position) })),
+      staff: rows.some((r) => typeof r.rotation !== 'number') ? { A: groups.A, B: groups.B, waiting: groups.W } : null
+    };
   }
 
   function demoApi(action, p) {
@@ -117,7 +127,7 @@
       out.event = { id: e.id, date: e.date, startTime: e.startTime, endTime: e.endTime, deadline: e.deadline, note: e.note, phase: phase(e), message: demoMessage(e) };
       if (user.role === 'cast') out.myAnswer = (e.responses[user.name] || {}).answer || '';
       else {
-        const rows = DEMO_CASTS.map((name) => ({ name, answer: (e.responses[name] || {}).answer || '', final: (e.responses[name] || {}).final || '', effective: eff(e, name) }));
+        const rows = DEMO_ALL.map(({ name, role }) => ({ name, role, answer: (e.responses[name] || {}).answer || '', final: (e.responses[name] || {}).final || '', effective: eff(e, name) }));
         out.detail = { rows, counts: { yes: rows.filter((r) => r.answer === 'yes').length, no: rows.filter((r) => r.answer === 'no').length, none: rows.filter((r) => !r.answer).length, attend: rows.filter((r) => r.effective === 'ok').length } };
       }
       out.placement = demoPlacement(db, e.date);
@@ -157,6 +167,8 @@
         const responses = {};
         DEMO_CASTS.slice(1, 8).forEach((n) => { responses[n] = { answer: 'yes' }; });
         DEMO_CASTS.slice(8).forEach((n) => { responses[n] = { answer: 'no' }; });
+        DEMO_STAFF.slice(0, 3).forEach((n) => { responses[n] = { answer: 'yes' }; });
+        responses[DEMO_STAFF[3]] = { answer: 'no' };
         db.events.push({ id: String(Date.now()), ...r.value, status: 'active', createdAt: String(Date.now()), responses });
         demoSave(db);
         return ok(stateOf());
@@ -189,10 +201,14 @@
         const e = current();
         if (!e) return fail('現在、出勤の確認はありません');
         if (phase(e) !== 'closed') return fail('回答の締め切り後に抽選できます');
-        const names = DEMO_CASTS.filter((n) => eff(e, n) === 'ok');
-        if (!names.length) return fail('出勤するキャストがいません');
-        for (let i = names.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [names[i], names[j]] = [names[j], names[i]]; }
-        db.placements[e.date] = names.map((name, i) => ({ rotation: Math.floor(i / 6) + 1, position: (i % 6) + 1, name }));
+        const shuffled = (list) => { const a = list.filter((n) => eff(e, n) === 'ok'); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+        const names = shuffled(DEMO_CASTS);
+        const staffNames = shuffled(DEMO_STAFF);
+        if (!names.length && !staffNames.length) return fail('出勤する人がいません');
+        db.placements[e.date] = [
+          ...names.map((name, i) => ({ rotation: Math.floor(i / 6) + 1, position: (i % 6) + 1, name })),
+          ...staffNames.map((name, i) => ({ rotation: Math.floor(i / 2) < 2 ? ['A', 'B'][Math.floor(i / 2)] : 'W', position: (i % 2) + 1, name }))
+        ];
         demoSave(db);
         return ok(stateOf());
       }
@@ -250,6 +266,20 @@
       });
       container.append(grid);
     });
+
+    if (placement.staff) {
+      container.append(el('h3', 'staff-rot-title', 'スタッフ配置'));
+      const grid = el('div', 'placement-grid placement-grid-staff');
+      [['A', placement.staff.A], ['B', placement.staff.B], ['待機', placement.staff.waiting]].forEach(([label, names]) => {
+        if (label === '待機' && !names.length) return;
+        const card = el('div', 'placement-slot' + (me && names.includes(me.name) ? ' is-me' : ''));
+        card.append(el('span', 'placement-stations', label === '待機' ? label : `${label}グループ`));
+        if (!names.length) card.append(el('span', 'placement-name', '—'));
+        names.forEach((n) => card.append(el('span', 'placement-name', n)));
+        grid.append(card);
+      });
+      container.append(grid);
+    }
   }
 
   const ANSWER_LABEL = { yes: '出勤できます', no: '出勤できません', '': '未回答' };
@@ -301,7 +331,7 @@
     body.replaceChildren();
     state.detail.rows.forEach((r) => {
       const tr = el('tr');
-      tr.append(el('td', '', r.name));
+      tr.append(el('td', '', r.role === 'staff' ? `${r.name}（スタッフ）` : r.name));
       tr.append(el('td', r.answer === 'yes' ? 'staff-answer-yes' : (r.answer === 'no' ? 'staff-answer-no' : ''), ANSWER_LABEL[r.answer]));
       const judge = el('td');
       if (closed) {
@@ -331,7 +361,7 @@
     currentState = state;
     me = state.user;
     $('userName').textContent = me.name;
-    $('userRole').textContent = me.role === 'owner' ? 'OWNER' : 'CAST';
+    $('userRole').textContent = { owner: 'OWNER', cast: 'CAST', staff: 'STAFF' }[me.role] || '';
     $('castView').hidden = me.role === 'owner';
     $('ownerView').hidden = me.role !== 'owner';
     if (me.role === 'owner') renderOwner(state); else renderCast(state);
