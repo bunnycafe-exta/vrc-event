@@ -58,7 +58,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 11 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 12 });
 }
 
 function doPost(e) {
@@ -603,8 +603,7 @@ function buildPlacementMessage_(e) {
     '',
     STAFF_PAGE_URL,
     '',
-    '変更希望等ございましたら、オーナーまでお問合せください。',
-    '───────────────────────────────'
+    '変更希望等ございましたら、オーナーまでお問合せください。'
   ].join('\n');
 }
 
