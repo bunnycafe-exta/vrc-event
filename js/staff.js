@@ -490,7 +490,6 @@
     me = null;
     currentState = null;
     ownerTabReady = false;
-    selectedCell = null;
     manageLoaded = false;
     lastHistoryLoad = 0;
     $('issuedList').replaceChildren(); // 発行したパスワードを画面に残さない
@@ -512,20 +511,49 @@
   const ROTATION_NAMES = ['', '第一', '第二'];
   const SIDE_LABELS = { A: '①～③サイド', B: '④～⑥サイド' };
 
-  // オーナーが配置を入れ替えるとき、1つ目に選んだ場所
-  let selectedCell = null;
-  const sameCell = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-
-  // editable のとき、その場所をタップできるようにする（1つ目と2つ目を選ぶと入れ替わる）
-  function makeCellEditable(node, ref) {
-    node.classList.add('is-editable');
-    if (selectedCell && sameCell(selectedCell, ref)) node.classList.add('is-selected');
-    node.setAttribute('role', 'button');
-    node.tabIndex = 0;
-    node.addEventListener('click', (e) => { e.stopPropagation(); pickCell(ref); });
-    node.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); pickCell(ref); }
+  // 入れ替えの相手を選ぶプルダウン。先頭が今の人で、ほかの人を選ぶと、その人と入れ替わる
+  function swapSelect(label, currentText, options, selfRef) {
+    const select = el('select', 'placement-select');
+    select.setAttribute('aria-label', label);
+    const current = el('option', '', currentText);
+    current.value = '';
+    select.append(current);
+    options.forEach((o) => {
+      const opt = el('option', '', o.label);
+      opt.value = JSON.stringify(o.ref);
+      select.append(opt);
     });
+    select.addEventListener('change', () => {
+      if (select.value) swapCells(selfRef, JSON.parse(select.value));
+    });
+    return select;
+  }
+
+  const slotRef = (rot, slot) => ({ kind: 'slot', rotation: rot.rotation, position: slot.position });
+  const memberRef = (rot, side, m) => (m.kind === 'extra'
+    ? { kind: 'extra', rotation: rot.rotation, side, name: m.name }
+    : { kind: 'staff', side, name: m.name });
+
+  // 入れ替えできる相手（バックエンドの swapPlacement_ と同じルール）
+  function slotOptions(rot, slot) {
+    const others = rot.slots.filter((s) => s.position !== slot.position && (s.name || slot.name))
+      .map((s) => ({ label: `${s.name || '空き'}（${CIRCLED[s.position - 1]}）`, ref: slotRef(rot, s) }));
+    const extras = ['A', 'B'].flatMap((side) => (rot.sideMembers ? rot.sideMembers[side] : [])
+      .filter((m) => m.kind === 'extra')
+      .map((m) => ({ label: `${m.name}（${SIDE_LABELS[side]}）`, ref: memberRef(rot, side, m) })));
+    return others.concat(extras);
+  }
+
+  function memberOptions(rot, side, member) {
+    const opposite = side === 'A' ? 'B' : 'A';
+    const list = rot.sideMembers[opposite]
+      .filter((m) => m.kind === member.kind)
+      .map((m) => ({ label: `${m.name}（${SIDE_LABELS[opposite]}）`, ref: memberRef(rot, opposite, m) }));
+    if (member.kind === 'extra') {
+      const slots = rot.slots.map((s) => ({ label: `${s.name || '空き'}（${CIRCLED[s.position - 1]}）`, ref: slotRef(rot, s) }));
+      return slots.concat(list);
+    }
+    return list;
   }
 
   function renderSides(container, rot, editable) {
@@ -540,11 +568,10 @@
       const members = editable && rot.sideMembers ? rot.sideMembers[key] : null;
       if (members) {
         members.forEach((m) => {
-          const chip = el('span', 'placement-name', m.name);
-          makeCellEditable(chip, m.kind === 'extra'
-            ? { kind: 'extra', rotation: rot.rotation, side: key, name: m.name }
-            : { kind: 'staff', side: key, name: m.name });
-          card.append(chip);
+          const options = memberOptions(rot, key, m);
+          card.append(options.length
+            ? swapSelect(`${SIDE_LABELS[key]}の ${m.name} を入れ替える`, m.name, options, memberRef(rot, key, m))
+            : el('span', 'placement-name', m.name));
         });
       } else {
         names.forEach((n) => card.append(el('span', 'placement-name', n)));
@@ -563,8 +590,11 @@
       const grid = el('div', 'placement-grid');
       rot.slots.forEach((slot, i) => {
         const card = el('div', 'placement-slot' + (slot.name ? '' : ' is-empty') + (me && slot.name === me.name ? ' is-me' : ''));
-        card.append(el('span', 'placement-stations', `${CIRCLED[i]}（${slot.stations.join('・')}番）`), el('span', 'placement-name', slot.name || '—'));
-        if (editable) makeCellEditable(card, { kind: 'slot', rotation: rot.rotation, position: slot.position });
+        card.append(el('span', 'placement-stations', `${CIRCLED[i]}（${slot.stations.join('・')}番）`));
+        const options = editable ? slotOptions(rot, slot) : [];
+        card.append(options.length
+          ? swapSelect(`${CIRCLED[i]}の担当を入れ替える`, slot.name || '空き', options, slotRef(rot, slot))
+          : el('span', 'placement-name', slot.name || '—'));
         grid.append(card);
       });
       container.append(grid);
@@ -576,26 +606,15 @@
     }
   }
 
-  async function pickCell(ref) {
+  async function swapCells(a, b) {
     const msg = $('placementMessage');
-    const redraw = () => renderPlacement($('ownerPlacement'), currentState && currentState.placement, true);
-    if (!selectedCell) {
-      selectedCell = ref;
-      redraw();
-      say(msg, '入れ替える相手をタップしてください（もう一度同じ場所をタップすると、選択をやめます）', true);
-      return;
-    }
-    if (sameCell(selectedCell, ref)) {
-      selectedCell = null;
-      redraw();
-      say(msg, '');
-      return;
-    }
-    const first = selectedCell;
-    selectedCell = null;
-    const res = await api('swapPlacement', { a: first, b: ref });
+    say(msg, '');
+    const res = await api('swapPlacement', { a, b });
     if (!res.ok) {
-      if (!handleAuthError(res)) { say(msg, res.error); redraw(); }
+      if (!handleAuthError(res)) {
+        say(msg, res.error);
+        renderPlacement($('ownerPlacement'), currentState && currentState.placement, true); // プルダウンを元に戻す
+      }
       return;
     }
     renderState(res);
