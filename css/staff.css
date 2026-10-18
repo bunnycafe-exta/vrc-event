@@ -2,6 +2,9 @@
    Staff page (login / attendance confirmation)
    ========================================================================== */
 
+/* hidden を付けた要素は、ボタンなどの display 指定があっても必ず隠す */
+[hidden] { display: none !important; }
+
 .staff-body {
   min-height: 100vh;
   background: var(--gradient-hero);
@@ -563,6 +566,38 @@
   font-weight: 700;
   color: var(--color-brown);
   word-break: break-all;
+}
+
+.staff-swap-hint {
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  line-height: 1.8;
+  color: var(--color-brown-soft);
+  background: rgba(201, 162, 75, 0.08);
+  border: 1px dashed rgba(201, 162, 75, 0.4);
+  border-radius: 10px;
+}
+
+.staff-swap-hint strong { color: var(--color-gold); }
+
+/* 入れ替えできる場所（オーナーのみ） */
+.is-editable { cursor: pointer; }
+.placement-slot.is-editable:hover { border-color: var(--color-gold); }
+.placement-slot.is-editable:focus-visible,
+.placement-name.is-editable:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px; }
+
+.placement-name.is-editable {
+  padding: 2px 10px;
+  border-radius: 8px;
+}
+
+.placement-name.is-editable:hover { background: rgba(201, 162, 75, 0.16); }
+
+.placement-slot.is-selected,
+.placement-name.is-selected {
+  background: rgba(201, 162, 75, 0.28);
+  box-shadow: 0 0 0 2px var(--color-gold);
 }
 
 .placement-slot.is-empty .placement-name { color: var(--color-brown-soft); font-weight: 400; }

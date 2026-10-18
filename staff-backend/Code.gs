@@ -12,7 +12,7 @@
  *   デプロイ → デプロイを管理 → 鉛筆アイコン → バージョン「新バージョン」→ デプロイ（URLは変わらない）
  * スタッフ追加・パスワード再発行・無効化: オーナー画面の「スタッフ管理」からできる
  *   （画面を使わない場合は、下の TARGETS に名前と役割を書いて「issueCredentials」を実行）
- *   役割: cast=キャスト（①〜⑥の配置） / staff=スタッフ（①～③サイド・③～⑥サイド） / owner=オーナー（配置の対象外）
+ *   役割: cast=キャスト（①〜⑥の配置） / staff=スタッフ（①～③サイド・④～⑥サイド） / owner=オーナー（配置の対象外）
  */
 
 // スプレッドシートに紐づけず script.google.com で単独のプロジェクトとして作る場合のみ、
@@ -26,10 +26,6 @@ const SESSION_SECONDS = 21600; // ログインの有効時間（6時間）
 const MAX_FAILS = 5;           // ログイン失敗の許容回数
 const LOCK_SECONDS = 600;      // 超えた場合のロック時間（10分）
 const POSITIONS_PER_ROTATION = 6; // 1ローテーションの人数（店内番号1〜12を2つずつ担当）
-// スタッフ側の2つのサイド（スタッフを半分ずつに分け、あふれたキャストは人数の少ないほうへ）
-const SIDE_LABELS = { A: '①～③サイド', B: '③～⑥サイド' };
-const ROTATION_NAMES = ['', '第一', '第二'];
-const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
 
 const STAFF_LIST = [
   { name: 'てとら', role: 'owner' },
@@ -62,7 +58,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 10 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 11 });
 }
 
 function doPost(e) {
@@ -110,6 +106,7 @@ function route_(req) {
     case 'setActive': requireOwner_(user); return withLock_(() => setActive_(req));
     case 'assign': requireOwner_(user); return withLock_(() => assign_(user));
     case 'publishPlacement': requireOwner_(user); return withLock_(() => publishPlacement_(user));
+    case 'swapPlacement': requireOwner_(user); return withLock_(() => swapPlacement_(user, req));
     default: return fail_('不明な操作です');
   }
 }
@@ -396,7 +393,7 @@ function state_(user) {
   if (user.role === 'owner') {
     out.placement = placement;
     out.placementStatus = placement ? (isPublished_(e.id) ? 'published' : 'draft') : 'none';
-    out.placementMessage = placement ? buildPlacementMessage_(e, placement) : '';
+    out.placementMessage = placement ? buildPlacementMessage_(e) : '';
   } else {
     out.placement = placement && isPublished_(e.id) ? placement : null; // 確定するまではキャストに見せない
   }
@@ -569,10 +566,16 @@ function getPlacement_(date) {
         slots.push({ position: p, stations: [p * 2 - 1, p * 2], name: found ? found.name : '' });
       }
       const extra = overflow[rot] || { A: [], B: [] };
+      const member = (kind) => (n) => ({ name: n, kind: kind });
       return {
         rotation: rot,
         slots: slots,
-        staffSides: { A: sides.A.concat(extra.A), B: sides.B.concat(extra.B) }
+        staffSides: { A: sides.A.concat(extra.A), B: sides.B.concat(extra.B) },
+        // 入れ替えの画面用。staff=スタッフ（両ローテ共通） / extra=その回であふれて加わったキャスト
+        sideMembers: {
+          A: sides.A.map(member('staff')).concat(extra.A.map(member('extra'))),
+          B: sides.B.map(member('staff')).concat(extra.B.map(member('extra')))
+        }
       };
     }),
     staff: sides // キャストが誰も出勤しない日のための予備
@@ -591,31 +594,18 @@ function setPublished_(eventId, published) {
   else props.deleteProperty('placementPublished_' + eventId);
 }
 
-function buildPlacementMessage_(e, p) {
-  const rule = '───────────────────────────────';
-  const lines = [
+// 配置そのものは、ログインページで見てもらう。文面には、日時とログインページのURLだけを入れる
+function buildPlacementMessage_(e) {
+  return [
     '【EXTA 配置のお知らせ】',
     dateJa_(e.date) + ' ' + e.startTime + '〜' + e.endTime,
-    rule
-  ];
-  const sideLines = (label, names) => [label].concat(names.length ? names : ['—']);
-  if (p.rotations.length) {
-    p.rotations.forEach(rot => {
-      lines.push('', '【' + (ROTATION_NAMES[rot.rotation] || '第' + rot.rotation) + 'ローテ】', '🐇キャスト');
-      rot.slots.forEach((s, i) => lines.push(CIRCLED[i] + (s.name || '—')));
-      lines.push('', '🎩スタッフ');
-      lines.push.apply(lines, sideLines(SIDE_LABELS.A, rot.staffSides.A));
-      lines.push('');
-      lines.push.apply(lines, sideLines(SIDE_LABELS.B, rot.staffSides.B));
-    });
-  } else {
-    lines.push('', '🎩スタッフ');
-    lines.push.apply(lines, sideLines(SIDE_LABELS.A, p.staff.A));
-    lines.push('');
-    lines.push.apply(lines, sideLines(SIDE_LABELS.B, p.staff.B));
-  }
-  lines.push(rule);
-  return lines.join('\n');
+    '当日の配置が確定しましたのでご確認ください。',
+    '',
+    STAFF_PAGE_URL,
+    '',
+    '変更希望等ございましたら、オーナーまでお問合せください。',
+    '───────────────────────────────'
+  ].join('\n');
 }
 
 function shuffle_(arr) {
@@ -718,6 +708,94 @@ function assign_(user) {
   const sh = sheet_('Placements');
   sh.getRange(sh.getLastRow() + 1, 1, out.length, 5).setValues(out);
   setPublished_(e.id, false); // 抽選し直したら、確定前（仮）に戻す
+  return state_(user);
+}
+
+/* ---------- Placement: manual swap (owner) ---------- */
+// 入れ替えられる場所の指定:
+//   {kind:'slot',  rotation, position}            キャストの①〜⑥（空きも可）
+//   {kind:'extra', rotation, side, name}          その回であふれて、サイドに加わったキャスト
+//   {kind:'staff', side, name}                    サイドのスタッフ（両ローテ共通）
+
+function locateCell_(rows, ref) {
+  if (!ref || typeof ref !== 'object') fail_('入れ替える場所が正しくありません');
+  const kind = String(ref.kind);
+  if (kind === 'slot') {
+    const rotation = Number(ref.rotation);
+    const position = Number(ref.position);
+    if (!(rotation >= 1) || !(position >= 1 && position <= POSITIONS_PER_ROTATION)) fail_('入れ替える場所が正しくありません');
+    const row = rows.find(r => String(r.rotation) === String(rotation) && Number(r.position) === position) || null;
+    return { kind: kind, rotation: rotation, position: position, row: row };
+  }
+  const side = String(ref.side);
+  const name = String(ref.name || '');
+  if (side !== 'A' && side !== 'B') fail_('入れ替える場所が正しくありません');
+  if (kind === 'extra') {
+    const rotation = Number(ref.rotation);
+    const row = rows.find(r => String(r.rotation) === side + rotation && String(r.name) === name);
+    if (!row) fail_('最新の配置と合いません。画面を更新してください');
+    return { kind: kind, rotation: rotation, side: side, row: row };
+  }
+  if (kind === 'staff') {
+    const row = rows.find(r => String(r.rotation) === side && String(r.name) === name);
+    if (!row) fail_('最新の配置と合いません。画面を更新してください');
+    return { kind: kind, side: side, row: row };
+  }
+  return fail_('入れ替える場所が正しくありません');
+}
+
+function swapPlacement_(user, req) {
+  const e = currentEvent_();
+  if (!e) fail_('現在、出勤の確認はありません');
+  const rows = readRows_('Placements').filter(r => asDate_(r.date) === e.date);
+  if (!rows.length) fail_('先に配置を抽選してください');
+  const a = locateCell_(rows, req.a);
+  const b = locateCell_(rows, req.b);
+  if (JSON.stringify(req.a) === JSON.stringify(req.b)) fail_('同じ場所です');
+
+  const sh = sheet_('Placements');
+  // Placements の列: 1=date 2=rotation(またはA/B) 3=position 4=name
+  const setKey = (cell, v) => sh.getRange(cell.row._row, 2).setValue(v);
+  const setPos = (cell, v) => sh.getRange(cell.row._row, 3).setValue(v);
+  const setName = (cell, v) => sh.getRange(cell.row._row, 4).setValue(v);
+
+  if (a.kind === 'slot' && b.kind === 'slot') {
+    if (a.rotation !== b.rotation) fail_('同じローテの中で入れ替えてください');
+    if (a.row && b.row) {
+      const n = String(a.row.name);
+      setName(a, String(b.row.name));
+      setName(b, n);
+    } else if (a.row) {
+      setPos(a, b.position); // 空いている場所へ移す
+    } else if (b.row) {
+      setPos(b, a.position);
+    } else {
+      fail_('入れ替える相手がいません');
+    }
+  } else if ((a.kind === 'slot' && b.kind === 'extra') || (a.kind === 'extra' && b.kind === 'slot')) {
+    const s = a.kind === 'slot' ? a : b;
+    const x = a.kind === 'extra' ? a : b;
+    if (s.rotation !== x.rotation) fail_('同じローテの中で入れ替えてください');
+    if (s.row) {
+      const n = String(s.row.name);
+      setName(s, String(x.row.name));
+      setName(x, n);
+    } else {
+      setKey(x, String(s.rotation)); // 空いている場所へ、サイドから移る
+      setPos(x, s.position);
+    }
+  } else if (a.kind === 'extra' && b.kind === 'extra') {
+    if (a.rotation !== b.rotation) fail_('同じローテの中で入れ替えてください');
+    if (a.side === b.side) fail_('同じサイドです。反対のサイドの人を選んでください');
+    setKey(a, b.side + b.rotation);
+    setKey(b, a.side + a.rotation);
+  } else if (a.kind === 'staff' && b.kind === 'staff') {
+    if (a.side === b.side) fail_('同じサイドです。反対のサイドの人を選んでください');
+    setKey(a, b.side);
+    setKey(b, a.side);
+  } else {
+    fail_('この組み合わせは入れ替えできません（キャスト同士・サイド同士で入れ替えてください）');
+  }
   return state_(user);
 }
 

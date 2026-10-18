@@ -156,19 +156,79 @@
     return db.placements[date] || null;
   }
 
-  function demoPlacementMessage(e, p) {
-    const rule = '───────────────────────────────';
-    const lines = ['【EXTA 配置のお知らせ】', `${dateJa(e.date)} ${e.startTime}〜${e.endTime}`, rule];
-    const sides = (label, names) => [label, ...(names.length ? names : ['—'])];
-    const names = ['', '第一', '第二'];
-    p.rotations.forEach((rot) => {
-      lines.push('', `【${names[rot.rotation] || `第${rot.rotation}`}ローテ】`, '🐇キャスト');
-      rot.slots.forEach((s, i) => lines.push(`${'①②③④⑤⑥'[i]}${s.name || '—'}`));
-      lines.push('', '🎩スタッフ', ...sides('①～③サイド', rot.staffSides.A), '', ...sides('③～⑥サイド', rot.staffSides.B));
-    });
-    if (!p.rotations.length && p.staff) lines.push('', '🎩スタッフ', ...sides('①～③サイド', p.staff.A), '', ...sides('③～⑥サイド', p.staff.B));
-    lines.push(rule);
-    return lines.join('\n');
+  function demoPlacementMessage(e) {
+    return [
+      '【EXTA 配置のお知らせ】',
+      `${dateJa(e.date)} ${e.startTime}〜${e.endTime}`,
+      '当日の配置が確定しましたのでご確認ください。',
+      '',
+      'https://bunnycafe-exta.github.io/vrc-event/staff.html',
+      '',
+      '変更希望等ございましたら、オーナーまでお問合せください。',
+      '───────────────────────────────'
+    ].join('\n');
+  }
+
+  // Same rules as swapPlacement_ in staff-backend/Code.gs. Returns an error message, or '' when swapped.
+  function demoSwap(pl, a, b) {
+    if (JSON.stringify(a) === JSON.stringify(b)) return '同じ場所です';
+    const rotOf = (n) => pl.rotations.find((r) => r.rotation === Number(n));
+    const find = (ref) => {
+      if (!ref) return null;
+      if (ref.kind === 'slot') {
+        const rot = rotOf(ref.rotation);
+        const slot = rot && rot.slots.find((s) => s.position === Number(ref.position));
+        return slot ? { kind: 'slot', rot, slot } : null;
+      }
+      if (ref.kind === 'extra') {
+        const rot = rotOf(ref.rotation);
+        const member = rot && rot.sideMembers[ref.side].find((m) => m.kind === 'extra' && m.name === ref.name);
+        return member ? { kind: 'extra', rot, side: ref.side, member } : null;
+      }
+      if (ref.kind === 'staff') {
+        return pl.staff[ref.side] && pl.staff[ref.side].includes(ref.name) ? { kind: 'staff', side: ref.side, name: ref.name } : null;
+      }
+      return null;
+    };
+    const A = find(a);
+    const B = find(b);
+    if (!A || !B) return '最新の配置と合いません。画面を更新してください';
+    const sameRotation = () => A.rot === B.rot;
+    if (A.kind === 'slot' && B.kind === 'slot') {
+      if (!sameRotation()) return '同じローテの中で入れ替えてください';
+      [A.slot.name, B.slot.name] = [B.slot.name, A.slot.name];
+      if (!A.slot.name && !B.slot.name) return '入れ替える相手がいません';
+    } else if ((A.kind === 'slot' && B.kind === 'extra') || (A.kind === 'extra' && B.kind === 'slot')) {
+      const s = A.kind === 'slot' ? A : B;
+      const x = A.kind === 'extra' ? A : B;
+      if (s.rot !== x.rot) return '同じローテの中で入れ替えてください';
+      const previous = s.slot.name;
+      s.slot.name = x.member.name;
+      if (previous) x.member.name = previous;
+      else x.rot.sideMembers[x.side] = x.rot.sideMembers[x.side].filter((m) => m !== x.member);
+    } else if (A.kind === 'extra' && B.kind === 'extra') {
+      if (!sameRotation()) return '同じローテの中で入れ替えてください';
+      if (A.side === B.side) return '同じサイドです。反対のサイドの人を選んでください';
+      A.rot.sideMembers[A.side] = A.rot.sideMembers[A.side].map((m) => (m === A.member ? B.member : m));
+      B.rot.sideMembers[B.side] = B.rot.sideMembers[B.side].map((m) => (m === B.member ? A.member : m));
+    } else if (A.kind === 'staff' && B.kind === 'staff') {
+      if (A.side === B.side) return '同じサイドです。反対のサイドの人を選んでください';
+      const move = (name, from, to) => {
+        pl.staff[from] = pl.staff[from].filter((n) => n !== name);
+        pl.staff[to].push(name);
+        pl.rotations.forEach((r) => {
+          const m = r.sideMembers[from].find((x) => x.kind === 'staff' && x.name === name);
+          r.sideMembers[from] = r.sideMembers[from].filter((x) => x !== m);
+          r.sideMembers[to].unshift(m);
+        });
+      };
+      move(A.name, A.side, B.side);
+      move(B.name, B.side, A.side);
+    } else {
+      return 'この組み合わせは入れ替えできません（キャスト同士・サイド同士で入れ替えてください）';
+    }
+    pl.rotations.forEach((r) => { r.staffSides = { A: r.sideMembers.A.map((m) => m.name), B: r.sideMembers.B.map((m) => m.name) }; });
+    return '';
   }
 
   function demoApi(action, p) {
@@ -302,7 +362,11 @@
           rotations: castNames.length ? demoPlanCasts(castNames, { A: sideA.length, B: sideB.length }).map((rot) => ({
             rotation: rot.rotation,
             slots: rot.slots,
-            staffSides: { A: sideA.concat(rot.overflow.A), B: sideB.concat(rot.overflow.B) }
+            staffSides: { A: sideA.concat(rot.overflow.A), B: sideB.concat(rot.overflow.B) },
+            sideMembers: {
+              A: sideA.map((name) => ({ name, kind: 'staff' })).concat(rot.overflow.A.map((name) => ({ name, kind: 'extra' }))),
+              B: sideB.map((name) => ({ name, kind: 'staff' })).concat(rot.overflow.B.map((name) => ({ name, kind: 'extra' })))
+            }
           })) : [],
           staff: { A: sideA, B: sideB }
         };
@@ -356,6 +420,17 @@
         const id = String(1000 + Math.floor(Math.random() * 9000));
         db.people.push({ name, role: p.role, id, active: true }); demoSave(db);
         return ok({ credential: { name, id, password: randomPassword() }, people: db.people });
+      }
+      case 'swapPlacement': {
+        if (needOwner()) return needOwner();
+        const e = current();
+        if (!e) return fail('現在、出勤の確認はありません');
+        const pl = demoPlacement(db, e.date);
+        if (!pl) return fail('先に配置を抽選してください');
+        const error = demoSwap(pl, p.a, p.b);
+        if (error) return fail(error);
+        demoSave(db);
+        return ok(stateOf());
       }
       case 'publishPlacement': {
         if (needOwner()) return needOwner();
@@ -415,6 +490,7 @@
     me = null;
     currentState = null;
     ownerTabReady = false;
+    selectedCell = null;
     manageLoaded = false;
     lastHistoryLoad = 0;
     $('issuedList').replaceChildren(); // 発行したパスワードを画面に残さない
@@ -434,9 +510,26 @@
 
   const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
   const ROTATION_NAMES = ['', '第一', '第二'];
-  const SIDE_LABELS = { A: '①～③サイド', B: '③～⑥サイド' };
+  const SIDE_LABELS = { A: '①～③サイド', B: '④～⑥サイド' };
 
-  function renderSides(container, sides) {
+  // オーナーが配置を入れ替えるとき、1つ目に選んだ場所
+  let selectedCell = null;
+  const sameCell = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  // editable のとき、その場所をタップできるようにする（1つ目と2つ目を選ぶと入れ替わる）
+  function makeCellEditable(node, ref) {
+    node.classList.add('is-editable');
+    if (selectedCell && sameCell(selectedCell, ref)) node.classList.add('is-selected');
+    node.setAttribute('role', 'button');
+    node.tabIndex = 0;
+    node.addEventListener('click', (e) => { e.stopPropagation(); pickCell(ref); });
+    node.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); pickCell(ref); }
+    });
+  }
+
+  function renderSides(container, rot, editable) {
+    const sides = rot.staffSides || { A: [], B: [] };
     container.append(el('p', 'placement-note', '🎩スタッフ'));
     const grid = el('div', 'placement-grid placement-grid-staff');
     ['A', 'B'].forEach((key) => {
@@ -444,13 +537,24 @@
       const card = el('div', 'placement-slot' + (me && names.includes(me.name) ? ' is-me' : ''));
       card.append(el('span', 'placement-stations', SIDE_LABELS[key]));
       if (!names.length) card.append(el('span', 'placement-name', '—'));
-      names.forEach((n) => card.append(el('span', 'placement-name', n)));
+      const members = editable && rot.sideMembers ? rot.sideMembers[key] : null;
+      if (members) {
+        members.forEach((m) => {
+          const chip = el('span', 'placement-name', m.name);
+          makeCellEditable(chip, m.kind === 'extra'
+            ? { kind: 'extra', rotation: rot.rotation, side: key, name: m.name }
+            : { kind: 'staff', side: key, name: m.name });
+          card.append(chip);
+        });
+      } else {
+        names.forEach((n) => card.append(el('span', 'placement-name', n)));
+      }
       grid.append(card);
     });
     container.append(grid);
   }
 
-  function renderPlacement(container, placement) {
+  function renderPlacement(container, placement, editable) {
     container.replaceChildren();
     if (!placement) return;
     placement.rotations.forEach((rot) => {
@@ -460,15 +564,42 @@
       rot.slots.forEach((slot, i) => {
         const card = el('div', 'placement-slot' + (slot.name ? '' : ' is-empty') + (me && slot.name === me.name ? ' is-me' : ''));
         card.append(el('span', 'placement-stations', `${CIRCLED[i]}（${slot.stations.join('・')}番）`), el('span', 'placement-name', slot.name || '—'));
+        if (editable) makeCellEditable(card, { kind: 'slot', rotation: rot.rotation, position: slot.position });
         grid.append(card);
       });
       container.append(grid);
-      renderSides(container, rot.staffSides || { A: [], B: [] });
+      renderSides(container, rot, editable);
     });
     if (!placement.rotations.length && placement.staff) {
       container.append(el('h3', 'staff-rot-title', 'スタッフ'));
-      renderSides(container, placement.staff);
+      renderSides(container, { rotation: 0, staffSides: placement.staff }, false);
     }
+  }
+
+  async function pickCell(ref) {
+    const msg = $('placementMessage');
+    const redraw = () => renderPlacement($('ownerPlacement'), currentState && currentState.placement, true);
+    if (!selectedCell) {
+      selectedCell = ref;
+      redraw();
+      say(msg, '入れ替える相手をタップしてください（もう一度同じ場所をタップすると、選択をやめます）', true);
+      return;
+    }
+    if (sameCell(selectedCell, ref)) {
+      selectedCell = null;
+      redraw();
+      say(msg, '');
+      return;
+    }
+    const first = selectedCell;
+    selectedCell = null;
+    const res = await api('swapPlacement', { a: first, b: ref });
+    if (!res.ok) {
+      if (!handleAuthError(res)) { say(msg, res.error); redraw(); }
+      return;
+    }
+    renderState(res);
+    say(msg, '入れ替えました。キャスト・スタッフの画面にも反映されます。', true);
   }
 
   const ANSWER_LABEL = { yes: '出勤できます', no: '出勤できません', '': '未回答' };
@@ -559,7 +690,8 @@
 
     $('assignBtn').disabled = !closed;
     $('assignBtn').textContent = state.placement ? 'もう一度抽選する' : '配置を抽選する';
-    renderPlacement($('ownerPlacement'), state.placement);
+    renderPlacement($('ownerPlacement'), state.placement, true);
+    $('swapHint').hidden = !state.placement;
 
     const status = state.placementStatus;
     $('placementPreview').hidden = !state.placement;

@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/staff.css?v=23">
+<link rel="stylesheet" href="css/staff.css?v=25">
 </head>
 <body class="staff-body">
 
@@ -199,12 +199,13 @@
         <p class="staff-muted">「出勤」と判断した人からランダムに決めます。</p>
         <ul class="staff-rules">
           <li>キャストは第一・第二ローテの両方に入り、第二は第一と違う場所になります（①〜⑥）。</li>
-          <li>スタッフは「①～③サイド」と「③～⑥サイド」に半分ずつ分かれます（オーナーは対象外です）。</li>
+          <li>スタッフは「①～③サイド」と「④～⑥サイド」に半分ずつ分かれます（オーナーは対象外です）。</li>
           <li>6人を超えたキャストは、その回の人数が少ないほうのサイドに回ります。</li>
           <li>抽選した結果は、確定するまでてとらさんにだけ見えます。</li>
         </ul>
         <button type="button" class="btn btn-primary staff-assign" id="assignBtn">配置を抽選する</button>
         <p class="staff-message" id="placementMessage" role="alert"></p>
+        <p class="staff-swap-hint" id="swapHint" hidden><strong>入れ替えるとき：</strong>入れ替えたい2か所を、順にタップしてください（キャスト同士、またはスタッフ側の人同士）。確定したあとでも入れ替えられて、キャスト・スタッフの画面にもすぐ反映されます。</p>
         <div id="ownerPlacement"></div>
 
         <div class="staff-preview" id="placementPreview" hidden>
@@ -289,6 +290,6 @@
 
 </main>
 
-<script src="js/staff.js?v=23"></script>
+<script src="js/staff.js?v=25"></script>
 </body>
 </html>
