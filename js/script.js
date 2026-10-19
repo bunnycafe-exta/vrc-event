@@ -230,7 +230,7 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     });
   }
 
-  // パチンコ風の演出（effect: 'pachinko'）: フラッシュ・震え・虹色の文字・光線・「激アツ」・飛び散るハート
+  // パチンコ風の演出（effect: 'pachinko'）: フラッシュ・震え・虹色の文字・光線・飛び散るハート
   let fxTimer = null;
   const HEART_COLORS = ['#ff4d8d', '#ffd23b', '#ff7a3b', '#ffffff', '#ff3b3b'];
 
@@ -255,13 +255,12 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     window.clearInterval(fxTimer);
     fxTimer = null;
     modal.classList.remove('fx-pachinko');
-    modal.querySelectorAll('.fx-heart, .fx-badge').forEach((node) => node.remove());
+    modal.querySelectorAll('.fx-heart').forEach((node) => node.remove());
   }
 
   function startPachinko() {
     const row = messageBlock.querySelector('.profile-row.is-large');
     if (!row) return;
-    row.append(make('span', 'fx-badge', '激アツ'));
     modal.classList.remove('fx-pachinko');
     void modal.offsetWidth; // 開くたびに、最初から演出をやり直す
     modal.classList.add('fx-pachinko');

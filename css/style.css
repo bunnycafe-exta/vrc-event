@@ -1373,25 +1373,6 @@ ul { list-style: none; }
   animation: fxZoom 0.75s cubic-bezier(0.2, 1.7, 0.4, 1) 0.15s both, fxRainbow 2.2s linear infinite, fxPulse 0.8s ease-in-out 0.9s infinite alternate;
 }
 
-/* 「激アツ」の札（点滅） */
-.fx-badge {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  z-index: 2;
-  padding: 1px 12px;
-  font-size: 0.9rem;
-  font-weight: 900;
-  letter-spacing: 0.15em;
-  color: #fff;
-  background: linear-gradient(180deg, #ff3b3b, #c40000);
-  border: 2px solid #ffe27a;
-  border-radius: 6px;
-  box-shadow: 0 0 12px rgba(255, 60, 60, 0.9);
-  transform: rotate(6deg);
-  animation: fxBlink 0.5s steps(2) infinite;
-}
-
 /* 飛び散るハート */
 .fx-heart {
   position: absolute;
@@ -1443,11 +1424,6 @@ ul { list-style: none; }
 @keyframes fxBorder {
   0%   { border-color: #ffd23b; box-shadow: 0 0 10px rgba(255, 210, 59, 0.7); }
   100% { border-color: #ff4d4d; box-shadow: 0 0 22px rgba(255, 77, 77, 0.9); }
-}
-
-@keyframes fxBlink {
-  0%   { opacity: 1; }
-  100% { opacity: 0.35; }
 }
 
 @keyframes fxFly {
