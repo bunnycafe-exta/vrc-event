@@ -1159,6 +1159,348 @@ ul { list-style: none; }
 }
 
 /* ==========================================================================
+   Cast / Owner profile popup
+   ========================================================================== */
+
+.cast-photo.is-clickable {
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.cast-photo.is-clickable:hover { border-color: var(--color-gold); box-shadow: 0 0 0 4px rgba(201, 162, 75, 0.18); }
+.cast-photo.is-clickable:focus-visible { outline: 3px solid var(--color-gold); outline-offset: 4px; }
+
+.profile-hint {
+  display: block;
+  margin: 8px auto 0;
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--color-gold);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.profile-hint:hover { color: var(--color-peach); }
+
+.profile-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.profile-modal[hidden] { display: none; }
+
+.profile-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 6, 14, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.profile-card {
+  position: relative;
+  width: min(900px, 100%);
+  max-height: min(92vh, 780px);
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) 1fr;
+  background: var(--color-surface);
+  border: 1px solid rgba(201, 162, 75, 0.45);
+  border-radius: 24px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+  animation: profileIn 0.3s ease;
+}
+
+.profile-photo {
+  background: #0F0D18;
+  min-height: 0;
+}
+
+.profile-photo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transform: none;
+}
+
+.profile-body {
+  padding: 40px 38px 34px;
+  overflow-y: auto;
+}
+
+/* 写真がない人: 文章だけの、細めのカード */
+.profile-modal.is-textonly .profile-card {
+  grid-template-columns: 1fr;
+  width: min(560px, 100%);
+}
+
+.profile-modal.is-textonly .profile-photo { display: none; }
+
+.profile-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-brown);
+  background: rgba(20, 18, 31, 0.85);
+  border: 1px solid rgba(201, 162, 75, 0.5);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.profile-close:hover { border-color: var(--color-gold); color: var(--color-gold); }
+
+.profile-role {
+  margin-bottom: 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-peach-deep);
+}
+
+.profile-fields { margin: 0; }
+
+.profile-row {
+  display: flex;
+  gap: 0.5em;
+  min-height: 2.8em;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(201, 162, 75, 0.18);
+}
+
+.profile-row dt {
+  flex: 0 0 auto;
+  font-family: var(--font-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-peach-deep);
+}
+
+/* 文節ごと（「｜」の位置）にだけ改行し、句読点などが行頭に来ないようにする。長すぎる語だけは、はみ出さないよう折り返す */
+.profile-row dd,
+.profile-message p {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-break: strict;
+  text-wrap: pretty; /* 最後の行だけ極端に短くならないようにする（対応ブラウザのみ） */
+}
+
+.profile-row dd {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--color-brown);
+}
+
+/* ひとことを大きく見せる人（profiles.js の large: true）。言葉が長くても入るよう、見出しの下に全幅で表示する */
+.profile-row.is-large { flex-direction: column; gap: 4px; }
+
+.profile-row.is-large dd {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: var(--color-peach);
+}
+
+/* ---- パチンコ風の演出（profiles.js の effect: 'pachinko'）---- */
+
+.profile-modal.fx-pachinko .profile-card {
+  animation: profileIn 0.3s ease, fxShake 0.8s 0.1s both;
+}
+
+/* 開いた瞬間のフラッシュ */
+.profile-modal.fx-pachinko .profile-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 60%, #ffffff 0%, #ffe27a 45%, rgba(255, 226, 122, 0) 80%);
+  animation: fxFlash 0.8s ease-out both;
+}
+
+.fx-pachinko .profile-row.is-large {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-top: 8px;
+  padding: 26px 16px 18px;
+  border: 2px solid #ffd23b;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(150, 10, 50, 0.7), rgba(50, 10, 100, 0.7));
+  animation: fxBorder 0.45s steps(2) infinite alternate;
+}
+
+/* 背景の光線（ゆっくり回る） */
+.fx-pachinko .profile-row.is-large::before {
+  content: "";
+  position: absolute;
+  inset: -150%;
+  z-index: -1;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 220, 90, 0) 0deg 9deg, rgba(255, 220, 90, 0.2) 9deg 18deg);
+  animation: fxSpin 7s linear infinite;
+}
+
+.fx-pachinko .profile-row.is-large dt { color: #ffe9a8; text-shadow: 0 0 8px rgba(255, 210, 59, 0.8); }
+
+/* 虹色に光る文字。ドンと拡大して登場し、そのあと脈打つ */
+.fx-pachinko .profile-row.is-large dd {
+  font-weight: 900;
+  background: linear-gradient(90deg, #ff3b3b, #ffd23b, #3bff7a, #3bc8ff, #b13bff, #ff3b3b);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1px rgba(50, 0, 30, 0.85); /* 光線の上でも読めるように、細い縁取り */
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 14px rgba(255, 190, 0, 0.9));
+  animation: fxZoom 0.75s cubic-bezier(0.2, 1.7, 0.4, 1) 0.15s both, fxRainbow 2.2s linear infinite, fxPulse 0.8s ease-in-out 0.9s infinite alternate;
+}
+
+/* 「激アツ」の札（点滅） */
+.fx-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 2;
+  padding: 1px 12px;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: #fff;
+  background: linear-gradient(180deg, #ff3b3b, #c40000);
+  border: 2px solid #ffe27a;
+  border-radius: 6px;
+  box-shadow: 0 0 12px rgba(255, 60, 60, 0.9);
+  transform: rotate(6deg);
+  animation: fxBlink 0.5s steps(2) infinite;
+}
+
+/* 飛び散るハート */
+.fx-heart {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  z-index: 3;
+  pointer-events: none;
+  text-shadow: 0 0 8px currentColor;
+  animation: fxFly var(--dur, 1.2s) ease-out forwards;
+}
+
+@keyframes fxShake {
+  0%, 100% { translate: 0 0; rotate: 0deg; }
+  8%  { translate: -9px 4px;  rotate: -0.6deg; }
+  16% { translate: 8px -5px;  rotate: 0.5deg; }
+  24% { translate: -7px -3px; rotate: -0.4deg; }
+  32% { translate: 7px 5px;   rotate: 0.5deg; }
+  40% { translate: -5px 3px;  rotate: -0.3deg; }
+  48% { translate: 5px -3px;  rotate: 0.3deg; }
+  60% { translate: -3px 2px;  rotate: -0.2deg; }
+  75% { translate: 2px -1px;  rotate: 0.1deg; }
+}
+
+@keyframes fxFlash {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes fxZoom {
+  0%   { transform: scale(3.2); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fxRainbow {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+
+@keyframes fxPulse {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.06); }
+}
+
+@keyframes fxSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fxBorder {
+  0%   { border-color: #ffd23b; box-shadow: 0 0 10px rgba(255, 210, 59, 0.7); }
+  100% { border-color: #ff4d4d; box-shadow: 0 0 22px rgba(255, 77, 77, 0.9); }
+}
+
+@keyframes fxBlink {
+  0%   { opacity: 1; }
+  100% { opacity: 0.35; }
+}
+
+@keyframes fxFly {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.3) rotate(var(--rot)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-modal.fx-pachinko .profile-card::after { display: none; }
+}
+
+.profile-heading {
+  margin: 24px 0 10px;
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  color: var(--color-gold);
+}
+
+.profile-message p {
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  line-height: 2;
+  color: var(--color-brown);
+}
+
+html.profile-open { overflow: hidden; }
+
+@keyframes profileIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-card { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .profile-modal { padding: 12px; }
+
+  .profile-card {
+    grid-template-columns: 1fr;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+
+  .profile-photo { height: 42vh; max-height: 380px; }
+  .profile-photo img { object-position: 50% 8%; }
+  .profile-body { padding: 24px 22px 30px; overflow: visible; }
+}
+
+/* ==========================================================================
    Footer
    ========================================================================== */
 

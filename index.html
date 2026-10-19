@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2">
 </head>
 <body>
 
@@ -432,6 +432,24 @@
   </svg>
 </button>
 
-<script src="js/script.js"></script>
+<!-- ===== Cast / Owner profile popup ===== -->
+<div class="profile-modal" id="profileModal" role="dialog" aria-modal="true" aria-label="プロフィール" hidden>
+  <div class="profile-backdrop" data-profile-close></div>
+  <div class="profile-card">
+    <button type="button" class="profile-close" data-profile-close aria-label="閉じる">&times;</button>
+    <div class="profile-photo"><img id="profilePhoto" src="" alt=""></div>
+    <div class="profile-body">
+      <p class="profile-role" id="profileRole"></p>
+      <dl class="profile-fields">
+        <div class="profile-row"><dt>名前：</dt><dd id="profileName"></dd></div>
+        <div class="profile-row"><dt>使用アバター：</dt><dd id="profileAvatar"></dd></div>
+      </dl>
+      <div id="profileMessageBlock"></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/profiles.js?v=2"></script>
+<script src="js/script.js?v=2"></script>
 </body>
 </html>

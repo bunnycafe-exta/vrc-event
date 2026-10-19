@@ -202,3 +202,143 @@ navToggle.addEventListener('click', () => {
 siteNav.querySelectorAll('.nav-link').forEach((link) => {
   link.addEventListener('click', closeNav);
 });
+
+// Cast / owner profile popup: tapping the round icon opens the profile next to the photo
+(function setupProfiles() {
+  const profiles = window.EXTA_PROFILES || {};
+  const modal = document.getElementById('profileModal');
+  if (!modal) return;
+  const photo = document.getElementById('profilePhoto');
+  const roleEl = document.getElementById('profileRole');
+  const nameEl = document.getElementById('profileName');
+  const avatarEl = document.getElementById('profileAvatar');
+  const messageBlock = document.getElementById('profileMessageBlock');
+  let lastTrigger = null;
+
+  function make(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  // 「｜」は改行してよい位置。<wbr>に置き換えて、文節の途中では改行されないようにする
+  function appendPhrases(parent, line) {
+    line.split('｜').forEach((part, i) => {
+      if (i) parent.append(document.createElement('wbr'));
+      parent.append(document.createTextNode(part));
+    });
+  }
+
+  // パチンコ風の演出（effect: 'pachinko'）: フラッシュ・震え・虹色の文字・光線・「激アツ」・飛び散るハート
+  let fxTimer = null;
+  const HEART_COLORS = ['#ff4d8d', '#ffd23b', '#ff7a3b', '#ffffff', '#ff3b3b'];
+
+  function spawnHearts(row, count) {
+    for (let i = 0; i < count; i++) {
+      const heart = make('span', 'fx-heart', Math.random() < 0.5 ? '♡' : '♥');
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 90 + Math.random() * 150;
+      heart.style.setProperty('--dx', `${Math.round(Math.cos(angle) * dist)}px`);
+      heart.style.setProperty('--dy', `${Math.round(Math.sin(angle) * dist * 0.8 - 20)}px`);
+      heart.style.setProperty('--rot', `${Math.round((Math.random() - 0.5) * 120)}deg`);
+      heart.style.setProperty('--dur', `${(0.9 + Math.random() * 0.7).toFixed(2)}s`);
+      heart.style.color = HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)];
+      heart.style.fontSize = `${(1 + Math.random() * 1.1).toFixed(2)}rem`;
+      heart.addEventListener('animationend', () => heart.remove());
+      window.setTimeout(() => heart.remove(), 2400); // アニメーションが止まっていても、残らないようにする
+      row.append(heart);
+    }
+  }
+
+  function stopPachinko() {
+    window.clearInterval(fxTimer);
+    fxTimer = null;
+    modal.classList.remove('fx-pachinko');
+    modal.querySelectorAll('.fx-heart, .fx-badge').forEach((node) => node.remove());
+  }
+
+  function startPachinko() {
+    const row = messageBlock.querySelector('.profile-row.is-large');
+    if (!row) return;
+    row.append(make('span', 'fx-badge', '激アツ'));
+    modal.classList.remove('fx-pachinko');
+    void modal.offsetWidth; // 開くたびに、最初から演出をやり直す
+    modal.classList.add('fx-pachinko');
+    window.setTimeout(() => spawnHearts(row, 22), 250);
+    fxTimer = window.setInterval(() => spawnHearts(row, 8), 1500);
+  }
+
+  function open(cardName, roleText, trigger) {
+    const p = profiles[cardName];
+    if (!p) return;
+    stopPachinko();
+    lastTrigger = trigger;
+    // 写真がない人は、写真の枠なしで、文章だけを表示する
+    modal.classList.toggle('is-textonly', !p.photo);
+    if (p.photo) {
+      photo.src = p.photo;
+      photo.alt = `${cardName}のプロフィール写真`;
+    } else {
+      photo.removeAttribute('src');
+      photo.alt = '';
+    }
+    roleEl.textContent = roleText;
+    nameEl.textContent = p.name || '';
+    avatarEl.textContent = p.avatar || '';
+
+    messageBlock.replaceChildren();
+    const lines = p.message || [];
+    if (p.heading === '代表挨拶') {
+      messageBlock.append(make('h3', 'profile-heading', p.heading));
+      const body = make('div', 'profile-message');
+      lines.forEach((line) => { const para = make('p'); appendPhrases(para, line); body.append(para); });
+      messageBlock.append(body);
+    } else {
+      const row = make('div', 'profile-row' + (p.large ? ' is-large' : ''));
+      const text = make('dd', '');
+      lines.forEach((line, i) => { if (i) text.append(document.createElement('br')); appendPhrases(text, line); });
+      row.append(make('dt', '', `${p.heading || 'ひとこと'}：`), text);
+      const list = make('dl', 'profile-fields');
+      list.append(row);
+      messageBlock.append(list);
+    }
+
+    modal.hidden = false;
+    document.documentElement.classList.add('profile-open');
+    modal.querySelector('.profile-card').scrollTop = 0;
+    modal.querySelector('.profile-close').focus();
+    if (p.effect === 'pachinko' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) startPachinko();
+  }
+
+  function close() {
+    if (modal.hidden) return;
+    stopPachinko();
+    modal.hidden = true;
+    document.documentElement.classList.remove('profile-open');
+    if (lastTrigger) lastTrigger.focus();
+  }
+
+  modal.addEventListener('click', (e) => { if (e.target.closest('[data-profile-close]')) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+  document.querySelectorAll('.cast-card').forEach((card) => {
+    const nameNode = card.querySelector('.cast-name');
+    const icon = card.querySelector('.cast-photo');
+    if (!nameNode || !icon || !profiles[nameNode.textContent.trim()]) return; // no photo / profile yet: leave as is
+    const cardName = nameNode.textContent.trim();
+    const roleText = (card.querySelector('.cast-role') || {}).textContent || '';
+    icon.classList.add('is-clickable');
+    icon.setAttribute('role', 'button');
+    icon.setAttribute('tabindex', '0');
+    icon.setAttribute('aria-label', `${cardName}のプロフィールを見る`);
+    icon.addEventListener('click', () => open(cardName, roleText, icon));
+    icon.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(cardName, roleText, icon); }
+    });
+    const hint = make('button', 'profile-hint', 'PROFILE ›');
+    hint.type = 'button';
+    hint.addEventListener('click', () => open(cardName, roleText, hint));
+    nameNode.after(hint);
+  });
+})();
