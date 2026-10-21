@@ -658,3 +658,7 @@
   .placement-grid { grid-template-columns: repeat(2, 1fr); }
   .staff-preview-actions .btn { width: 100%; }
 }
+
+/* 次回営業日のフォーム: 入力欄とボタンの間、ボタンと文面の間をあける */
+#nextOpenForm .staff-preview-actions { margin-top: 22px; }
+#nextOpenCard .staff-message { margin-top: 16px; }
