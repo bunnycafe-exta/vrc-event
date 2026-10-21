@@ -1291,6 +1291,12 @@
       });
       item.append(dl);
       const actions = el('div', 'staff-preview-actions staff-reserve-actions');
+      if (!r.cancelled) {
+        const doneBtn = el('button', 'btn btn-outline', '完了のお知らせをコピー');
+        doneBtn.type = 'button';
+        doneBtn.addEventListener('click', () => copyDoneMessage(r, name));
+        actions.append(doneBtn);
+      }
       const cancelBtn = el('button', r.cancelled ? 'btn btn-outline' : 'staff-delete', r.cancelled ? 'キャンセルを取り消す' : 'キャンセルにする');
       cancelBtn.type = 'button';
       cancelBtn.addEventListener('click', () => cancelReservation(r, name));
@@ -1298,6 +1304,44 @@
       item.append(actions);
       list.append(item);
     });
+  }
+
+  // 予約が完了したお客様に送る文面。営業日は、その予約が入った営業日（なければ、設定中の次回営業日）
+  function doneMessage(r, name) {
+    const date = r.date || (lastNext ? lastNext.date : '');
+    let when = '次回営業日';
+    if (date) {
+      const [y, m, d] = date.split('-').map(Number);
+      const dow = '日月火水木金土'.charAt(new Date(Date.UTC(y, m - 1, d)).getUTCDay());
+      when = `${m}月${d}日（${dow}）`;
+    }
+    const start = lastNext && lastNext.date === date ? lastNext.startTime : '';
+    return [
+      `${name}様`,
+      '',
+      '-----ご予約完了のお知らせ-----',
+      '受付フォームよりご来店ご予約をいただきありがとうございます。',
+      start ? `つきましては${when}の${start}～からの営業となります。` : `つきましては${when}の営業となります。`,
+      '',
+      '事前ご予約のお客様は事前にオーナー',
+      '【Tetra_POD】へフレンド申請をお願いいたします。',
+      'https://vrchat.com/home/user/usr_ef5b5658-bf5c-4e27-90d6-d3a45ebc3011',
+      '',
+      'フレンド承認後、当日21:40頃に待機所に招待いたしますので、スタッフと一緒に入っていただきます。',
+      '',
+      '当日までにご来店が難しくなってしまった場合には、こちらのDMにてご連絡いただければと思いますので',
+      'どうぞよろしくお願いいたします。'
+    ].join('\n');
+  }
+
+  async function copyDoneMessage(r, name) {
+    const msg = $('reservationMessage');
+    try {
+      await navigator.clipboard.writeText(doneMessage(r, name));
+      say(msg, `${name}さん宛ての「ご予約完了のお知らせ」をコピーしました。DMなどに貼って、送ってください。`, true);
+    } catch (e) {
+      say(msg, 'コピーできませんでした。');
+    }
   }
 
   async function cancelReservation(r, name) {
