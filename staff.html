@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/staff.css?v=29">
+<link rel="stylesheet" href="css/staff.css?v=30">
 </head>
 <body class="staff-body">
 
@@ -99,6 +99,7 @@
         <button type="button" class="staff-tab is-active" data-tab="status">出勤状況</button>
         <button type="button" class="staff-tab" data-tab="create">新規作成</button>
         <button type="button" class="staff-tab" data-tab="placement">配置</button>
+        <button type="button" class="staff-tab" data-tab="reservations">予約</button>
         <button type="button" class="staff-tab" data-tab="history">履歴</button>
         <button type="button" class="staff-tab" data-tab="manage">管理</button>
       </nav>
@@ -221,6 +222,20 @@
 
       </div>
 
+      <div class="staff-tabpanel" data-panel="reservations" hidden>
+      <div class="staff-card" id="reservationCard">
+        <h2 class="staff-h2">来店予約（フォームの回答）</h2>
+        <p class="staff-muted staff-small">サイトの「来店予約」フォームに入力された内容を、新しい順に表示します。この画面では、読むだけです（直したり、消したりは、フォームの回答のスプレッドシートで行います）。</p>
+        <div class="staff-inline-form">
+          <button type="button" class="btn btn-outline" id="reservationReload">最新の状態に更新</button>
+        </div>
+        <p class="staff-message" id="reservationMessage" role="alert"></p>
+        <p class="staff-muted" id="reservationEmpty" hidden>まだ、予約はありません。</p>
+        <p class="staff-reserve-summary" id="reservationSummary" hidden></p>
+        <div id="reservationList"></div>
+      </div>
+      </div>
+
       <div class="staff-tabpanel" data-panel="history" hidden>
       <div class="staff-card" id="historyCard">
         <h2 class="staff-h2">出勤履歴・出勤率</h2>
@@ -290,6 +305,6 @@
 
 </main>
 
-<script src="js/staff.js?v=29"></script>
+<script src="js/staff.js?v=30"></script>
 </body>
 </html>

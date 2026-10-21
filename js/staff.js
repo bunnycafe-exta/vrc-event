@@ -394,6 +394,17 @@
           })
         });
       }
+      case 'reservations': {
+        if (needOwner()) return needOwner();
+        const rows = [
+          ['2026/10/20 21:14:08', '参加済み', '2', 'さくら', 'https://vrchat.com/home/user/usr_00000000-demo', 'https://x.com/sample_a', 'はじめてです。よろしくお願いします。'],
+          ['2026/10/19 08:02:41', '参加済み', '', 'ひなた', 'https://vrchat.com/home/user/usr_00000000-demo2', 'https://x.com/sample_b', '']
+        ].map((values, i) => ({ row: i + 2, values }));
+        return ok({
+          headers: ['タイムスタンプ', '当イベントのグループ参加はされてますか？', '何名様でご来店予定ですか？', 'お名前(VRChatの表示名)', 'VRCアカウントURL', 'X(旧Twitter)のアカウントURL', 'ご来店前に確認しておきたい事項等'],
+          rows, total: rows.length, guests: 3, shown: rows.length
+        });
+      }
       case 'staffList': case 'reissue': case 'addStaff': case 'setActive': {
         if (needOwner()) return needOwner();
         if (!db.people) {
@@ -466,7 +477,7 @@
   }
 
   const OWNER_TAB_KEY = 'exta-owner-tab';
-  const OWNER_TABS = ['status', 'create', 'placement', 'history', 'manage'];
+  const OWNER_TABS = ['status', 'create', 'placement', 'reservations', 'history', 'manage'];
   let ownerTabReady = false;
 
   // オーナー画面のタブ切り替え。選んだタブは、再読み込みしても覚えている
@@ -475,6 +486,7 @@
     document.querySelectorAll('#ownerTabs .staff-tab').forEach((b) => b.classList.toggle('is-active', b.dataset.tab === name));
     document.querySelectorAll('.staff-tabpanel').forEach((p) => { p.hidden = p.dataset.panel !== name; });
     try { sessionStorage.setItem(OWNER_TAB_KEY, name); } catch (e) { /* storage unavailable */ }
+    if (name === 'reservations') loadReservations(false);
     if (scrollTop) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -491,6 +503,9 @@
     ownerTabReady = false;
     manageLoaded = false;
     lastHistoryLoad = 0;
+    lastReservationLoad = 0;
+    $('reservationList').replaceChildren(); // 予約者の個人情報を画面に残さない
+    $('reservationSummary').hidden = true;
     $('issuedList').replaceChildren(); // 発行したパスワードを画面に残さない
     $('manageBody').replaceChildren();
     $('loginPassword').value = '';
@@ -1014,6 +1029,70 @@
     renderHistory(res);
   }
 
+  /* Reservations (owner) */
+
+  let lastReservationLoad = 0;
+
+  // 値が URL だけのときは、タップして開けるリンクにする（http / https のみ）
+  function reservationValue(text) {
+    const dd = el('dd');
+    const t = text.trim();
+    if (/^https?:\/\/\S+$/.test(t)) {
+      const a = el('a', '', t);
+      a.href = t;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      dd.append(a);
+    } else {
+      dd.textContent = t;
+    }
+    return dd;
+  }
+
+  function renderReservations(res) {
+    const list = $('reservationList');
+    list.replaceChildren();
+    $('reservationEmpty').hidden = res.total > 0;
+    const summary = $('reservationSummary');
+    summary.hidden = res.total === 0;
+    if (!res.total) return;
+    summary.textContent = `予約 ${res.total}件 ／ 合計 ${res.guests}名` + (res.shown < res.total ? `（新しい${res.shown}件を表示）` : '');
+
+    const heads = res.headers;
+    const nameIdx = heads.findIndex((h) => /お名前|名前/.test(h));
+    const guestIdx = heads.findIndex((h) => /何名|人数/.test(h));
+    res.rows.forEach((r) => {
+      const item = el('details', 'staff-history-item staff-reserve-item');
+      const name = nameIdx >= 0 && r.values[nameIdx].trim() ? r.values[nameIdx].trim() : '（お名前なし）';
+      const guests = guestIdx >= 0 && r.values[guestIdx].trim() ? ` ・ ${r.values[guestIdx].trim()}名` : '';
+      const summ = el('summary', '', `${name}${guests}`);
+      summ.append(el('span', 'staff-reserve-sub', `　${r.values[0]}`));
+      item.append(summ);
+      const dl = el('dl');
+      heads.forEach((h, i) => {
+        if (i === 0 || i === nameIdx || !r.values[i].trim()) return;
+        const box = el('div');
+        box.append(el('dt', '', h), reservationValue(r.values[i]));
+        dl.append(box);
+      });
+      item.append(dl);
+      list.append(item);
+    });
+  }
+
+  async function loadReservations(force) {
+    if (!force && Date.now() - lastReservationLoad < 10000) return;
+    lastReservationLoad = Date.now();
+    const res = await api('reservations');
+    if (!res.ok) {
+      lastReservationLoad = 0;
+      if (!handleAuthError(res)) say($('reservationMessage'), res.error);
+      return;
+    }
+    say($('reservationMessage'), '');
+    renderReservations(res);
+  }
+
   function setFinal(name, value) {
     return ownerAction('setFinal', { name, final: value });
   }
@@ -1094,6 +1173,7 @@
     });
     $('goCreate').addEventListener('click', () => activateOwnerTab('create', true));
     $('historyRange').addEventListener('change', () => loadHistory(true));
+    $('reservationReload').addEventListener('click', () => loadReservations(true));
     $('addStaffForm').addEventListener('submit', addStaff);
     $('placementCopy').addEventListener('click', () => copyText('placementMessageBox', 'placementMessage'));
 

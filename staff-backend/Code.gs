@@ -21,6 +21,13 @@ const SPREADSHEET_ID = '';
 
 const STAFF_PAGE_URL = 'https://bunnycafe-exta.github.io/vrc-event/staff.html';
 
+// 来店予約フォームの回答が入っているスプレッドシート（URLの /d/ と /edit の間）と、そのシートの gid（URL末尾の gid=）。
+// オーナーの画面の「予約」タブで読むだけで、書き込みはしない。
+// このスクリプトを実行するアカウントが、そのスプレッドシートを開ける（持ち主か、共有されている）必要がある
+const RESERVATION_SPREADSHEET_ID = '1Opkrsg6lUWFmfHDzkcaPcn2aMWuC2S4ADFusO_wI5B4';
+const RESERVATION_SHEET_GID = 499524623;
+const RESERVATION_MAX_ROWS = 300; // 画面に出す件数（新しいものから）
+
 const TZ = 'Asia/Tokyo';
 const SESSION_SECONDS = 21600; // ログインの有効時間（6時間）
 const MAX_FAILS = 5;           // ログイン失敗の許容回数
@@ -58,7 +65,7 @@ class AppError extends Error {}
 /* ---------- Web app entry ---------- */
 
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 12 });
+  return json_({ ok: true, service: 'EXTA staff API', version: 13 });
 }
 
 function doPost(e) {
@@ -100,6 +107,7 @@ function route_(req) {
     case 'reopen': requireOwner_(user); return withLock_(() => reopen_(user, req));
     case 'setFinal': requireOwner_(user); return withLock_(() => setFinal_(user, req));
     case 'history': requireOwner_(user); return history_(req);
+    case 'reservations': requireOwner_(user); return reservations_();
     case 'staffList': requireOwner_(user); return staffList_();
     case 'addStaff': requireOwner_(user); return withLock_(() => addStaff_(req));
     case 'reissue': requireOwner_(user); return withLock_(() => reissue_(req));
@@ -500,6 +508,40 @@ function joinedOf_(person) {
 }
 
 // 締め切り済みの営業日ごとの出勤状況と、全員の出勤率。limit=直近N回（0なら全期間）
+// 来店予約フォームの回答を、新しい順に返す（オーナー専用）。項目名はシートの1行目をそのまま使うので、フォームの質問を変えても動く
+function reservations_() {
+  let ss;
+  try {
+    ss = SpreadsheetApp.openById(RESERVATION_SPREADSHEET_ID);
+  } catch (err) {
+    console.error(err);
+    fail_('予約のスプレッドシートを開けませんでした。このスクリプトを動かしているアカウントに、共有されているか確認してください');
+  }
+  const sheets = ss.getSheets();
+  const sheet = sheets.find(s => s.getSheetId() === RESERVATION_SHEET_GID) || sheets[0];
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 1 || lastCol < 1) return { ok: true, headers: [], rows: [], total: 0, guests: 0, shown: 0 };
+
+  const values = sheet.getRange(1, 1, lastRow, lastCol).getDisplayValues();
+  // フォームの質問は、1行目に説明が続いて入っていることが多いので、最初の行だけを項目名にする
+  const headers = values[0].map(h => (String(h).split(/\r?\n/).map(s => s.trim()).find(s => s) || ''));
+  const all = values.slice(1)
+    .map((v, i) => ({ row: i + 2, values: v.map(c => String(c)) }))
+    .filter(r => r.values.some(c => c.trim() !== ''));
+
+  // 「何名様で…」の列があれば、人数を合計する（空欄は1名、「2名」のような書き方も数える）
+  const guestIdx = headers.findIndex(h => /何名|人数/.test(h));
+  const guests = all.reduce((sum, r) => {
+    if (guestIdx < 0) return sum + 1;
+    const n = parseInt(r.values[guestIdx].replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)), 10);
+    return sum + (n > 0 ? n : 1);
+  }, 0);
+
+  const rows = all.reverse().slice(0, RESERVATION_MAX_ROWS);
+  return { ok: true, headers: headers, rows: rows, total: all.length, guests: guests, shown: rows.length };
+}
+
 function history_(req) {
   const limit = Math.max(0, Math.min(60, Number(req.limit) || 0));
   let events = readRows_('Events').map(eventFromRow_)
