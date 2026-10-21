@@ -818,12 +818,12 @@ ul { list-style: none; }
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 9%;
+  bottom: 13%;
   width: 88%;
   height: auto;
   margin: 0 auto;
-  /* イラストは、お盆が右に張り出していて絵の中心が右に寄っているため、左へ少しずらして、見た目の中心を丸い台に合わせる */
-  translate: -2.5% 0;
+  /* 見た目の中心を丸い台に合わせるため、少し右・上へずらしている */
+  translate: 3% 0;
   filter: drop-shadow(0 14px 14px rgba(70, 35, 0, 0.35));
   animation: mascotBob 3.4s ease-in-out infinite;
   pointer-events: none;
@@ -1882,6 +1882,14 @@ html.profile-open { overflow: hidden; }
   .mascot-grid { grid-template-columns: 1fr; gap: 44px; }
   .mascot-stage { width: min(360px, 88%); }
   .mascot-bubble { margin: 34px 0 0; }
+  /* 「ロップイヤー ＋ ラパン ＝ ロパンくん」は、スマホでも1行に収める（画面幅に合わせて縮める） */
+  .mascot-origin { flex-wrap: nowrap; gap: 1.6vw; justify-content: center; }
+  .mascot-chip { flex: 0 1 auto; min-width: 0; padding: 1.8vw 2.4vw; border-radius: 3.4vw; text-align: center; line-height: 1.35; }
+  .mascot-chip b { font-size: min(1.05rem, 3.9vw); white-space: nowrap; }
+  .mascot-chip small { font-size: min(0.68rem, 2.4vw); word-break: keep-all; }
+  .mascot-op { font-size: min(1.3rem, 4.6vw); }
+  .mascot-result { gap: 1.6vw; }
+  .mascot-chip-result b { font-size: min(1.15rem, 4.2vw); }
   .mascot-bubble::before { top: -13px; left: 40px; border: 13px solid transparent; border-top: 0; border-bottom-color: #fff7e4; }
   .concept-visual-frame { max-width: 320px; margin: 0 auto; }
   .cast-grid { grid-template-columns: repeat(2, 1fr); }
