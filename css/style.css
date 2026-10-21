@@ -44,7 +44,7 @@ html {
   scroll-padding-top: var(--header-height);
 }
 
-#concept, #interior, #menu, #shop, #cast {
+#concept, #mascot, #interior, #menu, #shop, #cast {
   scroll-margin-top: -100px;
 }
 
