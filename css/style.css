@@ -612,16 +612,28 @@ ul { list-style: none; }
 
 /* 次回営業日（管理画面で設定すると表示される） */
 .hero-next {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  margin: -14px 0 34px;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  max-width: 100%;
+  margin: 0 0 30px;
+  padding: 12px 24px;
+  border: 1px solid rgba(201, 162, 75, 0.7);
+  border-radius: 999px;
+  background: rgba(20, 18, 31, 0.55);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 28px rgba(201, 162, 75, 0.28);
   color: var(--color-white);
+  transition: opacity 0.6s ease;
 }
 
+/* 読み込み中は、場所だけ空けておく（表示が切り替わって、画面がずれないように） */
+.hero-next.is-pending { visibility: hidden; opacity: 0; }
+
 .hero-next-label {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -630,7 +642,7 @@ ul { list-style: none; }
 
 .hero-next b {
   font-family: var(--font-serif);
-  font-size: clamp(1.05rem, 4.6vw, 1.45rem);
+  font-size: clamp(1rem, 4.4vw, 1.4rem);
   letter-spacing: 0.04em;
   white-space: nowrap;
 }

@@ -1041,10 +1041,10 @@
 
   function showNextOpen(next) {
     const cur = $('nextOpenCurrent');
-    if (!next) { cur.textContent = '今は、ホームページに表示していません。'; return; }
+    if (!next) { cur.textContent = '今は、ホームページに「Coming Soon」と表示されています。'; return; }
     const today = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ }).format(new Date());
     cur.textContent = next.date < today
-      ? `設定中：${dateJa(next.date)}（日付が過ぎたため、ホームページには表示されていません）`
+      ? `設定中：${dateJa(next.date)}（日付が過ぎたため、ホームページには「Coming Soon」と表示されています）`
       : `表示中：${dateJa(next.date)} ${next.startTime}〜${next.endTime}`;
     $('nextOpenDate').value = next.date >= today ? next.date : '';
     $('nextOpenStart').value = next.startTime;
@@ -1068,13 +1068,13 @@
   }
 
   async function clearNextOpen() {
-    if (!confirm('ホームページの「次回営業日」の表示を、やめます。よろしいですか？')) return;
+    if (!confirm('ホームページの「次回営業日」を、「Coming Soon」に戻します。よろしいですか？')) return;
     const msg = $('nextOpenMessage');
     say(msg, '');
     const res = await api('clearNextOpen');
     if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
     showNextOpen(null);
-    say(msg, '表示をやめました。', true);
+    say(msg, '「Coming Soon」に戻しました。', true);
   }
 
   /* Reservations (owner) */

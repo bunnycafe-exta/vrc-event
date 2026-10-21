@@ -410,25 +410,36 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
 })();
 
 // 管理画面で設定した「次回営業日」を読み込んで、トップ・来店予約・店舗情報に表示する。
-// 未設定のとき、読み込めないとき、日付が過ぎたときは、何も表示しない（この項目は出ない）
+// 未設定のとき、または日付が過ぎたときは、「Coming Soon」と表示する。
+// 通信がうまくいかなかったときは、まちがった案内をしないよう、何も表示しない
 (function setupNextOpen() {
   const url = window.EXTA_API_URL;
   const targets = Array.from(document.querySelectorAll('[data-next-open]'));
   if (!url || !targets.length) return;
 
+  const show = (text) => {
+    targets.forEach((node) => {
+      node.textContent = text;
+      const box = node.closest('[data-next-open-box]');
+      if (box) {
+        box.hidden = false;
+        box.classList.remove('is-pending');
+      }
+    });
+  };
+
   fetch(url, { cache: 'no-store' })
     .then((res) => res.json())
     .then((data) => {
-      const n = data && data.next;
-      if (!n || !/^\d{4}-\d{2}-\d{2}$/.test(n.date) || !/^\d{2}:\d{2}$/.test(n.startTime) || !/^\d{2}:\d{2}$/.test(n.endTime)) return;
+      if (!data || !data.ok) return;
+      const n = data.next;
+      if (!n || !/^\d{4}-\d{2}-\d{2}$/.test(n.date) || !/^\d{2}:\d{2}$/.test(n.startTime) || !/^\d{2}:\d{2}$/.test(n.endTime)) {
+        show('Coming Soon');
+        return;
+      }
       const [y, m, d] = n.date.split('-').map(Number);
       const dow = '日月火水木金土'.charAt(new Date(Date.UTC(y, m - 1, d)).getUTCDay());
-      const text = `${m}月${d}日（${dow}） ${n.startTime}〜${n.endTime}`;
-      targets.forEach((node) => {
-        node.textContent = text;
-        const box = node.closest('[data-next-open-box]');
-        if (box) box.hidden = false;
-      });
+      show(`${m}月${d}日（${dow}） ${n.startTime}〜${n.endTime}`);
     })
     .catch(() => { /* 表示しないだけ */ });
 })();
