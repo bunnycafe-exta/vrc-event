@@ -1998,9 +1998,12 @@ html.profile-open { overflow: hidden; }
 
   .shop-row { grid-template-columns: 1fr; gap: 6px; }
 
-  .hero-actions { flex-direction: column; width: 100%; }
+  /* 来店予約のボタンは、1行を使って大きく。ほかの2つは、その下に、横に並べる */
+  .hero-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
 
-  .hero-actions .btn { width: 100%; }
+  .hero-actions .btn { width: 100%; padding: 14px 8px; }
+
+  .hero-actions .btn-primary { grid-column: 1 / -1; }
 
   .concept, .mascot, .interior, .menu, .reserve, .shop { padding: 88px 0; }
   .reserve-card { padding: 32px 22px; }
