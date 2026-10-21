@@ -770,6 +770,13 @@ ul { list-style: none; }
 
 .mascot .section-inner { position: relative; z-index: 1; }
 
+/* 見出しは、どの画面幅でも1行に収める（幅に合わせて文字サイズを縮める） */
+.mascot .section-title {
+  white-space: nowrap;
+  letter-spacing: 0;
+  font-size: min(clamp(1.8rem, 4vw, 2.6rem), calc((100vw - 40px) / 21.3));
+}
+
 .mascot-grid {
   display: grid;
   grid-template-columns: 0.95fr 1.05fr;
@@ -815,6 +822,8 @@ ul { list-style: none; }
   width: 88%;
   height: auto;
   margin: 0 auto;
+  /* イラストは、お盆が右に張り出していて絵の中心が右に寄っているため、左へ少しずらして、見た目の中心を丸い台に合わせる */
+  translate: -2.5% 0;
   filter: drop-shadow(0 14px 14px rgba(70, 35, 0, 0.35));
   animation: mascotBob 3.4s ease-in-out infinite;
   pointer-events: none;
