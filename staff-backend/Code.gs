@@ -64,8 +64,15 @@ class AppError extends Error {}
 
 /* ---------- Web app entry ---------- */
 
+// ブラウザでURLを開いたときの応答。公開サイトの「次回営業日」の表示にも使う（日付と時間だけで、個人の情報は含まない）
 function doGet() {
-  return json_({ ok: true, service: 'EXTA staff API', version: 13 });
+  let next = null;
+  try {
+    next = publicNextOpen_();
+  } catch (err) {
+    console.error(err);
+  }
+  return json_({ ok: true, service: 'EXTA staff API', version: 14, next: next });
 }
 
 function doPost(e) {
@@ -108,6 +115,9 @@ function route_(req) {
     case 'setFinal': requireOwner_(user); return withLock_(() => setFinal_(user, req));
     case 'history': requireOwner_(user); return history_(req);
     case 'reservations': requireOwner_(user); return reservations_();
+    case 'getNextOpen': requireOwner_(user); return { ok: true, next: storedNextOpen_() };
+    case 'setNextOpen': requireOwner_(user); return withLock_(() => setNextOpen_(req));
+    case 'clearNextOpen': requireOwner_(user); return withLock_(() => clearNextOpen_());
     case 'staffList': requireOwner_(user); return staffList_();
     case 'addStaff': requireOwner_(user); return withLock_(() => addStaff_(req));
     case 'reissue': requireOwner_(user); return withLock_(() => reissue_(req));
@@ -508,6 +518,42 @@ function joinedOf_(person) {
 }
 
 // 締め切り済みの営業日ごとの出勤状況と、全員の出勤率。limit=直近N回（0なら全期間）
+/* ---------- 公開サイトに表示する「次回営業日」 ---------- */
+
+const NEXT_OPEN_KEY = 'nextOpen';
+
+function storedNextOpen_() {
+  const raw = PropertiesService.getScriptProperties().getProperty(NEXT_OPEN_KEY);
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw);
+    return { date: String(v.date), startTime: String(v.startTime), endTime: String(v.endTime) };
+  } catch (err) {
+    return null;
+  }
+}
+
+// 公開サイトに出すのは、今日以降の分だけ（営業日の当日が終わるまで表示し、翌日に消える）
+function publicNextOpen_() {
+  const v = storedNextOpen_();
+  return v && v.date >= nowMinute_().slice(0, 10) ? v : null;
+}
+
+function setNextOpen_(req) {
+  const date = checkDate_(req.date);
+  const startTime = checkTime_(req.startTime);
+  const endTime = checkTime_(req.endTime);
+  if (date < nowMinute_().slice(0, 10)) fail_('過去の日付は設定できません');
+  const next = { date: date, startTime: startTime, endTime: endTime };
+  PropertiesService.getScriptProperties().setProperty(NEXT_OPEN_KEY, JSON.stringify(next));
+  return { ok: true, next: next };
+}
+
+function clearNextOpen_() {
+  PropertiesService.getScriptProperties().deleteProperty(NEXT_OPEN_KEY);
+  return { ok: true, next: null };
+}
+
 // 来店予約フォームの回答を、新しい順に返す（オーナー専用）。項目名はシートの1行目をそのまま使うので、フォームの質問を変えても動く
 function reservations_() {
   let ss;

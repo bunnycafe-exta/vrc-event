@@ -2,7 +2,7 @@
   'use strict';
 
   // Apps Script のウェブアプリURL（staff-backend/Code.gs をデプロイして発行されるURL）
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxVdLT1zob6LXxjdQttfR4BOCk5b1G9pzQYwfenDPokvOPoSMZxALL2bpLcej9Pr2DO-Q/exec';
+  const API_URL = window.EXTA_API_URL || '';
 
   const IS_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
   const DEMO = IS_LOCAL && (!API_URL || new URLSearchParams(location.search).has('demo'));
@@ -394,6 +394,13 @@
           })
         });
       }
+      case 'getNextOpen': case 'setNextOpen': case 'clearNextOpen': {
+        if (needOwner()) return needOwner();
+        if (action === 'setNextOpen') db.nextOpen = { date: p.date, startTime: p.startTime, endTime: p.endTime };
+        if (action === 'clearNextOpen') delete db.nextOpen;
+        demoSave(db);
+        return ok({ next: db.nextOpen || null });
+      }
       case 'reservations': {
         if (needOwner()) return needOwner();
         const rows = [
@@ -487,6 +494,7 @@
     document.querySelectorAll('.staff-tabpanel').forEach((p) => { p.hidden = p.dataset.panel !== name; });
     try { sessionStorage.setItem(OWNER_TAB_KEY, name); } catch (e) { /* storage unavailable */ }
     if (name === 'reservations') loadReservations(false);
+    if (name === 'create') loadNextOpen();
     if (scrollTop) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1029,6 +1037,46 @@
     renderHistory(res);
   }
 
+  /* Next open day shown on the public site (owner) */
+
+  function showNextOpen(next) {
+    const cur = $('nextOpenCurrent');
+    if (!next) { cur.textContent = '今は、ホームページに表示していません。'; return; }
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ }).format(new Date());
+    cur.textContent = next.date < today
+      ? `設定中：${dateJa(next.date)}（日付が過ぎたため、ホームページには表示されていません）`
+      : `表示中：${dateJa(next.date)} ${next.startTime}〜${next.endTime}`;
+    $('nextOpenDate').value = next.date >= today ? next.date : '';
+    $('nextOpenStart').value = next.startTime;
+    $('nextOpenEnd').value = next.endTime;
+  }
+
+  async function loadNextOpen() {
+    const res = await api('getNextOpen');
+    if (!res.ok) { if (!handleAuthError(res)) say($('nextOpenMessage'), res.error); return; }
+    showNextOpen(res.next);
+  }
+
+  async function saveNextOpen(e) {
+    e.preventDefault();
+    const msg = $('nextOpenMessage');
+    say(msg, '');
+    const res = await api('setNextOpen', { date: $('nextOpenDate').value, startTime: $('nextOpenStart').value, endTime: $('nextOpenEnd').value });
+    if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
+    showNextOpen(res.next);
+    say(msg, 'ホームページに表示しました（反映まで、数十秒かかることがあります）。', true);
+  }
+
+  async function clearNextOpen() {
+    if (!confirm('ホームページの「次回営業日」の表示を、やめます。よろしいですか？')) return;
+    const msg = $('nextOpenMessage');
+    say(msg, '');
+    const res = await api('clearNextOpen');
+    if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
+    showNextOpen(null);
+    say(msg, '表示をやめました。', true);
+  }
+
   /* Reservations (owner) */
 
   let lastReservationLoad = 0;
@@ -1174,6 +1222,8 @@
     $('goCreate').addEventListener('click', () => activateOwnerTab('create', true));
     $('historyRange').addEventListener('change', () => loadHistory(true));
     $('reservationReload').addEventListener('click', () => loadReservations(true));
+    $('nextOpenForm').addEventListener('submit', saveNextOpen);
+    $('nextOpenClear').addEventListener('click', clearNextOpen);
     $('addStaffForm').addEventListener('submit', addStaff);
     $('placementCopy').addEventListener('click', () => copyText('placementMessageBox', 'placementMessage'));
 

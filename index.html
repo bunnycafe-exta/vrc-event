@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=13">
+<link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
 
@@ -95,6 +95,7 @@
       </h1>
       <p class="hero-copy">午後の陽だまりに、うさぎ耳のもてなしを。<br>ヴァーチャル空間でゆったり過ごすカフェタイム。</p>
       <p class="hero-tag"><span class="hero-tag-dot" aria-hidden="true"></span>Cafe × Entertainment × Bunny</p>
+      <p class="hero-next" data-next-open-box hidden><span class="hero-next-label">Next Open</span><b data-next-open></b></p>
       <div class="hero-actions">
         <a href="#reservation" class="btn btn-primary">来店予約はこちら</a>
         <a href="#shop" class="btn btn-outline">店舗情報を見る</a>
@@ -322,6 +323,7 @@
       <p class="section-eyebrow">Reservation</p>
       <h2 class="section-title">来店予約</h2>
       <p class="section-lead">事前の来店予約を、Googleフォームで受け付けています。</p>
+      <p class="reserve-next" data-next-open-box hidden>次回営業日：<b data-next-open></b></p>
 
       <div class="reserve-card">
         <h3 class="reserve-heading">ご予約の前にご確認ください</h3>
@@ -376,6 +378,10 @@
           <div class="shop-row">
             <dt>営業日</dt>
             <dd>月一土曜日営業</dd>
+          </div>
+          <div class="shop-row" data-next-open-box hidden>
+            <dt>次回営業日</dt>
+            <dd data-next-open></dd>
           </div>
           <div class="shop-row">
             <dt>営業時間</dt>
@@ -537,7 +543,8 @@
   </div>
 </div>
 
+<script src="js/config.js?v=1"></script>
 <script src="js/profiles.js?v=2"></script>
-<script src="js/script.js?v=5"></script>
+<script src="js/script.js?v=6"></script>
 </body>
 </html>
