@@ -230,11 +230,6 @@
     return '';
   }
 
-  function demoLimit(l) {
-    const full = l.cap > 0 && l.used >= l.cap;
-    return { cap: l.cap, used: l.used, full, accepting: !full, error: '' };
-  }
-
   function demoApi(action, p) {
     const db = demoLoad();
     const user = DEMO_USERS.find((u) => getToken() === `demo-${u.id}`);
@@ -406,24 +401,41 @@
         demoSave(db);
         return ok({ next: db.nextOpen || null });
       }
-      case 'setReservationCap': case 'resetReservationCount': {
+      case 'setReservationCap': case 'resetReservationCount': case 'cancelReservation': case 'reopenReservation': case 'reservations': {
         if (needOwner()) return needOwner();
-        db.limit = db.limit || { cap: 6, used: 3 };
-        if (action === 'setReservationCap') db.limit.cap = Number(p.cap);
-        if (action === 'resetReservationCount') db.limit.used = 0;
-        demoSave(db);
-        return ok({ limit: demoLimit(db.limit) });
-      }
-      case 'reservations': {
-        if (needOwner()) return needOwner();
-        const rows = [
+        const lim = db.limit = db.limit || { cap: 6, reset: false, accepting: true, cancelled: [] };
+        const sample = [
           ['2026/10/20 21:14:08', '参加済み', '2', 'さくら', 'https://vrchat.com/home/user/usr_00000000-demo', 'https://x.com/sample_a', 'はじめてです。よろしくお願いします。'],
-          ['2026/10/19 08:02:41', '参加済み', '', 'ひなた', 'https://vrchat.com/home/user/usr_00000000-demo2', 'https://x.com/sample_b', '']
-        ].map((values, i) => ({ row: i + 2, values }));
+          ['2026/10/19 08:02:41', '参加済み', '', 'ひなた', 'https://vrchat.com/home/user/usr_00000000-demo2', 'https://x.com/sample_b', ''],
+          ['2026/10/18 12:00:00', '参加済み', '3', 'ゆず', 'https://vrchat.com/home/user/usr_00000000-demo3', 'https://x.com/sample_c', '']
+        ].map((values, i) => ({ row: i + 2, key: `${values[0]}|${values[3]}`, values }));
+        const guestsOf = (r) => Number(r.values[2]) || 1;
+        const usedNow = () => sample.filter((r) => !lim.cancelled.includes(r.key) && !lim.reset).reduce((s, r) => s + guestsOf(r), 0);
+        const status = () => {
+          const used = usedNow();
+          const full = lim.cap > 0 && used >= lim.cap;
+          if (full) lim.accepting = false;
+          demoSave(db);
+          return { cap: lim.cap, used, full, accepting: lim.accepting, error: '' };
+        };
+        if (action === 'setReservationCap') { lim.cap = Number(p.cap); if (usedNow() < lim.cap || lim.cap === 0) lim.accepting = true; }
+        if (action === 'resetReservationCount') { lim.reset = true; lim.accepting = true; }
+        if (action === 'cancelReservation') {
+          lim.cancelled = lim.cancelled.filter((k) => k !== p.key);
+          if (p.cancelled) lim.cancelled.push(p.key);
+        }
+        if (action === 'reopenReservation') {
+          const s = status();
+          if (s.full) return fail('まだ満席です。上限の人数を増やすか、キャンセルにしてから、再開してください');
+          lim.accepting = true;
+        }
+        if (action !== 'reservations') return ok({ limit: status() });
+        const active = sample.filter((r) => !lim.cancelled.includes(r.key));
         return ok({
           headers: ['タイムスタンプ', '当イベントのグループ参加はされてますか？', '何名様でご来店予定ですか？', 'お名前(VRChatの表示名)', 'VRCアカウントURL', 'X(旧Twitter)のアカウントURL', 'ご来店前に確認しておきたい事項等'],
-          rows: rows.map((r) => ({ ...r, counted: db.limit ? db.limit.used > 0 : true })), total: rows.length, guests: 3, shown: rows.length,
-          limit: demoLimit(db.limit || { cap: 6, used: 3 })
+          rows: sample.map((r) => ({ ...r, cancelled: lim.cancelled.includes(r.key), counted: !lim.cancelled.includes(r.key) && !lim.reset })),
+          total: active.length, cancelledCount: sample.length - active.length, guests: active.reduce((s, r) => s + guestsOf(r), 0), shown: sample.length,
+          limit: status(), next: db.nextOpen || null
         });
       }
       case 'staffList': case 'reissue': case 'addStaff': case 'setActive': {
@@ -1111,6 +1123,9 @@
     return dd;
   }
 
+  let lastLimit = null;
+  let lastNext = null;
+
   function renderLimit(l) {
     const s = $('limitStatus');
     if (l.full) s.textContent = `満席：${l.used}名 ／ 上限${l.cap}名。フォームの受付を終了しました。`;
@@ -1118,9 +1133,12 @@
     else s.textContent = `受付中：現在 ${l.used}名 ／ 上限${l.cap}名（あと${l.cap - l.used}名）`;
     const notes = [];
     if (l.error) notes.push(l.error);
-    else if (l.accepting === false && !l.full) notes.push('フォームは、今、受付を止めています（手で止めた状態です）。受付を始めるときは、「新しい営業日の予約を始める」を押してください。');
+    else if (l.accepting === false && !l.full) notes.push(l.cap > 0 ? `空きが出ています（あと${l.cap - l.used}名）。再募集するときは、下の「受付を再開する」を押してください。` : 'フォームは、今、受付を止めています。');
     $('limitWarn').textContent = notes.join(' ');
     $('limitCap').value = l.cap;
+    lastLimit = l;
+    $('limitRecruit').hidden = false;
+    $('limitReopen').hidden = !(l.accepting === false && !l.full);
   }
 
   async function saveLimit(e) {
@@ -1146,24 +1164,29 @@
   }
 
   function renderReservations(res) {
+    lastNext = res.next || null;
     if (res.limit) renderLimit(res.limit);
     const list = $('reservationList');
     list.replaceChildren();
-    $('reservationEmpty').hidden = res.total > 0;
+    const any = res.rows.length > 0;
+    $('reservationEmpty').hidden = any;
     const summary = $('reservationSummary');
-    summary.hidden = res.total === 0;
-    if (!res.total) return;
-    summary.textContent = `予約 ${res.total}件 ／ 合計 ${res.guests}名` + (res.shown < res.total ? `（新しい${res.shown}件を表示）` : '');
+    summary.hidden = !any;
+    if (!any) return;
+    summary.textContent = `予約 ${res.total}件 ／ 合計 ${res.guests}名` + (res.cancelledCount ? `（キャンセル ${res.cancelledCount}件は除く）` : '');
 
     const heads = res.headers;
     const nameIdx = heads.findIndex((h) => /お名前|名前/.test(h));
     const guestIdx = heads.findIndex((h) => /何名|人数/.test(h));
     res.rows.forEach((r) => {
-      const item = el('details', 'staff-history-item staff-reserve-item');
+      const item = el('details', `staff-history-item staff-reserve-item${r.cancelled ? ' is-cancelled' : ''}`);
       const name = nameIdx >= 0 && r.values[nameIdx].trim() ? r.values[nameIdx].trim() : '（お名前なし）';
       const guests = guestIdx >= 0 && r.values[guestIdx].trim() ? ` ・ ${r.values[guestIdx].trim()}名` : '';
-      const summ = el('summary', '', `${name}${guests}`);
-      summ.append(el('span', 'staff-reserve-sub', `　${r.values[0]}${r.counted === false ? '　（前回分・人数に数えていません）' : ''}`));
+      const summ = el('summary', '', `${r.cancelled ? '【キャンセル】' : ''}${name}${guests}`);
+      let note = '';
+      if (r.cancelled) note = '　（人数に数えていません）';
+      else if (r.counted === false) note = '　（前回分・人数に数えていません）';
+      summ.append(el('span', 'staff-reserve-sub', `　${r.values[0]}${note}`));
       item.append(summ);
       const dl = el('dl');
       heads.forEach((h, i) => {
@@ -1173,8 +1196,56 @@
         dl.append(box);
       });
       item.append(dl);
+      const actions = el('div', 'staff-preview-actions staff-reserve-actions');
+      const cancelBtn = el('button', r.cancelled ? 'btn btn-outline' : 'staff-delete', r.cancelled ? 'キャンセルを取り消す' : 'キャンセルにする');
+      cancelBtn.type = 'button';
+      cancelBtn.addEventListener('click', () => cancelReservation(r, name));
+      actions.append(cancelBtn);
+      item.append(actions);
       list.append(item);
     });
+  }
+
+  async function cancelReservation(r, name) {
+    const cancelling = !r.cancelled;
+    if (!confirm(cancelling
+      ? `${name}さんの予約を、キャンセルにします。その人数は、空きになります（受付は、自動では再開しません）。よろしいですか？`
+      : `${name}さんのキャンセルを取り消して、予約に戻します。人数が、上限を超えることがあります。よろしいですか？`)) return;
+    const msg = $('reservationMessage');
+    say(msg, '');
+    const res = await api('cancelReservation', { key: r.key, cancelled: cancelling });
+    if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
+    renderLimit(res.limit);
+    await loadReservations(true);
+    say(msg, cancelling
+      ? `キャンセルにしました。再募集するときは、上の「受付の人数制限」の「受付を再開する」を押してください。`
+      : 'キャンセルを取り消しました。', true);
+  }
+
+  async function reopenReservation() {
+    const msg = $('limitMessage');
+    say(msg, '');
+    const res = await api('reopenReservation');
+    if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
+    renderLimit(res.limit);
+    say(msg, '受付を再開しました。公開サイトの予約ボタンも、受付中に戻ります。下の「再募集の文面をコピー」で、お知らせを出せます。', true);
+    loadReservations(true);
+  }
+
+  function recruitMessage() {
+    const l = lastLimit;
+    const lines = ['【BunnyCafe EXTA】来店予約の再募集', 'キャンセルが出たため、来店予約を再募集します。'];
+    if (lastNext) lines.push('', `次回営業日：${dateJa(lastNext.date)} ${lastNext.startTime}〜${lastNext.endTime}`);
+    if (l && l.cap > 0) lines.push(`残り：あと${Math.max(0, l.cap - l.used)}名`);
+    lines.push('', '▼ご予約はこちら', 'https://bunnycafe-exta.github.io/vrc-event/#reservation', '', '定員になり次第、受付を終了します。');
+    return lines.join('\n');
+  }
+
+  async function copyRecruit() {
+    const box = $('limitRecruitText');
+    box.textContent = recruitMessage();
+    box.hidden = false;
+    await copyText('limitRecruitText', 'limitMessage');
   }
 
   async function loadReservations(force) {
@@ -1273,6 +1344,8 @@
     $('reservationReload').addEventListener('click', () => loadReservations(true));
     $('limitForm').addEventListener('submit', saveLimit);
     $('limitReset').addEventListener('click', resetLimit);
+    $('limitReopen').addEventListener('click', reopenReservation);
+    $('limitRecruitCopy').addEventListener('click', copyRecruit);
     $('nextOpenForm').addEventListener('submit', saveNextOpen);
     $('nextOpenClear').addEventListener('click', clearNextOpen);
     $('addStaffForm').addEventListener('submit', addStaff);

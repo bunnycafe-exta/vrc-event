@@ -78,7 +78,7 @@ function doGet() {
   } catch (err) {
     console.error(err);
   }
-  return json_({ ok: true, service: 'EXTA staff API', version: 15, next: next, reservationOpen: reservationOpen });
+  return json_({ ok: true, service: 'EXTA staff API', version: 16, next: next, reservationOpen: reservationOpen });
 }
 
 function doPost(e) {
@@ -123,6 +123,8 @@ function route_(req) {
     case 'reservations': requireOwner_(user); return reservations_();
     case 'setReservationCap': requireOwner_(user); return withLock_(() => setReservationCap_(req));
     case 'resetReservationCount': requireOwner_(user); return withLock_(() => resetReservationCount_());
+    case 'cancelReservation': requireOwner_(user); return withLock_(() => cancelReservation_(req));
+    case 'reopenReservation': requireOwner_(user); return withLock_(() => reopenReservation_());
     case 'getNextOpen': requireOwner_(user); return { ok: true, next: storedNextOpen_() };
     case 'setNextOpen': requireOwner_(user); return withLock_(() => setNextOpen_(req));
     case 'clearNextOpen': requireOwner_(user); return withLock_(() => clearNextOpen_());
@@ -576,6 +578,7 @@ function clearNextOpen_() {
 const RES_CAP_KEY = 'reservationCap';     // 上限の人数（0 = 上限なし）
 const RES_SINCE_KEY = 'reservationSince'; // この時刻より後の予約だけを数える（ミリ秒）。新しい営業日の受付を始めるたびに更新する
 const RES_OPEN_KEY = 'reservationOpen';   // '1' = 受付中 / '0' = 受付終了（公開サイトの表示用）
+const RES_CANCEL_KEY = 'reservationCancelled'; // キャンセルにした予約の目印（回答の日時と名前）。シートには書き込まない
 const RES_DEFAULT_CAP = 6;
 const RES_CLOSED_MESSAGE = '定員に達したため、来店予約の受付を終了しました。次回の受付開始まで、お待ちください。';
 
@@ -593,6 +596,15 @@ function publicReservationOpen_() {
 }
 
 // 予約フォームの回答シートを読む。項目名はシートの1行目をそのまま使うので、フォームの質問を変えても動く
+function cancelledKeys_() {
+  try {
+    const v = JSON.parse(PropertiesService.getScriptProperties().getProperty(RES_CANCEL_KEY) || '[]');
+    return Array.isArray(v) ? v.map(String) : [];
+  } catch (err) {
+    return [];
+  }
+}
+
 function readReservations_() {
   let ss;
   try {
@@ -613,13 +625,16 @@ function readReservations_() {
   // フォームの質問は、1行目に説明が続いて入っていることが多いので、最初の行だけを項目名にする
   const headers = display[0].map(h => (String(h).split(/\r?\n/).map(s => s.trim()).find(s => s) || ''));
   const guestIdx = headers.findIndex(h => /何名|人数/.test(h));
+  const nameIdx = headers.findIndex(h => /お名前|名前/.test(h));
+  const cancelled = cancelledKeys_();
   const rows = [];
   for (let i = 1; i < display.length; i++) {
     const values = display[i].map(c => String(c));
     if (!values.some(c => c.trim() !== '')) continue;
     const t = raw[i][0];
     const time = t instanceof Date ? t.getTime() : (Date.parse(String(t).replace(/-/g, '/')) || 0);
-    rows.push({ row: i + 1, values: values, time: time });
+    const key = time + '|' + (nameIdx >= 0 ? values[nameIdx].trim() : '');
+    rows.push({ row: i + 1, values: values, time: time, key: key, cancelled: cancelled.indexOf(key) >= 0 });
   }
   return { sheet: sheet, headers: headers, rows: rows, guestIdx: guestIdx };
 }
@@ -632,7 +647,7 @@ function guestsOf_(r, guestIdx) {
 }
 
 function sumGuests_(rows, guestIdx, since) {
-  return rows.filter(r => r.time >= since).reduce((sum, r) => sum + guestsOf_(r, guestIdx), 0);
+  return rows.filter(r => !r.cancelled && r.time >= since).reduce((sum, r) => sum + guestsOf_(r, guestIdx), 0);
 }
 
 // 人数が上限に達していれば、フォームの受付を止める。allowOpen=true のときは、上限に達していなければ、受付を再開する
@@ -678,12 +693,16 @@ function reservationStatus_(data, applied) {
 function reservations_() {
   const data = readReservations_();
   const applied = applyReservationLimit_(data, false);
-  const guests = data.rows.reduce((sum, r) => sum + guestsOf_(r, data.guestIdx), 0);
+  const active = data.rows.filter(r => !r.cancelled);
+  const guests = active.reduce((sum, r) => sum + guestsOf_(r, data.guestIdx), 0);
+  const since = reservationSince_();
   const rows = data.rows.slice().reverse().slice(0, RESERVATION_MAX_ROWS)
-    .map(r => ({ row: r.row, values: r.values, counted: r.time >= reservationSince_() }));
+    .map(r => ({ row: r.row, key: r.key, values: r.values, cancelled: r.cancelled, counted: !r.cancelled && r.time >= since }));
   return {
-    ok: true, headers: data.headers, rows: rows, total: data.rows.length, guests: guests, shown: rows.length,
-    limit: reservationStatus_(data, applied)
+    ok: true, headers: data.headers, rows: rows, total: active.length, cancelledCount: data.rows.length - active.length,
+    guests: guests, shown: rows.length,
+    limit: reservationStatus_(data, applied),
+    next: storedNextOpen_()
   };
 }
 
@@ -701,6 +720,26 @@ function resetReservationCount_() {
   PropertiesService.getScriptProperties().setProperty(RES_SINCE_KEY, String(Date.now()));
   const data = readReservations_();
   return { ok: true, limit: reservationStatus_(data, applyReservationLimit_(data, true)) };
+}
+
+// 予約を「キャンセル」にする／取り消す。キャンセルの人数は、数えなくなる（受付を自動で再開はしない。再募集は、オーナーが「受付を再開」を押す）
+function cancelReservation_(req) {
+  const key = String(req.key || '');
+  const data = readReservations_();
+  if (!data.rows.some(r => r.key === key)) fail_('対象の予約が見つかりません。画面を更新してください');
+  const list = cancelledKeys_().filter(k => k !== key);
+  if (req.cancelled) list.push(key);
+  PropertiesService.getScriptProperties().setProperty(RES_CANCEL_KEY, JSON.stringify(list.slice(-500)));
+  const fresh = readReservations_();
+  return { ok: true, limit: reservationStatus_(fresh, applyReservationLimit_(fresh, false)) };
+}
+
+// キャンセルで空きが出たときの再募集。フォームの受付を再開する（満席のときは、再開できない）
+function reopenReservation_() {
+  const data = readReservations_();
+  const applied = applyReservationLimit_(data, true);
+  if (applied.full) fail_('まだ満席です。上限の人数を増やすか、キャンセルにしてから、再開してください');
+  return { ok: true, limit: reservationStatus_(data, applied) };
 }
 
 // フォームに回答が届くたびに、自動で動く（setupReservation で登録する）

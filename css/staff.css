@@ -667,3 +667,8 @@
 #limitForm .staff-preview-actions { margin-top: 22px; }
 #limitCard .staff-message { margin-top: 12px; }
 #limitCard .staff-small { margin-top: 16px; }
+
+/* キャンセルになった予約 */
+.staff-reserve-item.is-cancelled { opacity: 0.6; }
+.staff-reserve-item.is-cancelled summary { text-decoration: line-through; }
+.staff-reserve-actions { margin-top: 14px; }
