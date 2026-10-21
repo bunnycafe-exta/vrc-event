@@ -341,3 +341,57 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     nameNode.after(hint);
   });
 })();
+
+// Mascot (ロパンくん): fade in when scrolled into view, hop and pop hearts when tapped
+(function setupMascot() {
+  const section = document.getElementById('mascot');
+  const stage = document.getElementById('mascotStage');
+  if (!section || !stage) return;
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!reduceMotion && 'IntersectionObserver' in window) {
+    section.classList.add('reveal-ready');
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        section.classList.add('is-in');
+        observer.disconnect();
+      }
+    }, { threshold: 0.15 });
+    observer.observe(section);
+  }
+
+  const POPS = ['♡', '♥', '✦', '♡', '✦'];
+  const COLORS = ['#ff7aa8', '#ffd23b', '#ffffff', '#ff9fbd', '#f6e2b2'];
+
+  function pop(count) {
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement('span');
+      piece.className = 'mascot-pop';
+      piece.textContent = POPS[Math.floor(Math.random() * POPS.length)];
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.6;
+      const distance = 90 + Math.random() * 130;
+      piece.style.setProperty('--dx', `${Math.round(Math.cos(angle) * distance)}px`);
+      piece.style.setProperty('--dy', `${Math.round(Math.sin(angle) * distance)}px`);
+      piece.style.setProperty('--rot', `${Math.round((Math.random() - 0.5) * 140)}deg`);
+      piece.style.setProperty('--dur', `${(0.8 + Math.random() * 0.6).toFixed(2)}s`);
+      piece.style.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      piece.style.fontSize = `${(1 + Math.random() * 1.1).toFixed(2)}rem`;
+      piece.addEventListener('animationend', () => piece.remove());
+      window.setTimeout(() => piece.remove(), 2200);
+      stage.append(piece);
+    }
+  }
+
+  let hopTimer = null;
+  stage.addEventListener('click', () => {
+    if (!reduceMotion) {
+      stage.classList.remove('is-hop');
+      void stage.offsetWidth; // 連続でタップしても、毎回、最初から跳ねる
+      stage.classList.add('is-hop');
+      window.clearTimeout(hopTimer);
+      hopTimer = window.setTimeout(() => stage.classList.remove('is-hop'), 800);
+    }
+    pop(reduceMotion ? 0 : 12);
+  });
+})();

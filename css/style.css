@@ -755,6 +755,255 @@ ul { list-style: none; }
 }
 
 /* ==========================================================================
+   Mascot (ロパンくん)
+   ========================================================================== */
+
+.mascot {
+  position: relative;
+  overflow: hidden;
+  padding: 120px 0;
+  background:
+    radial-gradient(ellipse at 15% 0%, rgba(246, 226, 178, 0.14), transparent 55%),
+    radial-gradient(ellipse at 90% 100%, rgba(201, 162, 75, 0.12), transparent 50%),
+    linear-gradient(160deg, #2b101d 0%, #1f1228 55%, #15121f 100%);
+}
+
+.mascot .section-inner { position: relative; z-index: 1; }
+
+.mascot-grid {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 64px;
+  align-items: center;
+  margin-top: 56px;
+}
+
+.mascot-visual { text-align: center; }
+
+/* 黒い体が背景に埋もれないよう、後ろに明るいステージ（丸い光）を置く */
+.mascot-stage {
+  position: relative;
+  display: block;
+  width: min(420px, 100%);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, #fffaf0 0%, #f9e8c0 46%, #ecc872 78%, rgba(236, 200, 114, 0.15) 100%);
+  box-shadow: 0 0 70px rgba(246, 226, 178, 0.32), inset 0 -18px 40px rgba(201, 150, 60, 0.35);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mascot-stage:focus-visible { outline: 3px solid var(--color-gold); outline-offset: 8px; }
+
+.mascot-ring {
+  position: absolute;
+  inset: -12px;
+  border: 2px dashed rgba(246, 226, 178, 0.6);
+  border-radius: 50%;
+  animation: mascotSpin 40s linear infinite;
+  pointer-events: none;
+}
+
+.mascot-img {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9%;
+  width: 88%;
+  height: auto;
+  margin: 0 auto;
+  filter: drop-shadow(0 14px 14px rgba(70, 35, 0, 0.35));
+  animation: mascotBob 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.mascot-stage.is-hop .mascot-img {
+  animation: mascotHop 0.75s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.mascot-hint {
+  margin-top: 22px;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--color-peach);
+  animation: mascotHint 2.4s ease-in-out infinite;
+}
+
+/* 名前の由来: ロップイヤー ＋ ラパン ＝ ロパンくん */
+.mascot-origin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.mascot-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  line-height: 1.5;
+  background: rgba(246, 226, 178, 0.1);
+  border: 1px solid rgba(246, 226, 178, 0.4);
+  border-radius: 16px;
+}
+
+.mascot-chip b {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  color: #fff1cf;
+}
+
+.mascot-chip small { font-size: 0.68rem; color: var(--color-brown-soft); }
+
+.mascot-op { font-size: 1.3rem; font-weight: 700; color: var(--color-gold); }
+
+/* 「＝」と「ロパンくん」は、いつも同じ行に並べる */
+.mascot-result { display: inline-flex; align-items: center; gap: 10px; }
+
+.mascot-chip-result {
+  background: var(--gradient-gold);
+  border-color: transparent;
+  box-shadow: 0 8px 18px -8px rgba(201, 162, 75, 0.8);
+}
+
+.mascot-chip-result b { color: #2a1608; font-size: 1.15rem; }
+
+.mascot-text p {
+  margin-bottom: 18px;
+  font-size: 0.98rem;
+  color: var(--color-brown-soft);
+  line-break: strict;
+  text-wrap: pretty;
+}
+
+/* ロパンくんの吹き出し */
+.mascot-bubble {
+  position: relative;
+  margin: 30px 0 0 14px;
+  padding: 20px 24px 22px;
+  color: #3b2432;
+  background: #fff7e4;
+  border-radius: 24px;
+  box-shadow: 0 16px 32px -14px rgba(0, 0, 0, 0.75);
+}
+
+.mascot-bubble::before {
+  content: "";
+  position: absolute;
+  top: 34px;
+  left: -13px;
+  border: 13px solid transparent;
+  border-left: 0;
+  border-right-color: #fff7e4;
+}
+
+.mascot-bubble figcaption {
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #b3722c;
+}
+
+.mascot-bubble blockquote {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.9;
+  line-break: strict;
+  text-wrap: pretty;
+}
+
+/* ちらちら光る飾り */
+.mascot-sparkles { position: absolute; inset: 0; pointer-events: none; }
+
+.mascot-sparkles span {
+  position: absolute;
+  color: var(--color-peach);
+  text-shadow: 0 0 10px rgba(246, 226, 178, 0.9);
+  animation: mascotTwinkle 3s ease-in-out infinite;
+}
+
+.mascot-sparkles span:nth-child(1) { left: 6%;  top: 14%; font-size: 1.3rem; animation-delay: 0s; }
+.mascot-sparkles span:nth-child(2) { left: 18%; top: 72%; font-size: 0.9rem; animation-delay: 0.7s; }
+.mascot-sparkles span:nth-child(3) { left: 44%; top: 8%;  font-size: 1rem;   animation-delay: 1.4s; }
+.mascot-sparkles span:nth-child(4) { left: 52%; top: 88%; font-size: 1.2rem; animation-delay: 0.3s; color: #ff9fbd; }
+.mascot-sparkles span:nth-child(5) { left: 74%; top: 18%; font-size: 1.4rem; animation-delay: 1.1s; }
+.mascot-sparkles span:nth-child(6) { left: 90%; top: 52%; font-size: 1.1rem; animation-delay: 2s;   color: #ff9fbd; }
+.mascot-sparkles span:nth-child(7) { left: 94%; top: 86%; font-size: 0.9rem; animation-delay: 0.5s; }
+.mascot-sparkles span:nth-child(8) { left: 33%; top: 46%; font-size: 0.8rem; animation-delay: 1.7s; }
+
+/* タップで飛び散るハート・星 */
+.mascot-pop {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  pointer-events: none;
+  text-shadow: 0 0 8px currentColor;
+  animation: mascotPop var(--dur, 1s) ease-out forwards;
+}
+
+/* スクロールして見えたとき、ふわっと現れる（動きを減らす設定では使わない） */
+.mascot.reveal-ready .mascot-visual,
+.mascot.reveal-ready .mascot-text {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.mascot.reveal-ready .mascot-text { transition-delay: 0.18s; }
+
+.mascot.reveal-ready.is-in .mascot-visual,
+.mascot.reveal-ready.is-in .mascot-text {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes mascotBob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-12px) rotate(1deg); }
+}
+
+@keyframes mascotHop {
+  0%   { transform: translateY(0) scale(1, 1); }
+  18%  { transform: translateY(6px) scale(1.08, 0.9); }
+  45%  { transform: translateY(-46px) scale(0.95, 1.07) rotate(-4deg); }
+  70%  { transform: translateY(0) scale(1.06, 0.93); }
+  85%  { transform: translateY(-8px) scale(0.99, 1.01); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+@keyframes mascotSpin { to { transform: rotate(360deg); } }
+
+@keyframes mascotHint {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+@keyframes mascotTwinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.7) rotate(0deg); }
+  50%      { opacity: 1;    transform: scale(1.15) rotate(20deg); }
+}
+
+@keyframes mascotPop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  15%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.2) rotate(var(--rot)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-img, .mascot-ring, .mascot-hint, .mascot-sparkles span { animation: none; }
+  .mascot-sparkles span { opacity: 0.6; }
+}
+
+/* ==========================================================================
    Interior
    ========================================================================== */
 
@@ -1621,6 +1870,10 @@ html.profile-open { overflow: hidden; }
   .nav-toggle { display: flex; }
 
   .concept-grid { grid-template-columns: 1fr; gap: 40px; }
+  .mascot-grid { grid-template-columns: 1fr; gap: 44px; }
+  .mascot-stage { width: min(360px, 88%); }
+  .mascot-bubble { margin: 34px 0 0; }
+  .mascot-bubble::before { top: -13px; left: 40px; border: 13px solid transparent; border-top: 0; border-bottom-color: #fff7e4; }
   .concept-visual-frame { max-width: 320px; margin: 0 auto; }
   .cast-grid { grid-template-columns: repeat(2, 1fr); }
   .menu-tabs { grid-template-columns: repeat(2, 1fr); gap: 40px 32px; }
@@ -1645,7 +1898,7 @@ html.profile-open { overflow: hidden; }
 
   .hero-actions .btn { width: 100%; }
 
-  .concept, .interior, .menu, .shop { padding: 88px 0; }
+  .concept, .mascot, .interior, .menu, .shop { padding: 88px 0; }
 
   .cast { padding: 88px 0 100px; }
 
