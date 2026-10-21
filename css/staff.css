@@ -662,3 +662,8 @@
 /* 次回営業日のフォーム: 入力欄とボタンの間、ボタンと文面の間をあける */
 #nextOpenForm .staff-preview-actions { margin-top: 22px; }
 #nextOpenCard .staff-message { margin-top: 16px; }
+
+/* 受付の人数制限 */
+#limitForm .staff-preview-actions { margin-top: 22px; }
+#limitCard .staff-message { margin-top: 12px; }
+#limitCard .staff-small { margin-top: 16px; }

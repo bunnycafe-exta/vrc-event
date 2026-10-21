@@ -2109,3 +2109,21 @@ img {
 
   .hero { padding-top: calc(var(--header-height) + 18px); }
 }
+
+/* 来店予約の受付を終了しているとき */
+.btn.is-closed,
+.btn.is-closed:hover {
+  background: rgba(194, 180, 166, 0.18);
+  border-color: rgba(194, 180, 166, 0.45);
+  color: var(--color-brown-soft);
+  box-shadow: none;
+  transform: none;
+}
+
+.reserve-closed {
+  text-align: center;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.9;
+  color: var(--color-peach);
+}

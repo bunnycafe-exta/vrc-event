@@ -409,15 +409,16 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
   });
 })();
 
-// 管理画面で設定した「次回営業日」を読み込んで、トップ・来店予約・店舗情報に表示する。
-// 未設定のとき、または日付が過ぎたときは、「Coming Soon」と表示する。
-// 通信がうまくいかなかったときは、まちがった案内をしないよう、何も表示しない
-(function setupNextOpen() {
+// 管理画面の設定を読み込んで、次の2つを表示する。
+//  1. 「次回営業日」（トップ・来店予約・店舗情報）。未設定のとき、または日付が過ぎたときは「Coming Soon」
+//  2. 来店予約の受付状況。人数の上限に達して受付を終了しているときは、予約ボタンを「受付終了」の表示にする
+// 通信がうまくいかなかったときは、まちがった案内をしないよう、どちらも何も変えない
+(function setupSiteStatus() {
   const url = window.EXTA_API_URL;
+  if (!url) return;
   const targets = Array.from(document.querySelectorAll('[data-next-open]'));
-  if (!url || !targets.length) return;
 
-  const show = (text) => {
+  const showNext = (text) => {
     targets.forEach((node) => {
       node.textContent = text;
       const box = node.closest('[data-next-open-box]');
@@ -428,18 +429,32 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     });
   };
 
+  const showReservationClosed = () => {
+    document.querySelectorAll('[data-reserve-cta]').forEach((a) => {
+      a.textContent = '来店予約：受付終了';
+      a.classList.add('is-closed');
+    });
+    const action = document.querySelector('[data-reserve-action]');
+    if (!action) return;
+    action.querySelectorAll('.reserve-btn, .reserve-note').forEach((n) => { n.hidden = true; });
+    const closed = action.querySelector('.reserve-closed');
+    if (closed) closed.hidden = false;
+  };
+
   fetch(url, { cache: 'no-store' })
     .then((res) => res.json())
     .then((data) => {
       if (!data || !data.ok) return;
+      if (data.reservationOpen === false) showReservationClosed();
+      if (!targets.length) return;
       const n = data.next;
       if (!n || !/^\d{4}-\d{2}-\d{2}$/.test(n.date) || !/^\d{2}:\d{2}$/.test(n.startTime) || !/^\d{2}:\d{2}$/.test(n.endTime)) {
-        show('Coming Soon');
+        showNext('Coming Soon');
         return;
       }
       const [y, m, d] = n.date.split('-').map(Number);
       const dow = '日月火水木金土'.charAt(new Date(Date.UTC(y, m - 1, d)).getUTCDay());
-      show(`${m}月${d}日（${dow}） ${n.startTime}〜${n.endTime}`);
+      showNext(`${m}月${d}日（${dow}） ${n.startTime}〜${n.endTime}`);
     })
-    .catch(() => { /* 表示しないだけ */ });
+    .catch(() => { /* 変えないだけ */ });
 })();

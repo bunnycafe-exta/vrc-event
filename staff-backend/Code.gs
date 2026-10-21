@@ -72,7 +72,13 @@ function doGet() {
   } catch (err) {
     console.error(err);
   }
-  return json_({ ok: true, service: 'EXTA staff API', version: 14, next: next });
+  let reservationOpen = true;
+  try {
+    reservationOpen = publicReservationOpen_();
+  } catch (err) {
+    console.error(err);
+  }
+  return json_({ ok: true, service: 'EXTA staff API', version: 15, next: next, reservationOpen: reservationOpen });
 }
 
 function doPost(e) {
@@ -115,6 +121,8 @@ function route_(req) {
     case 'setFinal': requireOwner_(user); return withLock_(() => setFinal_(user, req));
     case 'history': requireOwner_(user); return history_(req);
     case 'reservations': requireOwner_(user); return reservations_();
+    case 'setReservationCap': requireOwner_(user); return withLock_(() => setReservationCap_(req));
+    case 'resetReservationCount': requireOwner_(user); return withLock_(() => resetReservationCount_());
     case 'getNextOpen': requireOwner_(user); return { ok: true, next: storedNextOpen_() };
     case 'setNextOpen': requireOwner_(user); return withLock_(() => setNextOpen_(req));
     case 'clearNextOpen': requireOwner_(user); return withLock_(() => clearNextOpen_());
@@ -545,7 +553,16 @@ function setNextOpen_(req) {
   const endTime = checkTime_(req.endTime);
   if (date < nowMinute_().slice(0, 10)) fail_('過去の日付は設定できません');
   const next = { date: date, startTime: startTime, endTime: endTime };
+  const before = storedNextOpen_();
   PropertiesService.getScriptProperties().setProperty(NEXT_OPEN_KEY, JSON.stringify(next));
+  // 営業日が変わったときは、新しい営業日の予約が始まったものとして、人数を数え直し、受付を再開する
+  if (!before || before.date !== date) {
+    try {
+      resetReservationCount_();
+    } catch (err) {
+      console.error(err);
+    }
+  }
   return { ok: true, next: next };
 }
 
@@ -554,8 +571,29 @@ function clearNextOpen_() {
   return { ok: true, next: null };
 }
 
-// 来店予約フォームの回答を、新しい順に返す（オーナー専用）。項目名はシートの1行目をそのまま使うので、フォームの質問を変えても動く
-function reservations_() {
+/* ---------- 来店予約（フォームの回答の一覧と、人数の上限） ---------- */
+
+const RES_CAP_KEY = 'reservationCap';     // 上限の人数（0 = 上限なし）
+const RES_SINCE_KEY = 'reservationSince'; // この時刻より後の予約だけを数える（ミリ秒）。新しい営業日の受付を始めるたびに更新する
+const RES_OPEN_KEY = 'reservationOpen';   // '1' = 受付中 / '0' = 受付終了（公開サイトの表示用）
+const RES_DEFAULT_CAP = 6;
+const RES_CLOSED_MESSAGE = '定員に達したため、来店予約の受付を終了しました。次回の受付開始まで、お待ちください。';
+
+function reservationCap_() {
+  const v = PropertiesService.getScriptProperties().getProperty(RES_CAP_KEY);
+  return v === null ? RES_DEFAULT_CAP : Math.max(0, Number(v) || 0);
+}
+
+function reservationSince_() {
+  return Number(PropertiesService.getScriptProperties().getProperty(RES_SINCE_KEY)) || 0;
+}
+
+function publicReservationOpen_() {
+  return PropertiesService.getScriptProperties().getProperty(RES_OPEN_KEY) !== '0';
+}
+
+// 予約フォームの回答シートを読む。項目名はシートの1行目をそのまま使うので、フォームの質問を変えても動く
+function readReservations_() {
   let ss;
   try {
     ss = SpreadsheetApp.openById(RESERVATION_SPREADSHEET_ID);
@@ -567,25 +605,123 @@ function reservations_() {
   const sheet = sheets.find(s => s.getSheetId() === RESERVATION_SHEET_GID) || sheets[0];
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow < 1 || lastCol < 1) return { ok: true, headers: [], rows: [], total: 0, guests: 0, shown: 0 };
+  if (lastRow < 1 || lastCol < 1) return { sheet: sheet, headers: [], rows: [], guestIdx: -1 };
 
-  const values = sheet.getRange(1, 1, lastRow, lastCol).getDisplayValues();
+  const range = sheet.getRange(1, 1, lastRow, lastCol);
+  const display = range.getDisplayValues();
+  const raw = range.getValues();
   // フォームの質問は、1行目に説明が続いて入っていることが多いので、最初の行だけを項目名にする
-  const headers = values[0].map(h => (String(h).split(/\r?\n/).map(s => s.trim()).find(s => s) || ''));
-  const all = values.slice(1)
-    .map((v, i) => ({ row: i + 2, values: v.map(c => String(c)) }))
-    .filter(r => r.values.some(c => c.trim() !== ''));
-
-  // 「何名様で…」の列があれば、人数を合計する（空欄は1名、「2名」のような書き方も数える）
+  const headers = display[0].map(h => (String(h).split(/\r?\n/).map(s => s.trim()).find(s => s) || ''));
   const guestIdx = headers.findIndex(h => /何名|人数/.test(h));
-  const guests = all.reduce((sum, r) => {
-    if (guestIdx < 0) return sum + 1;
-    const n = parseInt(r.values[guestIdx].replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)), 10);
-    return sum + (n > 0 ? n : 1);
-  }, 0);
+  const rows = [];
+  for (let i = 1; i < display.length; i++) {
+    const values = display[i].map(c => String(c));
+    if (!values.some(c => c.trim() !== '')) continue;
+    const t = raw[i][0];
+    const time = t instanceof Date ? t.getTime() : (Date.parse(String(t).replace(/-/g, '/')) || 0);
+    rows.push({ row: i + 1, values: values, time: time });
+  }
+  return { sheet: sheet, headers: headers, rows: rows, guestIdx: guestIdx };
+}
 
-  const rows = all.reverse().slice(0, RESERVATION_MAX_ROWS);
-  return { ok: true, headers: headers, rows: rows, total: all.length, guests: guests, shown: rows.length };
+// 1件の予約の人数（空欄は1名、「2名」「２」のような書き方も数える）
+function guestsOf_(r, guestIdx) {
+  if (guestIdx < 0) return 1;
+  const n = parseInt(r.values[guestIdx].replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)), 10);
+  return n > 0 ? n : 1;
+}
+
+function sumGuests_(rows, guestIdx, since) {
+  return rows.filter(r => r.time >= since).reduce((sum, r) => sum + guestsOf_(r, guestIdx), 0);
+}
+
+// 人数が上限に達していれば、フォームの受付を止める。allowOpen=true のときは、上限に達していなければ、受付を再開する
+// （再開は、オーナーが操作したときだけ。営業日と営業日の間に、オーナーが手で止めたフォームを、勝手に開けないため）
+function applyReservationLimit_(data, allowOpen) {
+  const cap = reservationCap_();
+  const used = sumGuests_(data.rows, data.guestIdx, reservationSince_());
+  const full = cap > 0 && used >= cap;
+  let formError = '';
+  try {
+    const url = data.sheet.getFormUrl();
+    if (!url) {
+      formError = 'この回答シートに、フォームがつながっていません。';
+    } else {
+      const form = FormApp.openByUrl(url);
+      if (full) {
+        form.setCustomClosedFormMessage(RES_CLOSED_MESSAGE);
+        if (form.isAcceptingResponses()) form.setAcceptingResponses(false);
+      } else if (allowOpen && !form.isAcceptingResponses()) {
+        form.setAcceptingResponses(true);
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    formError = 'フォームの受付を切り替えられませんでした。Apps Script で「setupReservation」を実行して、許可を出してください。';
+  }
+  if (!formError) PropertiesService.getScriptProperties().setProperty(RES_OPEN_KEY, full ? '0' : '1');
+  return { cap: cap, used: used, full: full, formError: formError };
+}
+
+function reservationStatus_(data, applied) {
+  let accepting = null;
+  try {
+    const url = data.sheet.getFormUrl();
+    if (url) accepting = FormApp.openByUrl(url).isAcceptingResponses();
+  } catch (err) {
+    console.error(err);
+  }
+  return { cap: applied.cap, used: applied.used, full: applied.full, accepting: accepting, error: applied.formError };
+}
+
+// 来店予約の回答を、新しい順に返す（オーナー専用）
+function reservations_() {
+  const data = readReservations_();
+  const applied = applyReservationLimit_(data, false);
+  const guests = data.rows.reduce((sum, r) => sum + guestsOf_(r, data.guestIdx), 0);
+  const rows = data.rows.slice().reverse().slice(0, RESERVATION_MAX_ROWS)
+    .map(r => ({ row: r.row, values: r.values, counted: r.time >= reservationSince_() }));
+  return {
+    ok: true, headers: data.headers, rows: rows, total: data.rows.length, guests: guests, shown: rows.length,
+    limit: reservationStatus_(data, applied)
+  };
+}
+
+// 上限の人数を変える（0 = 上限なし）。上限を上げて、まだ空きがあるときは、受付を再開する
+function setReservationCap_(req) {
+  const cap = Math.floor(Number(req.cap));
+  if (!(cap >= 0 && cap <= 100)) fail_('上限は、0〜100の数字で入力してください（0は上限なし）');
+  PropertiesService.getScriptProperties().setProperty(RES_CAP_KEY, String(cap));
+  const data = readReservations_();
+  return { ok: true, limit: reservationStatus_(data, applyReservationLimit_(data, true)) };
+}
+
+// 新しい営業日の予約を始める。この時点までの予約は、人数に数えず（一覧には残る）、受付を再開する
+function resetReservationCount_() {
+  PropertiesService.getScriptProperties().setProperty(RES_SINCE_KEY, String(Date.now()));
+  const data = readReservations_();
+  return { ok: true, limit: reservationStatus_(data, applyReservationLimit_(data, true)) };
+}
+
+// フォームに回答が届くたびに、自動で動く（setupReservation で登録する）
+function onReservationSubmit() {
+  withLock_(() => {
+    applyReservationLimit_(readReservations_(), false);
+  });
+}
+
+// 1回だけ、Apps Script のエディタで実行する（許可の画面が出る）。
+// 回答が届くたびに、人数を数えて、上限に達したらフォームの受付を止める仕組みを登録する
+function setupReservation() {
+  const data = readReservations_();
+  const url = data.sheet.getFormUrl();
+  if (!url) throw new Error('この回答シートに、フォームがつながっていません');
+  const form = FormApp.openByUrl(url);
+  ScriptApp.getProjectTriggers()
+    .filter(t => t.getHandlerFunction() === 'onReservationSubmit')
+    .forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('onReservationSubmit').forForm(form).onFormSubmit().create();
+  console.log('登録しました。現在の人数: ' + applyReservationLimit_(data, false).used + '名');
 }
 
 function history_(req) {

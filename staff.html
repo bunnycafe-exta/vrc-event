@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/staff.css?v=32">
+<link rel="stylesheet" href="css/staff.css?v=33">
 </head>
 <body class="staff-body">
 
@@ -250,6 +250,26 @@
       </div>
 
       <div class="staff-tabpanel" data-panel="reservations" hidden>
+      <div class="staff-card" id="limitCard">
+        <h2 class="staff-h2">受付の人数制限</h2>
+        <p class="staff-reserve-summary" id="limitStatus">読み込み中…</p>
+        <p class="staff-message" id="limitWarn" role="alert"></p>
+        <form id="limitForm">
+          <div class="staff-inline-form">
+            <label class="staff-field">
+              <span>上限の人数（0 = 上限なし）</span>
+              <input type="number" id="limitCap" min="0" max="100" step="1" inputmode="numeric" required>
+            </label>
+          </div>
+          <div class="staff-preview-actions">
+            <button type="submit" class="btn btn-outline">上限を保存</button>
+            <button type="button" class="btn btn-primary" id="limitReset">新しい営業日の予約を始める</button>
+          </div>
+        </form>
+        <p class="staff-muted staff-small">予約の人数が、上限に達すると、Googleフォームの受付が自動で終了します（公開サイトの予約ボタンも、「受付終了」に変わります）。「新しい営業日の予約を始める」を押すと、これまでの予約を人数に数えなくして（一覧には残ります）、受付を再開します。営業日を、新しい日付に設定したときも、自動で同じ動きになります。</p>
+        <p class="staff-message" id="limitMessage" role="alert"></p>
+      </div>
+
       <div class="staff-card" id="reservationCard">
         <h2 class="staff-h2">来店予約（フォームの回答）</h2>
         <p class="staff-muted staff-small">サイトの「来店予約」フォームに入力された内容を、新しい順に表示します。この画面では、読むだけです（直したり、消したりは、フォームの回答のスプレッドシートで行います）。</p>
@@ -332,7 +352,7 @@
 
 </main>
 
-<script src="js/config.js?v=2"></script>
-<script src="js/staff.js?v=33"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/staff.js?v=34"></script>
 </body>
 </html>

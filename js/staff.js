@@ -230,6 +230,11 @@
     return '';
   }
 
+  function demoLimit(l) {
+    const full = l.cap > 0 && l.used >= l.cap;
+    return { cap: l.cap, used: l.used, full, accepting: !full, error: '' };
+  }
+
   function demoApi(action, p) {
     const db = demoLoad();
     const user = DEMO_USERS.find((u) => getToken() === `demo-${u.id}`);
@@ -401,6 +406,14 @@
         demoSave(db);
         return ok({ next: db.nextOpen || null });
       }
+      case 'setReservationCap': case 'resetReservationCount': {
+        if (needOwner()) return needOwner();
+        db.limit = db.limit || { cap: 6, used: 3 };
+        if (action === 'setReservationCap') db.limit.cap = Number(p.cap);
+        if (action === 'resetReservationCount') db.limit.used = 0;
+        demoSave(db);
+        return ok({ limit: demoLimit(db.limit) });
+      }
       case 'reservations': {
         if (needOwner()) return needOwner();
         const rows = [
@@ -409,7 +422,8 @@
         ].map((values, i) => ({ row: i + 2, values }));
         return ok({
           headers: ['タイムスタンプ', '当イベントのグループ参加はされてますか？', '何名様でご来店予定ですか？', 'お名前(VRChatの表示名)', 'VRCアカウントURL', 'X(旧Twitter)のアカウントURL', 'ご来店前に確認しておきたい事項等'],
-          rows, total: rows.length, guests: 3, shown: rows.length
+          rows: rows.map((r) => ({ ...r, counted: db.limit ? db.limit.used > 0 : true })), total: rows.length, guests: 3, shown: rows.length,
+          limit: demoLimit(db.limit || { cap: 6, used: 3 })
         });
       }
       case 'staffList': case 'reissue': case 'addStaff': case 'setActive': {
@@ -1097,7 +1111,42 @@
     return dd;
   }
 
+  function renderLimit(l) {
+    const s = $('limitStatus');
+    if (l.full) s.textContent = `満席：${l.used}名 ／ 上限${l.cap}名。フォームの受付を終了しました。`;
+    else if (l.cap === 0) s.textContent = `受付中：現在 ${l.used}名（上限なし）`;
+    else s.textContent = `受付中：現在 ${l.used}名 ／ 上限${l.cap}名（あと${l.cap - l.used}名）`;
+    const notes = [];
+    if (l.error) notes.push(l.error);
+    else if (l.accepting === false && !l.full) notes.push('フォームは、今、受付を止めています（手で止めた状態です）。受付を始めるときは、「新しい営業日の予約を始める」を押してください。');
+    $('limitWarn').textContent = notes.join(' ');
+    $('limitCap').value = l.cap;
+  }
+
+  async function saveLimit(e) {
+    e.preventDefault();
+    const msg = $('limitMessage');
+    say(msg, '');
+    const res = await api('setReservationCap', { cap: $('limitCap').value });
+    if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
+    renderLimit(res.limit);
+    say(msg, '上限を保存しました。', true);
+    loadReservations(true);
+  }
+
+  async function resetLimit() {
+    if (!confirm('これまでの予約を、人数に数えなくして、受付を再開します（一覧には残ります）。新しい営業日の予約を始めるときに、押してください。よろしいですか？')) return;
+    const msg = $('limitMessage');
+    say(msg, '');
+    const res = await api('resetReservationCount');
+    if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
+    renderLimit(res.limit);
+    say(msg, '人数を0に戻して、受付を再開しました。', true);
+    loadReservations(true);
+  }
+
   function renderReservations(res) {
+    if (res.limit) renderLimit(res.limit);
     const list = $('reservationList');
     list.replaceChildren();
     $('reservationEmpty').hidden = res.total > 0;
@@ -1114,7 +1163,7 @@
       const name = nameIdx >= 0 && r.values[nameIdx].trim() ? r.values[nameIdx].trim() : '（お名前なし）';
       const guests = guestIdx >= 0 && r.values[guestIdx].trim() ? ` ・ ${r.values[guestIdx].trim()}名` : '';
       const summ = el('summary', '', `${name}${guests}`);
-      summ.append(el('span', 'staff-reserve-sub', `　${r.values[0]}`));
+      summ.append(el('span', 'staff-reserve-sub', `　${r.values[0]}${r.counted === false ? '　（前回分・人数に数えていません）' : ''}`));
       item.append(summ);
       const dl = el('dl');
       heads.forEach((h, i) => {
@@ -1222,6 +1271,8 @@
     $('goCreate').addEventListener('click', () => activateOwnerTab('create', true));
     $('historyRange').addEventListener('change', () => loadHistory(true));
     $('reservationReload').addEventListener('click', () => loadReservations(true));
+    $('limitForm').addEventListener('submit', saveLimit);
+    $('limitReset').addEventListener('click', resetLimit);
     $('nextOpenForm').addEventListener('submit', saveNextOpen);
     $('nextOpenClear').addEventListener('click', clearNextOpen);
     $('addStaffForm').addEventListener('submit', addStaff);
