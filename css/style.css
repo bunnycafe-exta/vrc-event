@@ -1928,3 +1928,10 @@ html.profile-open { overflow: hidden; }
   .cast-grid { grid-template-columns: 1fr; }
   .section-inner { padding: 0 20px; }
 }
+
+/* 画像は、選択・ドラッグ・長押し保存をしにくくする */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}

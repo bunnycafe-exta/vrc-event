@@ -395,3 +395,16 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     pop(reduceMotion ? 0 : 12);
   });
 })();
+
+// 画像の保存を、ひと手間かかるようにする（右クリックのメニューと、ドラッグでの持ち出しを止める）。
+// 画面に表示されている画像を完全に守ることはできないので、あくまで簡易的な対策。
+(function protectImages() {
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('img, .hero-slideshow, .interior-bg, .interior-photo, .mascot-stage, .profile-photo')) {
+      e.preventDefault();
+    }
+  });
+  document.addEventListener('dragstart', (e) => {
+    if (e.target.tagName === 'IMG') e.preventDefault();
+  });
+})();
