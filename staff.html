@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/staff.css?v=34">
+<link rel="stylesheet" href="css/staff.css?v=35">
 </head>
 <body class="staff-body">
 
@@ -324,6 +324,27 @@
 
       </div>
 
+      <div class="staff-tabpanel" data-panel="history" hidden>
+      <div class="staff-card" id="reserveHistoryCard">
+        <h2 class="staff-h2">来店予約の履歴・統計</h2>
+        <p class="staff-muted staff-small">営業日ごとに、予約のお客様と、「何回目の予約か」を表示します。お客様は、VRChatのアカウントURLで見分けます（URLがないときは、お名前）。回数は、予約した営業日の数です（キャンセルは数えません。実際に来店されたかどうかではありません）。営業日は、「新しい営業日の予約を始める」を押したとき、または、次回営業日の日付を変えたときに区切られます。</p>
+        <p class="staff-message" id="rhMessage" role="alert"></p>
+        <p class="staff-muted" id="rhEmpty" hidden>まだ、予約の履歴がありません。</p>
+        <div id="rhBody" hidden>
+          <p class="staff-reserve-summary" id="rhSummary"></p>
+          <h3 class="staff-rot-title">営業日ごとの予約</h3>
+          <div id="rhDays"></div>
+          <h3 class="staff-rot-title">お客様ごとの予約回数</h3>
+          <div class="staff-table-wrap">
+            <table class="staff-table">
+              <thead><tr><th>お名前</th><th>予約回数</th><th>初めて</th><th>直近</th><th>区分</th></tr></thead>
+              <tbody id="rhCustomers"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      </div>
+
       <div class="staff-tabpanel" data-panel="manage" hidden>
       <div class="staff-card" id="manageCard">
         <h2 class="staff-h2">スタッフ管理（ログイン情報）</h2>
@@ -362,6 +383,6 @@
 </main>
 
 <script src="js/config.js?v=4"></script>
-<script src="js/staff.js?v=35"></script>
+<script src="js/staff.js?v=36"></script>
 </body>
 </html>

@@ -401,6 +401,25 @@
         demoSave(db);
         return ok({ next: db.nextOpen || null });
       }
+      case 'reservationHistory': {
+        if (needOwner()) return needOwner();
+        const past = demoPastEvents();
+        const mk = (name, guests, ordinal, cancelled) => ({ name, guests, ordinal, cancelled: Boolean(cancelled), time: 0 });
+        const days = [
+          { date: past[0].date, reservations: [mk('さくら', 2, 3), mk('ひなた', 1, 2), mk('はなこ', 1, 1), mk('ゆず', 3, 0, true)], guests: 4, cancelledCount: 1 },
+          { date: past[1].date, reservations: [mk('さくら', 2, 2), mk('ひなた', 1, 1)], guests: 3, cancelledCount: 0 },
+          { date: past[2].date, reservations: [mk('さくら', 1, 1)], guests: 1, cancelledCount: 0 }
+        ];
+        return ok({
+          days,
+          customers: [
+            { name: 'さくら', visits: 3, reservations: 3, guests: 5, firstDate: past[2].date, lastDate: past[0].date },
+            { name: 'ひなた', visits: 2, reservations: 2, guests: 2, firstDate: past[1].date, lastDate: past[0].date },
+            { name: 'はなこ', visits: 1, reservations: 1, guests: 1, firstDate: past[0].date, lastDate: past[0].date }
+          ],
+          stats: { customers: 3, repeaters: 2, businessDays: 3 }
+        });
+      }
       case 'setReservationCap': case 'resetReservationCount': case 'cancelReservation': case 'reopenReservation': case 'reservations': {
         if (needOwner()) return needOwner();
         const lim = db.limit = db.limit || { cap: 6, reset: false, accepting: true, cancelled: [] };
@@ -408,7 +427,7 @@
           ['2026/10/20 21:14:08', '参加済み', '2', 'さくら', 'https://vrchat.com/home/user/usr_00000000-demo', 'https://x.com/sample_a', 'はじめてです。よろしくお願いします。'],
           ['2026/10/19 08:02:41', '参加済み', '', 'ひなた', 'https://vrchat.com/home/user/usr_00000000-demo2', 'https://x.com/sample_b', ''],
           ['2026/10/18 12:00:00', '参加済み', '3', 'ゆず', 'https://vrchat.com/home/user/usr_00000000-demo3', 'https://x.com/sample_c', '']
-        ].map((values, i) => ({ row: i + 2, key: `${values[0]}|${values[3]}`, values }));
+        ].map((values, i) => ({ row: i + 2, key: `${values[0]}|${values[3]}`, values, ordinal: [3, 2, 1][i], date: ''  }));
         const guestsOf = (r) => Number(r.values[2]) || 1;
         const usedNow = () => sample.filter((r) => !lim.cancelled.includes(r.key) && !lim.reset).reduce((s, r) => s + guestsOf(r), 0);
         const status = () => {
@@ -539,6 +558,9 @@
     lastHistoryLoad = 0;
     lastReservationLoad = 0;
     $('reservationList').replaceChildren(); // 予約者の個人情報を画面に残さない
+    $('rhDays').replaceChildren();
+    $('rhCustomers').replaceChildren();
+    reserveDays = {};
     $('reservationSummary').hidden = true;
     $('issuedList').replaceChildren(); // 発行したパスワードを画面に残さない
     $('manageBody').replaceChildren();
@@ -1047,13 +1069,18 @@
       const item = el('details', 'staff-history-item');
       item.append(el('summary', '', `${dateJa(e.date)} ${e.startTime}〜${e.endTime} ／ 出勤 ${e.attend.length}名 ・ 欠勤 ${e.absent.length}名`));
       item.append(el('p', '', `出勤：${e.attend.join('、') || '—'}`), el('p', '', `欠勤：${e.absent.join('、') || '—'}`));
+      const rl = el('p', 'staff-reserve-line', '予約のお客様：読み込み中…');
+      rl.dataset.eventDate = e.date;
+      item.append(rl);
       list.append(item);
     });
+    if (reserveHistoryLoaded) fillEventReservations(false);
   }
 
   async function loadHistory(force) {
     if (!force && Date.now() - lastHistoryLoad < 30000) return;
     lastHistoryLoad = Date.now();
+    loadReservationHistory();
     const res = await api('history', { limit: Number($('historyRange').value) });
     if (!res.ok) {
       if (!handleAuthError(res)) say($('historyMessage'), res.error);
@@ -1061,6 +1088,72 @@
     }
     say($('historyMessage'), '');
     renderHistory(res);
+  }
+
+  /* Reservation history & customer stats (owner) */
+
+  let reserveDays = {};
+  let reserveHistoryLoaded = false;
+
+  const ordinalLabel = (n) => (n === 1 ? '初めて' : `${n}回目`);
+
+  function reserveLine(day) {
+    if (!day) return '予約のお客様：なし';
+    const names = day.reservations.map((r) => (r.cancelled ? `${r.name}（キャンセル）` : `${r.name}（${ordinalLabel(r.ordinal)}）`));
+    return `予約のお客様（${day.guests}名）：${names.join('、')}`;
+  }
+
+  function fillEventReservations(failed) {
+    document.querySelectorAll('[data-event-date]').forEach((p) => {
+      p.textContent = failed ? '予約のお客様：読み込めませんでした' : reserveLine(reserveDays[p.dataset.eventDate]);
+    });
+  }
+
+  const slashDate = (d) => (d ? d.split('-').map(Number).join('/') : '—');
+
+  function renderReservationHistory(res) {
+    reserveDays = {};
+    res.days.forEach((d) => { if (d.date) reserveDays[d.date] = d; });
+    fillEventReservations(false);
+
+    const empty = res.days.length === 0;
+    $('rhEmpty').hidden = !empty;
+    $('rhBody').hidden = empty;
+    if (empty) return;
+    const s = res.stats;
+    const pct = s.customers ? Math.round((s.repeaters / s.customers) * 1000) / 10 : 0;
+    $('rhSummary').textContent = `予約のお客様 ${s.customers}人 ／ 2回以上の方 ${s.repeaters}人（${pct}%） ／ 営業日 ${s.businessDays}回`;
+
+    const days = $('rhDays');
+    days.replaceChildren();
+    res.days.forEach((d) => {
+      const item = el('details', 'staff-history-item');
+      item.append(el('summary', '', `${d.date ? dateJa(d.date) : '日付が未設定の予約'} ／ 予約 ${d.reservations.length - d.cancelledCount}件・${d.guests}名` + (d.cancelledCount ? `（キャンセル ${d.cancelledCount}件）` : '')));
+      d.reservations.forEach((r) => {
+        const line = el('p', r.cancelled ? 'staff-reserve-cancelled' : '', r.cancelled ? `${r.name}（キャンセル）` : `${r.name}　${r.guests}名　${ordinalLabel(r.ordinal)}`);
+        item.append(line);
+      });
+      days.append(item);
+    });
+
+    const body = $('rhCustomers');
+    body.replaceChildren();
+    res.customers.forEach((c) => {
+      const tr = el('tr');
+      tr.append(el('td', '', c.name), el('td', 'staff-rate', `${c.visits}回`), el('td', '', slashDate(c.firstDate)), el('td', '', slashDate(c.lastDate)), el('td', c.visits >= 2 ? 'staff-mark-ok' : '', c.visits >= 2 ? 'リピーター' : '初めて'));
+      body.append(tr);
+    });
+  }
+
+  async function loadReservationHistory() {
+    const res = await api('reservationHistory');
+    if (!res.ok) {
+      if (!handleAuthError(res)) { say($('rhMessage'), res.error); fillEventReservations(true); }
+      return;
+    }
+    say($('rhMessage'), '');
+    reserveHistoryLoaded = true;
+    renderReservationHistory(res);
   }
 
   /* Next open day shown on the public site (owner) */
@@ -1182,7 +1275,8 @@
       const item = el('details', `staff-history-item staff-reserve-item${r.cancelled ? ' is-cancelled' : ''}`);
       const name = nameIdx >= 0 && r.values[nameIdx].trim() ? r.values[nameIdx].trim() : '（お名前なし）';
       const guests = guestIdx >= 0 && r.values[guestIdx].trim() ? ` ・ ${r.values[guestIdx].trim()}名` : '';
-      const summ = el('summary', '', `${r.cancelled ? '【キャンセル】' : ''}${name}${guests}`);
+      const badge = !r.cancelled && r.ordinal ? ` ・ ${ordinalLabel(r.ordinal)}` : '';
+      const summ = el('summary', '', `${r.cancelled ? '【キャンセル】' : ''}${name}${guests}${badge}`);
       let note = '';
       if (r.cancelled) note = '　（人数に数えていません）';
       else if (r.counted === false) note = '　（前回分・人数に数えていません）';

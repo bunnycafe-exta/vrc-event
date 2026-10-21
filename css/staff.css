@@ -672,3 +672,7 @@
 .staff-reserve-item.is-cancelled { opacity: 0.6; }
 .staff-reserve-item.is-cancelled summary { text-decoration: line-through; }
 .staff-reserve-actions { margin-top: 14px; }
+
+/* 来店予約の履歴・統計 */
+.staff-reserve-line { margin-top: 8px; }
+.staff-reserve-cancelled { text-decoration: line-through; opacity: 0.6; }

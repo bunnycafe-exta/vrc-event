@@ -78,7 +78,7 @@ function doGet() {
   } catch (err) {
     console.error(err);
   }
-  return json_({ ok: true, service: 'EXTA staff API', version: 16, next: next, reservationOpen: reservationOpen });
+  return json_({ ok: true, service: 'EXTA staff API', version: 17, next: next, reservationOpen: reservationOpen });
 }
 
 function doPost(e) {
@@ -123,6 +123,7 @@ function route_(req) {
     case 'reservations': requireOwner_(user); return reservations_();
     case 'setReservationCap': requireOwner_(user); return withLock_(() => setReservationCap_(req));
     case 'resetReservationCount': requireOwner_(user); return withLock_(() => resetReservationCount_());
+    case 'reservationHistory': requireOwner_(user); return reservationHistory_();
     case 'cancelReservation': requireOwner_(user); return withLock_(() => cancelReservation_(req));
     case 'reopenReservation': requireOwner_(user); return withLock_(() => reopenReservation_());
     case 'getNextOpen': requireOwner_(user); return { ok: true, next: storedNextOpen_() };
@@ -560,7 +561,7 @@ function setNextOpen_(req) {
   // 営業日が変わったときは、新しい営業日の予約が始まったものとして、人数を数え直し、受付を再開する
   if (!before || before.date !== date) {
     try {
-      resetReservationCount_();
+      resetReservationCount_(date);
     } catch (err) {
       console.error(err);
     }
@@ -617,7 +618,7 @@ function readReservations_() {
   const sheet = sheets.find(s => s.getSheetId() === RESERVATION_SHEET_GID) || sheets[0];
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow < 1 || lastCol < 1) return { sheet: sheet, headers: [], rows: [], guestIdx: -1 };
+  if (lastRow < 1 || lastCol < 1) return { sheet: sheet, headers: [], rows: [], guestIdx: -1, nameIdx: -1, urlIdx: -1 };
 
   const range = sheet.getRange(1, 1, lastRow, lastCol);
   const display = range.getDisplayValues();
@@ -626,6 +627,7 @@ function readReservations_() {
   const headers = display[0].map(h => (String(h).split(/\r?\n/).map(s => s.trim()).find(s => s) || ''));
   const guestIdx = headers.findIndex(h => /何名|人数/.test(h));
   const nameIdx = headers.findIndex(h => /お名前|名前/.test(h));
+  const urlIdx = headers.findIndex(h => /VRC/i.test(h) && /URL/i.test(h));
   const cancelled = cancelledKeys_();
   const rows = [];
   for (let i = 1; i < display.length; i++) {
@@ -636,7 +638,7 @@ function readReservations_() {
     const key = time + '|' + (nameIdx >= 0 ? values[nameIdx].trim() : '');
     rows.push({ row: i + 1, values: values, time: time, key: key, cancelled: cancelled.indexOf(key) >= 0 });
   }
-  return { sheet: sheet, headers: headers, rows: rows, guestIdx: guestIdx };
+  return { sheet: sheet, headers: headers, rows: rows, guestIdx: guestIdx, nameIdx: nameIdx, urlIdx: urlIdx };
 }
 
 // 1件の予約の人数（空欄は1名、「2名」「２」のような書き方も数える）
@@ -696,8 +698,12 @@ function reservations_() {
   const active = data.rows.filter(r => !r.cancelled);
   const guests = active.reduce((sum, r) => sum + guestsOf_(r, data.guestIdx), 0);
   const since = reservationSince_();
+  const info = annotateReservations_(data);
   const rows = data.rows.slice().reverse().slice(0, RESERVATION_MAX_ROWS)
-    .map(r => ({ row: r.row, key: r.key, values: r.values, cancelled: r.cancelled, counted: !r.cancelled && r.time >= since }));
+    .map(r => ({
+      row: r.row, key: r.key, values: r.values, cancelled: r.cancelled, counted: !r.cancelled && r.time >= since,
+      date: info[r.key + '#' + r.row].date, ordinal: r.cancelled ? 0 : info[r.key + '#' + r.row].ordinal
+    }));
   return {
     ok: true, headers: data.headers, rows: rows, total: active.length, cancelledCount: data.rows.length - active.length,
     guests: guests, shown: rows.length,
@@ -715,9 +721,115 @@ function setReservationCap_(req) {
   return { ok: true, limit: reservationStatus_(data, applyReservationLimit_(data, true)) };
 }
 
+/* ---------- 来店予約の履歴と統計（営業日ごと・お客様ごと） ---------- */
+
+const RES_PERIODS_KEY = 'reservationPeriods'; // 営業日ごとの予約の区切り [{ since: ミリ秒, date: 'yyyy-MM-dd' }]
+
+// 予約を、どの営業日のものかに分けるための区切り。「新しい営業日の予約を始める」（または営業日の設定）のたびに増える
+function reservationPeriods_() {
+  let list = [];
+  try {
+    list = JSON.parse(PropertiesService.getScriptProperties().getProperty(RES_PERIODS_KEY) || '[]');
+  } catch (err) {
+    list = [];
+  }
+  list = (Array.isArray(list) ? list : []).filter(p => p && Number(p.since) >= 0).map(p => ({ since: Number(p.since), date: String(p.date || '') }));
+  if (!list.length) {
+    // この機能より前に始めた受付は、いまの次回営業日の予約として扱う
+    const since = reservationSince_();
+    const next = storedNextOpen_();
+    if (since > 0) list = [{ since: since, date: next ? next.date : '' }];
+  }
+  return list.sort((a, b) => a.since - b.since);
+}
+
+function addReservationPeriod_(date) {
+  const list = reservationPeriods_();
+  list.push({ since: Date.now(), date: String(date || '') });
+  PropertiesService.getScriptProperties().setProperty(RES_PERIODS_KEY, JSON.stringify(list.slice(-200)));
+}
+
+function periodDateOf_(periods, time) {
+  let date = '';
+  for (let i = 0; i < periods.length; i++) {
+    if (periods[i].since <= time) date = periods[i].date; else break;
+  }
+  return date;
+}
+
+// お客様の見分け方: VRChatのアカウントURL（usr_…）があればそれ、なければお名前
+function customerKeyOf_(data, r) {
+  const url = data.urlIdx >= 0 ? r.values[data.urlIdx] : '';
+  const m = /usr_[0-9a-f-]{8,}/i.exec(url || '');
+  if (m) return m[0].toLowerCase();
+  return 'name:' + (data.nameIdx >= 0 ? r.values[data.nameIdx] : '').replace(/\s+/g, '').toLowerCase();
+}
+
+// 全部の予約に、営業日と「何回目の予約か」を付ける（キャンセルは数えない。同じ営業日に複数あっても、1回として数える）
+function annotateReservations_(data) {
+  const periods = reservationPeriods_();
+  const info = {};
+  data.rows.forEach(r => {
+    info[r.key + '#' + r.row] = { date: periodDateOf_(periods, r.time), customer: customerKeyOf_(data, r), ordinal: 0 };
+  });
+  const order = data.rows.filter(r => !r.cancelled).slice()
+    .sort((a, b) => {
+      const da = info[a.key + '#' + a.row].date || '9999';
+      const db = info[b.key + '#' + b.row].date || '9999';
+      return da !== db ? (da < db ? -1 : 1) : a.time - b.time;
+    });
+  const seen = {};
+  order.forEach(r => {
+    const i = info[r.key + '#' + r.row];
+    const dates = seen[i.customer] = seen[i.customer] || [];
+    if (dates.indexOf(i.date) < 0) dates.push(i.date);
+    i.ordinal = dates.indexOf(i.date) + 1;
+  });
+  return info;
+}
+
+// 営業日ごとの予約と、お客様ごとの予約回数（オーナー専用）
+function reservationHistory_() {
+  const data = readReservations_();
+  const info = annotateReservations_(data);
+  const days = {};
+  const customers = {};
+  data.rows.forEach(r => {
+    const i = info[r.key + '#' + r.row];
+    const name = (data.nameIdx >= 0 ? r.values[data.nameIdx].trim() : '') || '（お名前なし）';
+    const guests = guestsOf_(r, data.guestIdx);
+    const day = days[i.date] = days[i.date] || { date: i.date, reservations: [], guests: 0, cancelledCount: 0 };
+    day.reservations.push({ name: name, guests: guests, cancelled: r.cancelled, ordinal: r.cancelled ? 0 : i.ordinal, time: r.time });
+    if (r.cancelled) { day.cancelledCount++; return; }
+    day.guests += guests;
+    const c = customers[i.customer] = customers[i.customer] || { name: name, dates: [], guests: 0, reservations: 0 };
+    c.name = name; // 最後に使った名前
+    c.guests += guests;
+    c.reservations++;
+    if (c.dates.indexOf(i.date) < 0) c.dates.push(i.date);
+  });
+  const dayList = Object.keys(days).map(k => days[k]).sort((a, b) => (a.date || '0000') < (b.date || '0000') ? 1 : -1);
+  dayList.forEach(d => d.reservations.sort((a, b) => a.time - b.time));
+  const customerList = Object.keys(customers).map(k => {
+    const c = customers[k];
+    const dated = c.dates.filter(d => d).sort();
+    return { name: c.name, visits: c.dates.length, reservations: c.reservations, guests: c.guests, firstDate: dated[0] || '', lastDate: dated[dated.length - 1] || '' };
+  }).sort((a, b) => b.visits - a.visits || (a.lastDate < b.lastDate ? 1 : -1));
+  const repeaters = customerList.filter(c => c.visits >= 2).length;
+  return {
+    ok: true, days: dayList, customers: customerList,
+    stats: { customers: customerList.length, repeaters: repeaters, businessDays: dayList.filter(d => d.date).length }
+  };
+}
+
 // 新しい営業日の予約を始める。この時点までの予約は、人数に数えず（一覧には残る）、受付を再開する
-function resetReservationCount_() {
+function resetReservationCount_(date) {
+  if (date === undefined) {
+    const next = publicNextOpen_();
+    date = next ? next.date : '';
+  }
   PropertiesService.getScriptProperties().setProperty(RES_SINCE_KEY, String(Date.now()));
+  addReservationPeriod_(date);
   const data = readReservations_();
   return { ok: true, limit: reservationStatus_(data, applyReservationLimit_(data, true)) };
 }
