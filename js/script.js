@@ -82,6 +82,7 @@ if (bgmAudio && bgmToggle) {
   }
 
   playBgm = () => {
+    if (document.documentElement.classList.contains('is-maint')) return; // 「Coming Soon」の間は、音楽を流さない
     bgmAudio.play().then(() => {
       fadeIn();
       setToggleState(true);
@@ -93,6 +94,7 @@ if (bgmAudio && bgmToggle) {
   // Used when the visitor already chose today and no click has happened yet:
   // browsers may block autoplay, so retry on the first real interaction.
   playBgmWhenAllowed = () => {
+    if (document.documentElement.classList.contains('is-maint')) return;
     bgmAudio.play().then(() => {
       fadeIn();
       setToggleState(true);
@@ -429,6 +431,23 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     });
   };
 
+  // 管理画面で「Coming Soon」に切り替えているときは、お客様の画面を、その表示だけにする（?preview=1 のタブを除く）
+  const applyMaintenance = (on) => {
+    let preview = false;
+    try {
+      preview = sessionStorage.getItem('exta-maint-preview') === '1';
+      if (on) localStorage.setItem('exta-maint', String(Date.now()));
+      else localStorage.removeItem('exta-maint');
+    } catch (e) { /* 保存できない環境でも、表示の切り替えは行う */ }
+    const root = document.documentElement;
+    if (on && !preview) {
+      root.classList.add('is-maint');
+      if (typeof pauseBgm === 'function') pauseBgm();
+    } else {
+      root.classList.remove('is-maint');
+    }
+  };
+
   const showReservationClosed = () => {
     document.querySelectorAll('[data-reserve-cta]').forEach((a) => {
       a.textContent = '来店予約：受付終了';
@@ -445,6 +464,7 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     .then((res) => res.json())
     .then((data) => {
       if (!data || !data.ok) return;
+      applyMaintenance(data.maintenance === true);
       if (data.reservationOpen === false) showReservationClosed();
       if (!targets.length) return;
       const n = data.next;

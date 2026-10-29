@@ -10,9 +10,30 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20">
+<script>
+// 管理画面で「Coming Soon」に切り替えているとき、前回の確認結果（1時間以内）が残っていれば、最初から「Coming Soon」の画面を出す
+// URLの末尾に ?preview=1 を付けると、このタブの間だけ、本来のサイトを確認できる（スタッフ用）
+(function () {
+  try {
+    if (/[?&]preview=1(&|$)/.test(location.search)) sessionStorage.setItem('exta-maint-preview', '1');
+    var t = Number(localStorage.getItem('exta-maint'));
+    if (sessionStorage.getItem('exta-maint-preview') !== '1' && t && Date.now() - t < 3600000) document.documentElement.classList.add('is-maint');
+  } catch (e) { /* 保存できない環境では、通常どおり表示 */ }
+})();
+</script>
+<link rel="stylesheet" href="css/style.css?v=21">
 </head>
 <body>
+
+<!-- ===== Coming Soon（管理画面で切り替えたときだけ表示） ===== -->
+<div class="maint" id="maint" role="status">
+  <div class="maint-inner">
+    <img class="maint-logo" src="エクスタ_文字だけ_crop.png" alt="Bunny Cafe EXTA">
+    <p class="maint-title">Coming Soon…</p>
+    <p class="maint-text">ただいま、サイトを<br>新しく作り直しています。<br>公開まで、しばらくお待ちください。</p>
+    <a class="maint-link" href="https://x.com/EXTA_VRC" target="_blank" rel="noopener">最新情報は X（Twitter）へ</a>
+  </div>
+</div>
 
 <!-- ===== Sound Consent ===== -->
 <div class="consent-overlay" id="consentOverlay" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
@@ -546,6 +567,6 @@
 
 <script src="js/config.js?v=5"></script>
 <script src="js/profiles.js?v=2"></script>
-<script src="js/script.js?v=8"></script>
+<script src="js/script.js?v=9"></script>
 </body>
 </html>

@@ -2127,3 +2127,76 @@ img {
   line-height: 1.9;
   color: var(--color-peach);
 }
+
+/* ==========================================================================
+   Coming Soon（管理画面で切り替えたとき、お客様の画面を、この表示だけにする）
+   ========================================================================== */
+
+.maint {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 18%, rgba(201, 162, 75, 0.2), transparent 60%),
+    linear-gradient(160deg, #2b101d 0%, #1f1228 55%, #15121f 100%);
+  overflow-y: auto;
+}
+
+html.is-maint .maint { display: flex; }
+html.is-maint body { overflow: hidden; }
+html.is-maint .consent-overlay,
+html.is-maint .intro-overlay,
+html.is-maint .bgm-toggle { display: none !important; }
+
+.maint-inner { max-width: 520px; }
+
+.maint-logo {
+  width: min(300px, 70vw);
+  height: auto;
+  margin: 0 auto 28px;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+}
+
+.maint-title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.9rem, 8vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-peach);
+  margin-bottom: 20px;
+  animation: maintPulse 3.2s ease-in-out infinite;
+}
+
+.maint-text {
+  color: var(--color-brown);
+  font-size: 0.98rem;
+  line-height: 2;
+  margin-bottom: 30px;
+}
+
+.maint-link {
+  display: inline-block;
+  padding: 11px 26px;
+  border: 1px solid rgba(201, 162, 75, 0.6);
+  border-radius: 999px;
+  color: var(--color-gold);
+  font-size: 0.88rem;
+  letter-spacing: 0.06em;
+  transition: background 0.25s ease;
+}
+
+.maint-link:hover { background: rgba(201, 162, 75, 0.14); }
+
+@keyframes maintPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maint-title { animation: none; }
+}

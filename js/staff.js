@@ -394,6 +394,12 @@
           })
         });
       }
+      case 'getMaintenance': case 'setMaintenance': {
+        if (needOwner()) return needOwner();
+        if (action === 'setMaintenance') db.maintenance = p.on === true;
+        demoSave(db);
+        return ok({ on: db.maintenance === true });
+      }
       case 'getNextOpen': case 'setNextOpen': case 'clearNextOpen': {
         if (needOwner()) return needOwner();
         if (action === 'setNextOpen') db.nextOpen = { date: p.date, startTime: p.startTime, endTime: p.endTime };
@@ -540,6 +546,7 @@
     try { sessionStorage.setItem(OWNER_TAB_KEY, name); } catch (e) { /* storage unavailable */ }
     if (name === 'reservations') loadReservations(false);
     if (name === 'create') loadNextOpen();
+    if (name === 'manage') loadMaintenance();
     if (scrollTop) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1156,6 +1163,34 @@
     renderReservationHistory(res);
   }
 
+  /* Public site "Coming Soon" switch (owner) */
+
+  function showMaintenance(on) {
+    $('maintStatus').textContent = on
+      ? '今は、お客様の画面が「Coming Soon」になっています（ホームページは、お休み中です）。'
+      : '今は、ホームページを公開しています。';
+    $('maintOn').hidden = on;
+    $('maintOff').hidden = !on;
+  }
+
+  async function loadMaintenance() {
+    const res = await api('getMaintenance');
+    if (!res.ok) { if (!handleAuthError(res)) say($('maintMessage'), res.error); return; }
+    showMaintenance(res.on);
+  }
+
+  async function setMaintenance(on) {
+    if (!confirm(on
+      ? 'お客様の画面を「Coming Soon」に切り替えます。ホームページは、見られなくなります。よろしいですか？'
+      : 'ホームページの公開を再開します。お客様の画面が、元のホームページに戻ります。よろしいですか？')) return;
+    const msg = $('maintMessage');
+    say(msg, '');
+    const res = await api('setMaintenance', { on });
+    if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
+    showMaintenance(res.on);
+    say(msg, res.on ? '「Coming Soon」に切り替えました。数十秒ほどで、お客様の画面に反映されます。' : '公開を再開しました。数十秒ほどで、お客様の画面に反映されます。', true);
+  }
+
   /* Next open day shown on the public site (owner) */
 
   function showNextOpen(next) {
@@ -1480,6 +1515,8 @@
     $('goCreate').addEventListener('click', () => activateOwnerTab('create', true));
     $('historyRange').addEventListener('change', () => loadHistory(true));
     $('reservationReload').addEventListener('click', () => loadReservations(true));
+    $('maintOn').addEventListener('click', () => setMaintenance(true));
+    $('maintOff').addEventListener('click', () => setMaintenance(false));
     $('limitForm').addEventListener('submit', saveLimit);
     $('limitReset').addEventListener('click', resetLimit);
     $('limitReopen').addEventListener('click', reopenReservation);

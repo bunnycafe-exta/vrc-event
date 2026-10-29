@@ -676,3 +676,8 @@
 /* 来店予約の履歴・統計 */
 .staff-reserve-line { margin-top: 8px; }
 .staff-reserve-cancelled { text-decoration: line-through; opacity: 0.6; }
+
+/* ホームページの公開設定 */
+#maintCard .staff-preview-actions { margin-top: 18px; }
+#maintCard .staff-small { margin-top: 16px; }
+#maintCard .staff-message { margin-top: 12px; }

@@ -78,7 +78,7 @@ function doGet() {
   } catch (err) {
     console.error(err);
   }
-  return json_({ ok: true, service: 'EXTA staff API', version: 17, next: next, reservationOpen: reservationOpen });
+  return json_({ ok: true, service: 'EXTA staff API', version: 18, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
 }
 
 function doPost(e) {
@@ -127,6 +127,8 @@ function route_(req) {
     case 'cancelReservation': requireOwner_(user); return withLock_(() => cancelReservation_(req));
     case 'reopenReservation': requireOwner_(user); return withLock_(() => reopenReservation_());
     case 'getNextOpen': requireOwner_(user); return { ok: true, next: storedNextOpen_() };
+    case 'getMaintenance': requireOwner_(user); return { ok: true, on: maintenanceOn_() };
+    case 'setMaintenance': requireOwner_(user); return withLock_(() => setMaintenance_(req));
     case 'setNextOpen': requireOwner_(user); return withLock_(() => setNextOpen_(req));
     case 'clearNextOpen': requireOwner_(user); return withLock_(() => clearNextOpen_());
     case 'staffList': requireOwner_(user); return staffList_();
@@ -529,6 +531,24 @@ function joinedOf_(person) {
 }
 
 // 締め切り済みの営業日ごとの出勤状況と、全員の出勤率。limit=直近N回（0なら全期間）
+/* ---------- 公開サイトの「Coming Soon」表示（作り直しの間、お客様の画面を切り替える） ---------- */
+
+const MAINTENANCE_KEY = 'maintenance';
+
+function maintenanceOn_() {
+  try {
+    return PropertiesService.getScriptProperties().getProperty(MAINTENANCE_KEY) === '1';
+  } catch (err) {
+    return false;
+  }
+}
+
+function setMaintenance_(req) {
+  const on = req.on === true;
+  PropertiesService.getScriptProperties().setProperty(MAINTENANCE_KEY, on ? '1' : '0');
+  return { ok: true, on: on };
+}
+
 /* ---------- 公開サイトに表示する「次回営業日」 ---------- */
 
 const NEXT_OPEN_KEY = 'nextOpen';
