@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>デザイン案D：昼の森 | BunnyCafe-EXTA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Shippori+Mincho:wght@500;700;800&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   案D「昼の森」— 新しいワールド（ガラスの天井・大きな木・鳥かご）を主役に。クリーム色・若草色・木の茶色
+   学んだこと: 画面いっぱいの主役の写真 / 小さな日本語と大きな欧文の対比 / 色面で区切る帯 / 丸みのある形 / 非対称の配置
+   自然の飾り: 舞う葉・吊るされた札・波の境目・鳥かご。文字は、クリームの上の濃い緑で、読みやすく
+   ========================================================================== */
+:root{
+  --cream:#F6F1E4; --cream-2:#EFE8D3; --paper:#FBF7EC;
+  --leaf:#4E7A44; --leaf-d:#2F4A33; --leaf-dd:#1F3322; --moss:#8DAA6B; --sage:#DCE6C9;
+  --wood:#8A5A36; --wood-d:#5C3B22; --gold:#C9A24B; --gold-l:#E8CA82; --autumn:#E0B23A; --wine:#8C2C42;
+  --ink:#243628; --ink-soft:#4d5f50;
+  --serif:"Shippori Mincho",serif; --sans:"Zen Maru Gothic",sans-serif; --en:"Cormorant Garamond",serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{font-family:var(--sans);font-size:17px;line-height:2;color:var(--ink);background:var(--cream);overflow-x:hidden;-webkit-font-smoothing:antialiased;word-break:auto-phrase;line-break:strict}
+img{max-width:100%;display:block}a{color:inherit;text-decoration:none}ul,ol{list-style:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 clamp(20px,5vw,48px)}
+section{position:relative;padding:clamp(76px,10vw,130px) 0}
+
+/* ヘッダー */
+header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:center;padding:10px clamp(16px,4vw,40px);background:rgba(246,241,228,.88);backdrop-filter:blur(10px);border-bottom:1px solid rgba(78,122,68,.22)}
+.logo{display:flex;align-items:baseline;gap:10px;font-family:var(--en);font-weight:700;font-size:1.6rem;letter-spacing:.14em;color:var(--leaf-d)}
+.logo small{font:700 .62rem var(--sans);letter-spacing:.2em;color:var(--leaf)}
+nav ul{display:flex;gap:clamp(12px,2vw,26px);font:700 .86rem var(--sans)}
+nav a{padding:6px 2px;border-bottom:2px solid transparent;transition:.2s}nav a:hover{border-color:var(--leaf);color:var(--leaf)}
+nav .go{background:var(--leaf);color:#fff;padding:8px 18px;border-radius:99px;border:0}nav .go:hover{background:var(--leaf-d);color:#fff}
+.mbtn{display:none;background:var(--leaf);color:#fff;border:0;border-radius:99px;padding:8px 18px;font:700 .8rem var(--sans)}
+
+/* 章の見出し */
+.head{margin-bottom:clamp(34px,5vw,60px)}
+.head .en{display:flex;align-items:center;gap:12px;font-family:var(--en);font-style:italic;font-weight:600;font-size:clamp(1.3rem,3vw,1.9rem);color:var(--leaf)}
+.head .en::before{content:"";width:34px;height:2px;background:var(--moss);border-radius:2px}
+.head .en::after{content:"🍃";font-style:normal;font-size:.85em}
+.head h2{font-family:var(--serif);font-weight:800;font-size:clamp(1.8rem,4.6vw,2.9rem);line-height:1.4;color:var(--leaf-dd);text-wrap:balance}
+.head p{margin-top:10px;color:var(--ink-soft);max-width:36em}
+.center{text-align:center}.center .en{justify-content:center}.center p{margin-inline:auto}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;padding:16px 36px;border-radius:99px;font-weight:900;letter-spacing:.04em;border:2px solid transparent;transition:.25s}
+.btn-leaf{background:var(--leaf);color:#fff;box-shadow:0 12px 26px -12px rgba(47,74,51,.8)}.btn-leaf:hover{background:var(--leaf-d);transform:translateY(-3px)}
+.btn-sun{background:linear-gradient(120deg,var(--gold),var(--gold-l));color:#2a1f08;box-shadow:0 12px 26px -12px rgba(150,110,20,.7)}.btn-sun:hover{transform:translateY(-3px)}
+.btn-out{border-color:#fff;color:#fff;background:rgba(20,40,24,.28);backdrop-filter:blur(4px)}.btn-out:hover{background:rgba(255,255,255,.2)}
+.btn-line{border-color:var(--leaf);color:var(--leaf-d)}.btn-line:hover{background:var(--sage)}
+
+/* 波の境目 */
+.wave{position:absolute;left:0;right:0;height:60px;pointer-events:none;line-height:0}
+.wave svg{width:100%;height:100%;display:block}
+.wave.top{top:-59px}.wave.bottom{bottom:-1px}
+
+/* ヒーロー */
+.hero{position:relative;min-height:100svh;padding:0;display:flex;align-items:flex-end;overflow:hidden;background:var(--leaf-dd)}
+.hero-img{position:absolute;inset:0;background:url("img/world-1.webp") center 45%/cover no-repeat;transform:scale(1.04);animation:drift 30s ease-in-out infinite alternate}
+@keyframes drift{to{transform:scale(1.12) translateX(-1.5%)}}
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,40,24,.5) 0,rgba(20,40,24,.05) 30%,rgba(20,40,24,.15) 55%,rgba(20,40,24,.8) 100%)}
+.hero-in{position:relative;width:100%;padding-top:130px;padding-bottom:clamp(110px,13vw,150px)}
+.hero-logo{width:min(84%,540px);filter:drop-shadow(0 8px 24px rgba(0,0,0,.7))}
+.hero-sub{font:700 .85rem var(--en);letter-spacing:.35em;color:#fff;margin-bottom:8px;text-shadow:0 2px 10px #000;text-transform:uppercase}
+.hero-copy{font-family:var(--serif);font-weight:700;color:#fff;font-size:clamp(1.15rem,2.4vw,1.55rem);line-height:2;margin:18px 0 28px;text-shadow:0 2px 14px rgba(0,0,0,.8)}
+.cta{display:flex;flex-wrap:wrap;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.chips span{padding:5px 14px;border-radius:99px;background:rgba(246,241,228,.92);color:var(--leaf-d);font-weight:900;font-size:.78rem}
+
+/* 吊るされた札（次回営業日） */
+.tagwrap{position:absolute;right:clamp(16px,9vw,140px);top:56px;z-index:3;transform-origin:50% 0;animation:sway 6s ease-in-out infinite;pointer-events:none}
+@keyframes sway{0%,100%{transform:rotate(3deg)}50%{transform:rotate(-3deg)}}
+.tagwrap::before{content:"";display:block;width:2px;height:clamp(34px,7vw,90px);margin:0 auto;background:linear-gradient(#e8dcc0,#a8895a)}
+.tagcard{position:relative;padding:20px 26px 18px;border-radius:14px;background:linear-gradient(160deg,#fbf3dc,#efe2bd);color:var(--wood-d);text-align:center;border:2px solid var(--wood);box-shadow:0 18px 30px -12px rgba(0,0,0,.6)}
+.tagcard::before{content:"";position:absolute;left:50%;top:-8px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--leaf-dd);border:2px solid var(--wood)}
+.tagcard small{display:block;font:700 .74rem var(--en);letter-spacing:.3em;color:var(--leaf)}
+.tagcard b{display:block;font-family:var(--serif);font-size:clamp(1.1rem,2.6vw,1.5rem);line-height:1.4}
+
+/* 舞う葉 */
+.leaves{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+.leaves i{position:absolute;top:-6%;width:14px;height:20px;border-radius:0 100% 0 100%;background:var(--autumn);opacity:.9;animation:fall 14s linear infinite}
+.leaves i:nth-child(1){left:6%;animation-delay:-2s;scale:1.2}.leaves i:nth-child(2){left:18%;animation-delay:-8s;background:#cf9a2c;animation-duration:17s}
+.leaves i:nth-child(3){left:31%;animation-delay:-5s;background:var(--moss)}.leaves i:nth-child(4){left:46%;animation-delay:-11s;animation-duration:19s}
+.leaves i:nth-child(5){left:58%;animation-delay:-1s;background:#e9c25a}.leaves i:nth-child(6){left:70%;animation-delay:-7s;background:var(--moss);animation-duration:16s}
+.leaves i:nth-child(7){left:82%;animation-delay:-13s}.leaves i:nth-child(8){left:92%;animation-delay:-4s;background:#cf9a2c}
+@keyframes fall{0%{transform:translate(0,0) rotate(0);opacity:0}8%{opacity:.9}50%{transform:translate(40px,55vh) rotate(180deg)}100%{transform:translate(-30px,110vh) rotate(360deg);opacity:.2}}
+
+/* コンセプト */
+.concept-g{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(28px,6vw,80px);align-items:center}
+.concept-g p{font-family:var(--serif);font-size:clamp(1.08rem,1.9vw,1.28rem);line-height:2.2;margin-bottom:1.2em}
+.blob{position:relative;aspect-ratio:4/5;border-radius:46% 54% 42% 58%/40% 46% 54% 60%;overflow:hidden;border:8px solid #fff;box-shadow:0 26px 50px -24px rgba(31,51,34,.6)}
+.blob img{width:100%;height:100%;object-fit:cover}
+.blobwrap{position:relative;max-width:420px;justify-self:end}
+.blobwrap::before{content:"";position:absolute;inset:-18px -20px auto auto;width:62%;aspect-ratio:1;border-radius:50%;background:var(--sage);z-index:-1}
+.blobwrap::after{content:"🌿";position:absolute;left:-14px;bottom:10%;font-size:2.4rem;transform:rotate(-20deg)}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,2vw,26px);margin-top:clamp(44px,6vw,76px)}
+.leafcard{position:relative;padding:34px 28px 30px;background:var(--paper);border-radius:6px 54px 6px 54px;border:2px solid var(--sage);box-shadow:0 18px 30px -22px rgba(31,51,34,.55)}
+.leafcard .no{position:absolute;right:20px;top:16px;font:italic 700 2.6rem var(--en);color:var(--sage)}
+.leafcard .ico{width:52px;height:52px;border-radius:50%;background:var(--leaf);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:14px}
+.leafcard h3{font-family:var(--serif);font-size:1.2rem;line-height:1.5;margin-bottom:6px;color:var(--leaf-dd)}
+.leafcard p{color:var(--ink-soft);font-size:.98rem;line-height:1.95}
+
+/* キャラクター */
+.mascot{background:var(--sage);overflow:hidden}
+.mascot::before{content:"";position:absolute;left:-8%;top:-10%;width:38%;aspect-ratio:1;border-radius:50%;background:rgba(141,170,107,.3)}
+.mascot-g{position:relative;display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(28px,6vw,80px);align-items:center}
+.stage{position:relative;width:min(100%,400px);aspect-ratio:1;margin:0 auto;border-radius:50%;background:radial-gradient(circle at 50% 42%,#fffaf0,#fbeec8 48%,#f0cf7a 80%,rgba(240,207,122,.3));box-shadow:0 0 0 10px rgba(255,255,255,.55),0 30px 60px -26px rgba(31,51,34,.6)}
+.stage::after{content:"🍃";position:absolute;right:2%;top:4%;font-size:2.2rem;transform:rotate(30deg)}
+.stage img{position:absolute;left:6%;right:0;bottom:13%;width:88%;filter:drop-shadow(0 12px 12px rgba(70,35,0,.3))}
+.formula{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:22px}
+.formula span{padding:7px 16px;border-radius:99px;background:#fff;border:2px solid var(--moss);font-family:var(--serif);font-weight:800;color:var(--leaf-dd)}
+.formula small{display:block;font:500 .7rem var(--sans);color:var(--ink-soft)}
+.formula .sum{background:var(--leaf);border-color:var(--leaf);color:#fff}.formula .sum small{color:#e6f0d9}
+.mascot p.t{font-family:var(--serif);font-size:1.12rem;line-height:2.15;margin-bottom:1em}
+.say{position:relative;margin-top:26px;padding:22px 26px;background:#fff;border-radius:28px 28px 28px 6px;box-shadow:0 18px 30px -20px rgba(31,51,34,.6)}
+.say small{font:700 .75rem var(--en);letter-spacing:.2em;color:var(--leaf)}
+.say p{font-family:var(--serif);font-weight:800;font-size:1.2rem;line-height:1.9;margin:2px 0 0;color:var(--leaf-dd)}
+
+/* 店内: 窓のレール */
+.rail{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px max(20px,calc((100vw - 1120px)/2 + 24px)) 26px;scrollbar-width:thin;scrollbar-color:var(--leaf) transparent}
+.rail figure{position:relative;flex:0 0 clamp(250px,34vw,420px);aspect-ratio:4/3.2;scroll-snap-align:start;border-radius:36px 8px 36px 8px;overflow:hidden;border:6px solid #fff;box-shadow:0 22px 38px -22px rgba(31,51,34,.7)}
+.rail figure.big{flex-basis:clamp(300px,52vw,640px)}
+.rail img{width:100%;height:100%;object-fit:cover}
+.rail figcaption{position:absolute;left:12px;bottom:10px;padding:3px 14px;border-radius:99px;background:rgba(246,241,228,.92);font:700 .78rem var(--sans);color:var(--leaf-d)}
+.hint{text-align:center;color:var(--leaf);font:700 .82rem var(--sans);letter-spacing:.2em}
+
+/* メニュー: 木の板 */
+.menu{background:linear-gradient(180deg,var(--wood),var(--wood-d));color:#fff}
+.menu::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 2px,transparent 2px 9px);pointer-events:none}
+.menu .wrap{position:relative;z-index:1}
+.menu .head .en{color:var(--gold-l)}.menu .head .en::before{background:var(--gold-l)}.menu .head h2{color:#fff8e6}.menu .head p{color:#f0dfc4}
+.signs{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(18px,3vw,34px)}
+.sign{position:relative;margin-top:30px;padding:46px 28px 28px;background:var(--paper);color:var(--ink);border-radius:10px;box-shadow:0 26px 40px -22px rgba(0,0,0,.7)}
+.sign::before,.sign::after{content:"";position:absolute;top:-30px;width:2px;height:34px;background:#d8c9a4}
+.sign::before{left:24%}.sign::after{right:24%}
+.sign h3{position:absolute;left:50%;top:-20px;transform:translateX(-50%);padding:6px 26px;border-radius:99px;background:var(--leaf);color:#fff;font:italic 700 1.4rem var(--en);letter-spacing:.1em;border:3px solid var(--paper);white-space:nowrap}
+.sign li{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1.5px dotted rgba(78,122,68,.5);font-family:var(--serif);font-weight:700}
+.sign li:last-child{border-bottom:0}
+.sign .note{display:block;font:500 .8rem var(--sans);color:var(--ink-soft)}
+.tg{font:900 .62rem var(--sans);padding:2px 9px;border-radius:99px;margin-left:4px;color:#fff;white-space:nowrap}.hot{background:#c5563b}.ice{background:#3b8fb0}
+
+/* 予約 */
+.reserve-box{position:relative;max-width:900px;margin:0 auto;padding:clamp(40px,6vw,60px) clamp(22px,5vw,56px);background:var(--paper);border-radius:36px;border:3px solid var(--leaf);box-shadow:0 0 0 9px var(--sage),0 34px 60px -30px rgba(31,51,34,.7)}
+.reserve-box .seal{position:absolute;left:50%;top:-34px;width:68px;height:68px;margin-left:-34px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#78a366,var(--leaf) 60%,var(--leaf-d));border:3px solid var(--paper);display:flex;align-items:center;justify-content:center;font-size:1.8rem;box-shadow:0 10px 18px rgba(0,0,0,.3)}
+.reserve-box h3{text-align:center;font-family:var(--serif);font-size:1.25rem;margin-bottom:28px;color:var(--leaf-dd)}
+.stones{display:grid;gap:0;position:relative;margin-bottom:30px}
+.stones li{position:relative;display:grid;grid-template-columns:54px 1fr;gap:18px;padding:0 0 26px}
+.stones li:last-child{padding-bottom:0}
+.stones li::before{content:"";position:absolute;left:26px;top:54px;bottom:-2px;border-left:3px dotted var(--moss)}
+.stones li:last-child::before{display:none}
+.stones .n{width:54px;height:54px;border-radius:50%;background:var(--leaf);color:#fff;display:flex;align-items:center;justify-content:center;font:italic 700 1.5rem var(--en);box-shadow:0 0 0 5px var(--sage)}
+.stones b{display:block;font-size:1.1rem;line-height:1.6;color:var(--leaf-dd)}.stones p{color:var(--ink-soft);font-size:.98rem;line-height:1.9}
+.rcta{text-align:center}
+.rcta small{display:block;margin-top:12px;color:var(--ink-soft);font-size:.85rem}
+.next-line{text-align:center;margin:-18px 0 36px;color:var(--ink-soft)}.next-line b{font-family:var(--serif);font-size:1.25rem;color:var(--leaf-d)}
+
+/* 店舗情報: 案内板 */
+.shop{background:var(--cream-2)}
+.board{max-width:880px;margin:0 auto;background:var(--paper);border-radius:14px;border:4px solid var(--wood);box-shadow:0 0 0 2px var(--cream-2),0 26px 44px -26px rgba(92,59,34,.7);overflow:hidden}
+.board dl>div{display:grid;grid-template-columns:minmax(130px,230px) 1fr;gap:18px;align-items:baseline;padding:18px clamp(18px,4vw,36px);border-bottom:1.5px dashed rgba(78,122,68,.35)}
+.board dl>div:last-child{border-bottom:0}
+.board dt{display:flex;align-items:center;gap:10px;font-weight:900;color:var(--leaf)}
+.board dt::before{content:"";width:12px;height:16px;border-radius:0 100% 0 100%;background:var(--moss);flex:none}
+.board dd{font-family:var(--serif);font-size:1.15rem;font-weight:700}
+.board a{color:var(--leaf-d);text-decoration:underline;text-decoration-color:var(--moss);text-underline-offset:5px;text-decoration-thickness:2px}
+
+/* キャスト */
+.cast{background:var(--cream)}
+.cgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(14px,2vw,24px)}
+.cc{position:relative;text-align:center;transition:.35s}
+.cc:hover{transform:translateY(-8px)}
+.cc .pic{position:relative;aspect-ratio:3/4.2;border-radius:999px 999px 18px 18px;overflow:hidden;background:radial-gradient(70% 50% at 50% 30%,#fffdf0,transparent 70%),linear-gradient(180deg,var(--sage),#c3d6a6);border:5px solid #fff;box-shadow:0 22px 34px -20px rgba(31,51,34,.7)}
+.cc .pic img{position:absolute;left:6%;right:6%;top:9%;width:88%;height:90%;object-fit:contain;object-position:50% 100%;filter:drop-shadow(0 8px 10px rgba(31,51,34,.35))}
+.cc .nm{position:relative;display:inline-block;margin-top:-18px;padding:7px 20px;border-radius:99px;background:var(--leaf);color:#fff;font-family:var(--serif);font-weight:800;font-size:1.02rem;border:3px solid var(--cream);box-shadow:0 10px 16px -8px rgba(31,51,34,.6)}
+.cc .role{display:block;margin-top:6px;font:italic 700 .95rem var(--en);color:var(--leaf)}
+.cc.owner{grid-column:span 2;grid-row:span 2}
+.cc.owner .pic{aspect-ratio:3/4}.cc.owner .nm{font-size:1.3rem;padding:9px 28px}
+
+/* フッター */
+footer{position:relative;background:var(--leaf-dd);color:#e9f0dc;padding:clamp(64px,9vw,100px) 20px 36px;text-align:center}
+footer::before{content:"";position:absolute;left:0;right:0;top:-1px;height:70px;background:var(--cream);clip-path:polygon(0 0,100% 0,100% 30%,96% 60%,92% 25%,88% 70%,83% 35%,78% 80%,72% 40%,66% 75%,60% 30%,54% 70%,48% 28%,42% 78%,36% 35%,30% 72%,24% 30%,18% 76%,12% 36%,6% 70%,0 40%)}
+footer .big{font-family:var(--en);font-weight:700;font-size:2.4rem;letter-spacing:.3em;color:#fff}
+footer ul{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 24px;margin:18px 0;font:700 .84rem var(--sans)}
+footer a:hover{color:var(--gold-l)}footer small{color:#aebf9c}
+.switch{position:fixed;right:14px;bottom:14px;z-index:90;display:flex;gap:6px;font:700 .8rem var(--sans)}
+.switch a{padding:8px 12px;border:2px solid var(--leaf);background:rgba(246,241,228,.96);border-radius:99px;color:var(--leaf-d)}.switch a.on{background:var(--leaf);color:#fff}
+
+@media (max-width:980px){
+  .concept-g,.mascot-g{grid-template-columns:1fr}
+  .blobwrap{justify-self:center;width:min(80%,380px)}
+  .three{grid-template-columns:1fr}
+  .signs{grid-template-columns:1fr;gap:54px}
+  .cgrid{grid-template-columns:repeat(2,1fr)}.cc.owner{grid-column:1/-1;grid-row:auto}.cc.owner .pic{aspect-ratio:3/3.4}
+}
+@media (max-width:860px){
+  nav{position:fixed;inset:56px 0 0 0;background:rgba(246,241,228,.98);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:.25s}
+  nav.open{opacity:1;visibility:visible}nav ul{flex-direction:column;align-items:center;gap:6px;font-size:1.2rem}nav a{display:block;padding:10px 16px}
+  .mbtn{display:block}
+  .hero-in{padding-bottom:110px}
+  .tagwrap{right:14px;top:50px}
+  .board dl>div{grid-template-columns:1fr;gap:2px}
+  .hero-copy br{display:none}
+}
+@media (prefers-reduced-motion:reduce){.hero-img,.tagwrap,.leaves i{animation:none}.leaves{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="#top">EXTA <small>BUNNY CAFE</small></a>
+  <button class="mbtn" onclick="document.getElementById('nav').classList.toggle('open')">MENU</button>
+  <nav id="nav" onclick="this.classList.remove('open')"><ul>
+    <li><a href="#concept">Concept</a></li><li><a href="#mascot">Character</a></li><li><a href="#interior">Interior</a></li><li><a href="#menu">Menu</a></li>
+    <li><a href="#shop">Shop Info</a></li><li><a href="#cast">Cast</a></li><li><a class="go" href="#reservation">Reservation</a></li>
+  </ul></nav>
+</header>
+
+<section class="hero" id="top">
+  <div class="hero-img" role="img" aria-label="新しいワールド：ガラスの天井と、大きな木、鳥かごのあるカフェ"></div>
+  <div class="leaves" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="tagwrap" aria-hidden="false"><div class="tagcard"><small>NEXT OPEN</small><b>Coming Soon</b></div></div>
+  <div class="wrap hero-in">
+    <div class="chips"><span>PC Only</span><span>VRChat</span><span>月一・土曜日 22:00〜</span></div>
+    <p class="hero-sub">Virtual Cafe Event</p>
+    <h1><img class="hero-logo" src="../エクスタ_文字だけ_crop.png" alt="Bunny Cafe EXTA"></h1>
+    <p class="hero-copy">午後の陽だまりに、うさぎ耳のもてなしを。<br>ヴァーチャル空間でゆったり過ごすカフェタイム。</p>
+    <div class="cta"><a class="btn btn-sun" href="#reservation">来店予約はこちら</a><a class="btn btn-out" href="#shop">店舗情報を見る</a><a class="btn btn-out" href="#concept">コンセプトを知る</a></div>
+  </div>
+  <div class="wave bottom"><svg viewBox="0 0 1440 60" preserveAspectRatio="none"><path d="M0 40 C 180 5 360 70 540 38 S 900 4 1080 36 S 1320 62 1440 30 L1440 60 L0 60Z" fill="#F6F1E4"/></svg></div>
+</section>
+
+<section id="concept">
+  <div class="wrap">
+    <div class="head"><div class="en">Concept</div><h2>やわらかな午後の、うさぎカフェ</h2></div>
+    <div class="concept-g">
+      <div>
+        <p>EXTAは、VRChat上に佇む小さなバニーカフェイベントです。<br>差し込む陽光と、ゆるやかに流れる音楽。<br>うさぎ耳のキャストたちが、訪れる方にくつろぎのひとときをお届けします。</p>
+        <p>忙しい毎日から少し離れて、あたたかな木漏れ日の中でお茶を一杯。<br>そんな "ちょうどいい非日常" を大切にしています。</p>
+      </div>
+      <div class="blobwrap"><div class="blob"><img src="img/world-1.webp" alt="ガラスの天井と大きな木のある店内" style="object-position:58% 50%"></div></div>
+    </div>
+    <ul class="three">
+      <li class="leafcard"><span class="no">01</span><div class="ico">🌱</div><h3>癒やしの空間デザイン</h3><p>昼下がりの光をイメージした、あたたかみのあるワールド設計。</p></li>
+      <li class="leafcard"><span class="no">02</span><div class="ico">🐰</div><h3>おもてなしキャスト</h3><p>お客様一人ひとりに寄り添う、うさぎ耳キャストたちの接客。</p></li>
+      <li class="leafcard"><span class="no">03</span><div class="ico">🍵</div><h3>ゆったり過ごせる時間</h3><p>写真撮影やおしゃべりも自由に楽しめるアットホームな雰囲気。</p></li>
+    </ul>
+  </div>
+</section>
+
+<section class="mascot" id="mascot">
+  <div class="wrap">
+    <div class="head"><div class="en">Official Character</div><h2>公式キャラクター「ロパンくん」をご紹介！</h2></div>
+    <div class="mascot-g">
+      <div><div class="stage"><img src="../ロパンくん/exta_waitress.png" alt="ロパンくん"></div></div>
+      <div>
+        <div class="formula"><span>ロップイヤー<small>垂れ耳うさぎ</small></span>＋<span>ラパン<small>フランス語でうさぎ</small></span>＝<span class="sum">ロパンくん</span></div>
+        <p class="t">垂れ耳うさぎの“ロップイヤー”と、フランス語でうさぎを意味する“ラパン”。2つの言葉から生まれたのが「ロパンくん」です。</p>
+        <p class="t">性格はとっても穏やかでおっとり、たまにマイペース。けれど、お店に立つとスイッチオン！皆さまを笑顔にするため、一生懸命おもてなしをしてくれます。</p>
+        <div class="say"><small>ロパンくんより</small><p>「森から来たお客様と会えるのを楽しみに待ってるよ～！僕もがんばるぞ！」</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="interior">
+  <div class="wrap"><div class="head"><div class="en">Interior</div><h2>店内の様子</h2><p>木漏れ日と木の温もりに包まれた、EXTAのワールドをのぞいてみてください。</p></div></div>
+  <div class="rail">
+    <figure class="big"><img src="img/world-1.webp" alt="ガラスの天井と大きな木、鳥かご"><figcaption>新しいワールド</figcaption></figure>
+    <figure><img src="../店内写真/web/interior-tree.jpg" alt="木が佇む明るい店内の全景"><figcaption>全景</figcaption></figure>
+    <figure><img src="../店内写真/web/interior-case.jpg" alt="ショーケース"><figcaption>ショーケース</figcaption></figure>
+    <figure><img src="../店内写真/web/interior-counter.jpg" alt="カウンター席"><figcaption>カウンター</figcaption></figure>
+    <figure><img src="../店内写真/web/interior-cup.jpg" alt="窓辺の席"><figcaption>窓辺の席</figcaption></figure>
+    <figure><img src="../店内写真/web/interior-window.jpg" alt="大きな窓"><figcaption>大きな窓</figcaption></figure>
+  </div>
+  <p class="hint">← 横にスクロールしてね →　※ 見本のため、以前のワールドの写真も入っています</p>
+</section>
+
+<section class="menu" id="menu">
+  <div class="wrap">
+    <div class="head"><div class="en">Menu</div><h2>メニュー表</h2><p>陽だまりの午後にぴったりの、こだわりメニューをご用意しました。</p></div>
+    <div class="signs">
+      <div class="sign"><h3>Food</h3><ul><li>ピンチョス</li><li>ハムエッグトースト</li><li>ラビットトースト</li><li>クロワッサンド</li><li>サラダボール</li><li>ブルスケッタ</li><li>イチゴトースト</li></ul></div>
+      <div class="sign"><h3>Dessert</h3><ul><li>デザートクロワッサン</li><li>アサイーボール</li><li>クリームイチゴヨーグルト</li><li>フルーツフレンチパン</li><li>チョコスコーン</li></ul></div>
+      <div class="sign"><h3>Drink</h3><ul>
+        <li><span>スカッシュエード<span class="note">（グレフル・イチゴ・マスカット・レモン）</span></span><span class="tg ice">ICED</span></li>
+        <li>エスプレッソコンパナ<span class="tg hot">HOT</span></li><li>アメリカーノ<span><span class="tg hot">HOT</span><span class="tg ice">ICED</span></span></li>
+        <li>ラテ<span><span class="tg hot">HOT</span><span class="tg ice">ICED</span></span></li><li>カプチーノ<span class="tg hot">HOT</span></li>
+        <li>カフェモカ<span><span class="tg hot">HOT</span><span class="tg ice">ICED</span></span></li><li>キャラメルマキアート<span><span class="tg hot">HOT</span><span class="tg ice">ICED</span></span></li><li>紅茶<span class="tg hot">HOT</span></li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section id="reservation">
+  <div class="wrap">
+    <div class="head center"><div class="en">Reservation</div><h2>来店予約</h2><p>事前の来店予約を、Googleフォームで受け付けています。</p></div>
+    <p class="next-line">次回営業日：<b>Coming Soon</b></p>
+    <div class="reserve-box">
+      <span class="seal" aria-hidden="true">🌿</span>
+      <h3>ご予約の前にご確認ください</h3>
+      <ol class="stones">
+        <li><span class="n">1</span><div><b>「PC Only」イベントです</b><p>Quest・Android・iOSでは、ご参加いただけません。</p></div></li>
+        <li><span class="n">2</span><div><b>当店のVRChatグループへの参加が必要です</b><p>ご予約は、グループに参加されている方のみ、受け付けています。</p></div></li>
+        <li><span class="n">3</span><div><b>X（旧Twitter）のDMを開放してください</b><p>ご予約のあとに、EXTAの公式アカウントから、DMでご連絡します。</p></div></li>
+      </ol>
+      <div class="rcta"><a class="btn btn-leaf" href="#">来店予約フォームを開く</a><small>Googleフォームが、新しいタブで開きます。</small></div>
+    </div>
+  </div>
+</section>
+
+<section class="shop" id="shop">
+  <div class="wave top"><svg viewBox="0 0 1440 60" preserveAspectRatio="none"><path d="M0 30 C 200 62 380 0 600 30 S 1000 62 1200 28 S 1380 10 1440 34 L1440 60 L0 60Z" fill="#EFE8D3"/></svg></div>
+  <div class="wrap">
+    <div class="head center"><div class="en">Shop Info</div><h2>店舗情報</h2></div>
+    <div class="board"><dl>
+      <div><dt>店名</dt><dd>EXTA</dd></div><div><dt>プラットフォーム</dt><dd>VRChat（PC Only）</dd></div>
+      <div><dt>営業日</dt><dd>月一土曜日営業</dd></div><div><dt>次回営業日</dt><dd>Coming Soon</dd></div>
+      <div><dt>営業時間</dt><dd>22:00～23:30（24:00）</dd></div><div><dt>ワールド</dt><dd><a href="#">「BunnyCafe EXTA」</a></dd></div>
+      <div><dt>来場可能人数</dt><dd>12名のみ</dd></div><div><dt>インスタンス人数</dt><dd>26名（スタッフ含む）が上限</dd></div>
+      <div><dt>お問い合わせ</dt><dd><a href="#">Twitter(X) DMにてご連絡ください</a></dd></div>
+    </dl></div>
+  </div>
+</section>
+
+<section class="cast" id="cast">
+  <div class="wrap">
+    <div class="head center"><div class="en">Cast</div><h2>キャスト紹介</h2><p>オーナーとキャストバニー、合計10名で皆様をお迎えします。</p></div>
+    <div class="cgrid">
+      <article class="cc owner"><div class="pic"><img src="../キャスト写真/web/てとら.png" alt="てとら"></div><span class="nm">てとら</span><span class="role">Owner</span></article>
+      <article class="cc"><div class="pic"><img src="../キャスト写真/web/メガスターミー.png" alt=""></div><span class="nm">メガスターミー</span><span class="role">Cast Bunny</span></article>
+      <article class="cc"><div class="pic"><img src="../キャスト写真/web/はやしすん.png" alt=""></div><span class="nm">はやしすん</span><span class="role">Cast Bunny</span></article>
+      <article class="cc"><div class="pic"><img src="../キャスト写真/web/オロシ.png" alt=""></div><span class="nm">オロシ</span><span class="role">Cast Bunny</span></article>
+      <article class="cc"><div class="pic"><img src="../キャスト写真/web/とらまる.png" alt=""></div><span class="nm">とらまる</span><span class="role">Cast Bunny</span></article>
+      <article class="cc"><div class="pic"><img src="../キャスト写真/web/ユトロス.png" alt=""></div><span class="nm">ユトロス</span><span class="role">Cast Bunny</span></article>
+      <article class="cc"><div class="pic"><img src="../キャスト写真/web/しえる.png" alt=""></div><span class="nm">しえる</span><span class="role">Cast Bunny</span></article>
+      <article class="cc"><div class="pic"><img src="../キャスト写真/web/ムレン.png" alt=""></div><span class="nm">ムレン</span><span class="role">Cast Bunny</span></article>
+      <article class="cc"><div class="pic"><img src="../キャスト写真/web/あかきのこ.png" alt=""></div><span class="nm">あかきのこ</span><span class="role">Cast Bunny</span></article>
+      <article class="cc"><div class="pic"><img src="../キャスト写真/web/はるるん.png" alt=""></div><span class="nm">はるるん</span><span class="role">Cast Bunny</span></article>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="big">EXTA</div>
+  <ul><li><a href="#top">Home</a></li><li><a href="#concept">Concept</a></li><li><a href="#mascot">Character</a></li><li><a href="#interior">Interior</a></li><li><a href="#menu">Menu</a></li><li><a href="#reservation">Reservation</a></li><li><a href="#shop">Shop Info</a></li><li><a href="#cast">Cast</a></li></ul>
+  <small>&copy; 2026 EXTA. All Rights Reserved.　※ デザイン案D（見本）</small>
+</footer>
+
+<div class="switch"><a href="a-nocturne.html">案A</a><a href="b-wonderland.html">案B</a><a href="c-quest.html">案C</a><a class="on" href="d-forest.html">案D</a></div>
+</body>
+</html>
