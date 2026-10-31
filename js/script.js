@@ -402,7 +402,7 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
 // 画面に表示されている画像を完全に守ることはできないので、あくまで簡易的な対策。
 (function protectImages() {
   document.addEventListener('contextmenu', (e) => {
-    if (e.target.closest('img, .hero-slideshow, .interior-bg, .interior-photo, .mascot-stage, .profile-photo')) {
+    if (e.target.closest('img, .hero-orb, .mirror, .arch, .cast-photo, .mascot-stage, .profile-photo')) {
       e.preventDefault();
     }
   });
