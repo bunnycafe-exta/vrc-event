@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>デザイン案A：星の観測所 | BunnyCafe-EXTA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   案A「星の観測所」— 雑誌のような余白と大きな文字。ファンタジーは、月相と星座の線だけ
+   学んだこと: 左の細い縦ナビ / 上を流れる文字（ティッカー）/ 大きな欧文数字 / 非対称の12分割 / 1px罫線
+   ========================================================================== */
+:root{
+  --navy:#14121F; --navy-2:#1B1728; --surface:#1E1A2B; --wine:#8C2C42; --wine-deep:#33101C;
+  --gold:#C9A24B; --gold-l:#E8CA82; --cream:#F4ECDD; --soft:#C9BCAE; --line:rgba(232,202,130,.28);
+  --serif:"Shippori Mincho",serif; --sans:"Zen Kaku Gothic New",sans-serif; --en:"Cormorant Garamond",serif;
+  --rail:92px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);font-size:16.5px;line-height:1.95;color:var(--cream);background:var(--navy);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}a{color:inherit;text-decoration:none}ul,ol{list-style:none}
+.sky{position:fixed;inset:0;z-index:-1;background:radial-gradient(60% 50% at 85% 0%,rgba(140,44,66,.3),transparent 70%),radial-gradient(60% 50% at 0% 100%,rgba(51,16,28,.55),transparent 70%),var(--navy)}
+.sky::before{content:"";position:absolute;inset:0;background-image:
+radial-gradient(1.4px 1.4px at 12% 18%,rgba(246,226,178,.8),transparent),radial-gradient(1px 1px at 28% 64%,#fff8,transparent),radial-gradient(1.6px 1.6px at 44% 30%,rgba(246,226,178,.75),transparent),radial-gradient(1px 1px at 63% 80%,#fff7,transparent),radial-gradient(1.4px 1.4px at 78% 14%,#fffa,transparent),radial-gradient(1px 1px at 91% 52%,rgba(246,226,178,.7),transparent);background-size:520px 420px;animation:tw 7s ease-in-out infinite alternate}
+@keyframes tw{from{opacity:.4}to{opacity:1}}
+
+/* 左の縦ナビ */
+.rail{position:fixed;left:0;top:0;bottom:0;width:var(--rail);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:16px;padding:26px 0;border-right:1px solid var(--line);background:rgba(20,18,31,.86);backdrop-filter:blur(10px)}
+.rail-logo{font-family:var(--en);font-weight:700;font-size:1.5rem;letter-spacing:.12em;color:var(--gold-l);writing-mode:vertical-rl;transform:rotate(180deg)}
+.rail nav ul{display:flex;flex-direction:column;gap:12px;align-items:center}
+.rail nav a{font-family:var(--en);font-size:.85rem;font-weight:700;letter-spacing:.18em;writing-mode:vertical-rl;color:var(--soft);transition:color .2s}
+.rail nav a:hover{color:var(--gold-l)}
+.rail-moon{width:18px;height:18px;border-radius:50%;box-shadow:inset -6px 0 0 0 var(--gold-l);opacity:.9}
+.menu-btn{display:none}
+@media (max-height:780px){.rail-moon{display:none}.rail{padding:18px 0}.rail-logo{font-size:1.2rem}}
+
+/* 上を流れる文字 */
+.ticker{margin-left:var(--rail);height:40px;overflow:hidden;border-bottom:1px solid var(--line);background:rgba(51,16,28,.55);display:flex;align-items:center;white-space:nowrap}
+.ticker-track{display:inline-flex;gap:46px;padding-left:46px;animation:marq 38s linear infinite;font-family:var(--en);font-size:.95rem;letter-spacing:.2em;color:var(--gold-l);text-transform:uppercase}
+.ticker-track span::after{content:"✦";margin-left:46px;font-size:.6em;color:var(--gold)}
+@keyframes marq{to{transform:translateX(-50%)}}
+
+main{margin-left:var(--rail)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(22px,5vw,64px)}
+section{position:relative;padding:clamp(80px,11vw,150px) 0}
+
+/* 章の見出し: 月相の番号＋太い罫線 */
+.head{display:grid;grid-template-columns:auto 1fr;gap:clamp(16px,3vw,40px);align-items:end;margin-bottom:clamp(40px,6vw,76px)}
+.head-no{display:flex;align-items:center;gap:14px;font-family:var(--en);font-style:italic;font-size:clamp(3.4rem,8vw,6.4rem);line-height:.85;color:transparent;-webkit-text-stroke:1px var(--gold)}
+.phase{width:clamp(22px,3vw,34px);aspect-ratio:1;border-radius:50%;background:var(--gold-l);flex:none;position:relative;overflow:hidden;box-shadow:0 0 18px rgba(232,202,130,.45)}
+.phase::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--navy);transform:translateX(var(--shade,40%))}
+.head h2{font-family:var(--serif);font-weight:800;font-size:clamp(1.8rem,4.6vw,3.1rem);line-height:1.35;letter-spacing:.03em;text-wrap:balance}
+.head small{display:block;font-family:var(--en);font-size:1rem;letter-spacing:.32em;text-transform:uppercase;color:var(--gold-l);margin-bottom:6px}
+.head::after{content:"";grid-column:1/-1;height:1px;background:linear-gradient(90deg,var(--gold),transparent)}
+
+/* ボタン */
+.btn{display:inline-flex;align-items:center;gap:.7em;padding:16px 34px;border-radius:2px;border:1px solid var(--gold);font-weight:700;letter-spacing:.08em;transition:.25s}
+.btn-fill{background:var(--gold);color:#1d1408}
+.btn-fill:hover{background:var(--gold-l);box-shadow:0 0 28px rgba(232,202,130,.45)}
+.btn-line:hover{background:rgba(201,162,75,.16)}
+.btn::after{content:"→";font-family:var(--en);font-size:1.2em}
+
+/* ヒーロー */
+.hero{min-height:calc(100vh - 40px);display:flex;align-items:center;padding-top:clamp(50px,7vw,90px)}
+.hero-grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:clamp(30px,5vw,80px);align-items:center}
+.next{display:inline-flex;align-items:center;gap:14px;padding:10px 20px;border:1px solid var(--gold);margin-bottom:28px;background:rgba(51,16,28,.6)}
+.next b{font-family:var(--serif);font-size:1.15rem}.next span{font-family:var(--en);letter-spacing:.3em;color:var(--gold-l);font-size:.9rem;text-transform:uppercase}
+.hero-label{font-family:var(--en);letter-spacing:.4em;text-transform:uppercase;font-size:.95rem;color:var(--gold-l);margin-bottom:10px}
+.hero-logo{width:min(100%,620px);filter:drop-shadow(0 14px 30px rgba(0,0,0,.6))}
+.hero-copy{font-family:var(--serif);font-size:clamp(1.1rem,2vw,1.35rem);line-height:2.1;margin:28px 0 36px;max-width:28em}
+.hero-cta{display:flex;flex-wrap:wrap;gap:14px}
+.hero-visual{position:relative;justify-self:center;width:min(100%,430px)}
+.hero-visual::before{content:"";position:absolute;inset:-9% -14% -4% -14%;border:1px solid var(--line);border-radius:50%}
+.hero-visual::after{content:"";position:absolute;width:20%;aspect-ratio:1;right:-6%;top:-4%;border-radius:50%;box-shadow:inset -.5em 0 0 var(--gold-l),0 0 40px rgba(232,202,130,.5);font-size:clamp(38px,6vw,70px);rotate:-18deg}
+.arch{position:relative;aspect-ratio:3/4.4;border-radius:999px 999px 6px 6px;overflow:hidden;border:1px solid var(--gold);box-shadow:0 0 0 10px rgba(232,202,130,.06),0 40px 80px -30px #000}
+.arch img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;animation:slide 24s infinite}
+.arch img:nth-child(2){animation-delay:6s}.arch img:nth-child(3){animation-delay:12s}.arch img:nth-child(4){animation-delay:18s}
+@keyframes slide{0%{opacity:0}6%{opacity:1}25%{opacity:1}31%{opacity:0}100%{opacity:0}}
+.arch img:first-child{opacity:1}
+.coords{position:absolute;left:-10%;bottom:-6%;font-family:var(--en);font-style:italic;font-size:.9rem;color:var(--soft);letter-spacing:.14em}
+
+/* 星座の線（ファンタジーは、控えめに） */
+.constel{position:absolute;pointer-events:none;opacity:.55}
+
+/* コンセプト */
+.concept-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(18px,3vw,40px)}
+.concept-text{grid-column:1/8}
+.concept-text p{font-family:var(--serif);font-size:clamp(1.1rem,1.9vw,1.32rem);line-height:2.2;margin-bottom:1.4em}
+.concept-photo{grid-column:9/13;grid-row:1/3;align-self:start;margin-top:30px}
+.concept-photo .arch{aspect-ratio:3/4}
+.points{grid-column:1/8;display:grid;gap:0;border-top:1px solid var(--line)}
+.points li{display:grid;grid-template-columns:70px 1fr;gap:20px;padding:26px 0;border-bottom:1px solid var(--line)}
+.points .n{font-family:var(--en);font-style:italic;font-size:2.4rem;color:var(--gold-l);line-height:1}
+.points h3{font-family:var(--serif);font-size:1.2rem;margin-bottom:4px}
+.points p{color:var(--soft);font-size:1rem}
+
+/* キャラクター */
+.mascot-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(30px,6vw,90px);align-items:center}
+.stage{position:relative;width:min(100%,400px);aspect-ratio:1;margin:0 auto;border-radius:50%;background:radial-gradient(circle at 50% 42%,#fffaf0,#f9e8c0 46%,#ecc872 78%,rgba(236,200,114,.15));box-shadow:0 0 80px rgba(246,226,178,.3)}
+.stage::before{content:"";position:absolute;inset:-18px;border:1px solid var(--gold-l);border-radius:50%}
+.stage::after{content:"";position:absolute;inset:-34px;border:1px dashed var(--line);border-radius:50%;animation:spin 80s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.stage img{position:absolute;left:6%;right:0;bottom:13%;width:88%;filter:drop-shadow(0 12px 12px rgba(70,35,0,.35))}
+.formula{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 26px}
+.formula span{padding:8px 16px;border:1px solid var(--gold);font-family:var(--serif);font-weight:700}
+.formula small{display:block;font-family:var(--sans);font-weight:400;font-size:.72rem;color:var(--soft)}
+.formula .sum{background:var(--gold);color:#1d1408}
+.mascot-copy p{font-family:var(--serif);font-size:1.12rem;line-height:2.1;margin-bottom:1.1em}
+.quote{margin-top:28px;padding:24px 28px;border-left:3px solid var(--gold);background:rgba(51,16,28,.5)}
+.quote small{display:block;font-family:var(--en);letter-spacing:.3em;color:var(--gold-l);margin-bottom:4px}
+.quote p{font-family:var(--serif);font-weight:700;font-size:1.2rem;line-height:1.9;margin:0}
+
+/* 店内 */
+.gallery{display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(12px,2vw,24px)}
+.gallery figure{position:relative;overflow:hidden;border:1px solid var(--line)}
+.gallery img{width:100%;height:100%;object-fit:cover;transition:transform .8s}
+.gallery figure:hover img{transform:scale(1.06)}
+.gallery figcaption{position:absolute;left:12px;bottom:10px;font-family:var(--en);font-style:italic;font-size:1rem;color:var(--cream);text-shadow:0 2px 8px #000}
+.g1{grid-column:1/8;aspect-ratio:16/10}.g2{grid-column:8/13;aspect-ratio:4/5}.g3{grid-column:1/5;aspect-ratio:1}.g4{grid-column:5/9;aspect-ratio:1;margin-top:34px}.g5{grid-column:9/13;aspect-ratio:1}
+.g6{grid-column:2/7;aspect-ratio:4/3}.g7{grid-column:7/12;aspect-ratio:4/3;margin-top:34px}
+
+/* メニュー */
+.menu-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--gold);border-bottom:1px solid var(--line)}
+.menu-col{padding:34px clamp(18px,3vw,40px) 40px}
+.menu-col+.menu-col{border-left:1px solid var(--line)}
+.menu-col h3{font-family:var(--en);font-size:1.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-l);margin-bottom:18px}
+.menu-col li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px dotted var(--line);font-family:var(--serif)}
+.menu-col .note{display:block;font-family:var(--sans);font-size:.8rem;color:var(--soft)}
+.tag{font-family:var(--sans);font-size:.65rem;font-weight:700;padding:2px 8px;border:1px solid;border-radius:99px;margin-left:4px;white-space:nowrap}
+.hot{color:#f0a08a;border-color:#a8553f}.ice{color:#9fd0e6;border-color:#4f87a5}
+
+/* 予約 */
+.reserve-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(30px,6vw,90px)}
+.reserve-lead{font-family:var(--serif);font-size:1.25rem;line-height:2;margin-bottom:28px}
+.steps li{display:grid;grid-template-columns:64px 1fr;gap:18px;padding:24px 0;border-bottom:1px solid var(--line)}
+.steps li:first-child{border-top:1px solid var(--gold)}
+.steps .n{font-family:var(--en);font-style:italic;font-size:2.8rem;line-height:1;color:var(--gold-l)}
+.steps b{display:block;font-family:var(--serif);font-size:1.2rem;margin-bottom:2px}
+.steps p{color:var(--soft)}
+.note-sm{margin-top:12px;font-size:.85rem;color:var(--soft)}
+
+/* 店舗情報 */
+.info{border-top:1px solid var(--gold)}
+.info div{display:grid;grid-template-columns:minmax(120px,220px) 1fr;gap:20px;padding:22px 0;border-bottom:1px solid var(--line)}
+.info dt{font-family:var(--en);letter-spacing:.2em;text-transform:uppercase;color:var(--gold-l);font-size:1rem}
+.info dt small{display:block;font-family:var(--sans);letter-spacing:.02em;text-transform:none;font-size:.82rem;color:var(--soft)}
+.info dd{font-family:var(--serif);font-size:1.15rem}
+.info a{color:var(--gold-l);text-decoration:underline;text-underline-offset:5px}
+
+/* キャスト */
+.cast-row{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}
+.cast{position:relative;border:1px solid var(--line);background:linear-gradient(180deg,rgba(51,16,28,.5),rgba(27,23,40,.8));padding:14px 14px 56px;transition:.35s}
+.cast:hover{transform:translateY(-8px);border-color:var(--gold);box-shadow:0 0 34px rgba(232,202,130,.2)}
+.cast img{aspect-ratio:3/4.3;width:100%;object-fit:contain;object-position:50% 100%;filter:drop-shadow(0 8px 12px rgba(0,0,0,.6))}
+.cast .nm{position:absolute;left:14px;right:14px;bottom:12px;display:flex;align-items:baseline;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px}
+.cast .nm b{font-family:var(--serif);font-size:1.05rem}.cast .nm i{font-family:var(--en);font-size:.9rem;color:var(--gold-l)}
+.cast.owner{grid-column:1/3;grid-row:1/3}
+.cast.owner img{aspect-ratio:auto;height:calc(100% - 4px);min-height:420px}
+
+footer{margin-left:var(--rail);border-top:1px solid var(--line);padding:56px clamp(22px,5vw,64px) 40px;display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:center;background:rgba(51,16,28,.5)}
+footer .big{font-family:var(--en);font-size:2.4rem;letter-spacing:.18em;color:var(--gold-l)}
+footer ul{display:flex;flex-wrap:wrap;gap:8px 22px;font-family:var(--en);letter-spacing:.14em}
+footer small{width:100%;color:var(--soft);font-size:.8rem}
+
+/* 案の切り替え */
+.switch{position:fixed;right:14px;bottom:14px;z-index:90;display:flex;gap:6px;font:700 .8rem var(--sans)}
+.switch a{padding:8px 12px;border:1px solid var(--gold);background:rgba(20,18,31,.9);border-radius:99px}
+.switch a.on{background:var(--gold);color:#1d1408}
+
+@media (max-width:980px){
+  :root{--rail:0px}
+  .rail{position:fixed;top:0;left:0;right:0;bottom:auto;width:auto;height:58px;flex-direction:row;padding:0 16px;border-right:0;border-bottom:1px solid var(--line)}
+  .rail-logo{writing-mode:horizontal-tb;transform:none}
+  .rail nav{position:fixed;inset:58px 0 0 0;background:rgba(15,13,24,.97);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:.3s}
+  .rail nav.open{opacity:1;visibility:visible}
+  .rail nav ul{gap:8px}.rail nav a{writing-mode:horizontal-tb;font-size:1.5rem;padding:8px}
+  .rail-moon{display:none}
+  .menu-btn{display:block;background:none;border:1px solid var(--gold);color:var(--gold-l);font:700 .85rem var(--en);letter-spacing:.2em;padding:7px 14px;border-radius:99px}
+  .ticker{margin-top:58px}
+  .hero-grid,.mascot-grid,.reserve-grid{grid-template-columns:1fr}
+  .hero-visual{order:-1;width:min(76%,340px);margin-bottom:26px}
+  .concept-text,.points,.concept-photo{grid-column:1/-1}.concept-photo{grid-row:auto;width:min(78%,340px);margin:10px auto 0}
+  .gallery>*{grid-column:1/-1!important;margin-top:0!important;aspect-ratio:4/3!important}
+  .gallery{display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px}.gallery figure{flex:0 0 82%;scroll-snap-align:start}
+  .menu-cols{grid-template-columns:1fr}.menu-col+.menu-col{border-left:0;border-top:1px solid var(--line)}
+  .cast-row{grid-template-columns:repeat(2,1fr)}.cast.owner{grid-column:1/-1;grid-row:auto}.cast.owner img{min-height:0;aspect-ratio:3/3.6}
+  .info div{grid-template-columns:1fr;gap:4px}
+  .switch{bottom:10px}
+}
+h1,h2,h3,p,li{word-break:auto-phrase;line-break:strict}
+html{overflow-x:hidden}main{overflow-x:clip}
+.gallery{scrollbar-width:thin;scrollbar-color:var(--gold) transparent}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+
+<aside class="rail">
+  <a class="rail-logo" href="#top">EXTA</a>
+  <button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">MENU</button>
+  <nav id="nav" onclick="this.classList.remove('open')">
+    <ul>
+      <li><a href="#top">Home</a></li><li><a href="#concept">Concept</a></li><li><a href="#mascot">Character</a></li>
+      <li><a href="#interior">Interior</a></li><li><a href="#menu">Menu</a></li><li><a href="#reservation">Reservation</a></li>
+      <li><a href="#shop">Shop Info</a></li><li><a href="#cast">Cast</a></li>
+    </ul>
+  </nav>
+  <span class="rail-moon" aria-hidden="true"></span>
+</aside>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Next Open — Coming Soon</span><span>PC Only</span><span>VRChat Virtual Cafe</span><span>Bunny Cafe EXTA</span>
+    <span>Next Open — Coming Soon</span><span>PC Only</span><span>VRChat Virtual Cafe</span><span>Bunny Cafe EXTA</span>
+  </div>
+</div>
+
+<main id="top">
+
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <p class="next"><span>Next Open</span><b>Coming Soon</b></p>
+        <p class="hero-label">Virtual Cafe Event</p>
+        <h1><img class="hero-logo" src="../エクスタ_文字だけ_crop.png" alt="Bunny Cafe EXTA"></h1>
+        <p class="hero-copy">午後の陽だまりに、うさぎ耳のもてなしを。<br>ヴァーチャル空間でゆったり過ごすカフェタイム。</p>
+        <div class="hero-cta">
+          <a class="btn btn-fill" href="#reservation">来店予約はこちら</a>
+          <a class="btn btn-line" href="#shop">店舗情報</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="arch">
+          <img src="../営業の様子/web/scene-1.jpg" alt="">
+          <img src="../営業の様子/web/scene-3.jpg" alt="">
+          <img src="../営業の様子/web/scene-5.jpg" alt="">
+          <img src="../営業の様子/web/scene-6.jpg" alt="">
+        </div>
+        <span class="coords">35°N ／ 139°E — the Moon Cafe</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="concept">
+  <div class="wrap">
+    <div class="head"><div class="head-no"><span class="phase" style="--shade:62%"></span>01</div><div><small>Concept</small><h2>やわらかな午後の、うさぎカフェ</h2></div></div>
+    <div class="concept-grid">
+      <div class="concept-text">
+        <p>EXTAは、VRChat上に佇む小さなバニーカフェイベントです。<br>差し込む陽光と、ゆるやかに流れる音楽。<br>うさぎ耳のキャストたちが、訪れる方にくつろぎのひとときをお届けします。</p>
+        <p>忙しい毎日から少し離れて、あたたかな木漏れ日の中でお茶を一杯。<br>そんな "ちょうどいい非日常" を大切にしています。</p>
+      </div>
+      <div class="concept-photo"><div class="arch"><img src="../店内写真/web/interior-cup.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1;animation:none"></div></div>
+      <ul class="points">
+        <li><span class="n">i</span><div><h3>癒やしの空間デザイン</h3><p>昼下がりの光をイメージした、あたたかみのあるワールド設計。</p></div></li>
+        <li><span class="n">ii</span><div><h3>おもてなしキャスト</h3><p>お客様一人ひとりに寄り添う、うさぎ耳キャストたちの接客。</p></div></li>
+        <li><span class="n">iii</span><div><h3>ゆったり過ごせる時間</h3><p>写真撮影やおしゃべりも自由に楽しめるアットホームな雰囲気。</p></div></li>
+      </ul>
+    </div>
+  </div>
+  <svg class="constel" style="right:6%;top:8%;width:220px" viewBox="0 0 220 120" fill="none" stroke="#E8CA82" stroke-width="1"><path d="M10 100 L60 60 L110 76 L150 30 L210 44"/><g fill="#F6E2B2" stroke="none"><circle cx="10" cy="100" r="3"/><circle cx="60" cy="60" r="2.4"/><circle cx="110" cy="76" r="3"/><circle cx="150" cy="30" r="3.4"/><circle cx="210" cy="44" r="2.4"/></g></svg>
+</section>
+
+<section id="mascot">
+  <div class="wrap">
+    <div class="head"><div class="head-no"><span class="phase" style="--shade:36%"></span>02</div><div><small>Official Character</small><h2>公式キャラクター「ロパンくん」をご紹介！</h2></div></div>
+    <div class="mascot-grid">
+      <div><div class="stage"><img src="../ロパンくん/exta_waitress.png" alt="ロパンくん"></div></div>
+      <div class="mascot-copy">
+        <div class="formula"><span>ロップイヤー<small>垂れ耳うさぎ</small></span>＋<span>ラパン<small>フランス語でうさぎ</small></span>＝<span class="sum">ロパンくん</span></div>
+        <p>垂れ耳うさぎの“ロップイヤー”と、フランス語でうさぎを意味する“ラパン”。2つの言葉から生まれたのが「ロパンくん」です。</p>
+        <p>性格はとっても穏やかでおっとり、たまにマイペース。けれど、お店に立つとスイッチオン！皆さまを笑顔にするため、一生懸命おもてなしをしてくれます。</p>
+        <div class="quote"><small>Message</small><p>「森から来たお客様と会えるのを楽しみに待ってるよ～！僕もがんばるぞ！」</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="interior">
+  <div class="wrap">
+    <div class="head"><div class="head-no"><span class="phase" style="--shade:12%"></span>03</div><div><small>Interior</small><h2>店内の様子</h2></div></div>
+    <p style="margin:-30px 0 40px;color:var(--soft)">木漏れ日と木の温もりに包まれた、EXTAのワールドをのぞいてみてください。</p>
+    <div class="gallery">
+      <figure class="g1"><img src="../店内写真/web/interior-tree.jpg" alt="木が佇む明るい店内の全景"><figcaption>No.1</figcaption></figure>
+      <figure class="g2"><img src="../店内写真/web/interior-case.jpg" alt="焼き菓子やパンが並ぶショーケース"><figcaption>No.2</figcaption></figure>
+      <figure class="g3"><img src="../店内写真/web/interior-counter.jpg" alt="カウンター席"><figcaption>No.3</figcaption></figure>
+      <figure class="g4"><img src="../店内写真/web/interior-cup.jpg" alt="窓辺の席"><figcaption>No.4</figcaption></figure>
+      <figure class="g5"><img src="../店内写真/web/interior-logo-wall.jpg" alt="ロゴの壁"><figcaption>No.5</figcaption></figure>
+      <figure class="g6"><img src="../店内写真/web/interior-welcome.jpg" alt="ウェルカムボード"><figcaption>No.6</figcaption></figure>
+      <figure class="g7"><img src="../店内写真/web/interior-window.jpg" alt="大きな窓"><figcaption>No.7</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="menu">
+  <div class="wrap">
+    <div class="head"><div class="head-no"><span class="phase" style="--shade:-20%"></span>04</div><div><small>Menu</small><h2>メニュー表</h2></div></div>
+    <p style="margin:-30px 0 40px;color:var(--soft)">陽だまりの午後にぴったりの、こだわりメニューをご用意しました。</p>
+    <div class="menu-cols">
+      <div class="menu-col"><h3>Food</h3><ul>
+        <li>ピンチョス</li><li>ハムエッグトースト</li><li>ラビットトースト</li><li>クロワッサンド</li><li>サラダボール</li><li>ブルスケッタ</li><li>イチゴトースト</li></ul></div>
+      <div class="menu-col"><h3>Dessert</h3><ul>
+        <li>デザートクロワッサン</li><li>アサイーボール</li><li>クリームイチゴヨーグルト</li><li>フルーツフレンチパン</li><li>チョコスコーン</li></ul></div>
+      <div class="menu-col"><h3>Drink</h3><ul>
+        <li><span>スカッシュエード<span class="note">（グレフル・イチゴ・マスカット・レモン）</span></span><span class="tag ice">ICED</span></li>
+        <li>エスプレッソコンパナ<span class="tag hot">HOT</span></li>
+        <li>アメリカーノ<span><span class="tag hot">HOT</span><span class="tag ice">ICED</span></span></li>
+        <li>ラテ<span><span class="tag hot">HOT</span><span class="tag ice">ICED</span></span></li>
+        <li>カプチーノ<span class="tag hot">HOT</span></li>
+        <li>カフェモカ<span><span class="tag hot">HOT</span><span class="tag ice">ICED</span></span></li>
+        <li>キャラメルマキアート<span><span class="tag hot">HOT</span><span class="tag ice">ICED</span></span></li>
+        <li>紅茶<span class="tag hot">HOT</span></li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section id="reservation">
+  <div class="wrap">
+    <div class="head"><div class="head-no"><span class="phase" style="--shade:-50%"></span>05</div><div><small>Reservation</small><h2>来店予約</h2></div></div>
+    <div class="reserve-grid">
+      <div>
+        <p class="reserve-lead">事前の来店予約を、Googleフォームで受け付けています。</p>
+        <p style="margin-bottom:26px;color:var(--soft)">次回営業日：<b style="color:var(--gold-l);font-family:var(--serif)">Coming Soon</b></p>
+        <a class="btn btn-fill" href="#">来店予約フォームを開く</a>
+        <p class="note-sm">Googleフォームが、新しいタブで開きます。</p>
+      </div>
+      <ol class="steps">
+        <li><span class="n">01</span><div><b>「PC Only」イベントです</b><p>Quest・Android・iOSでは、ご参加いただけません。</p></div></li>
+        <li><span class="n">02</span><div><b>当店のVRChatグループへの参加が必要です</b><p>ご予約は、グループに参加されている方のみ、受け付けています。</p></div></li>
+        <li><span class="n">03</span><div><b>X（旧Twitter）のDMを開放してください</b><p>ご予約のあとに、EXTAの公式アカウントから、DMでご連絡します。</p></div></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section id="shop">
+  <div class="wrap">
+    <div class="head"><div class="head-no"><span class="phase" style="--shade:-80%"></span>06</div><div><small>Shop Info</small><h2>店舗情報</h2></div></div>
+    <dl class="info">
+      <div><dt>Shop</dt><dd>EXTA</dd></div>
+      <div><dt>Platform</dt><dd>VRChat（PC Only）</dd></div>
+      <div><dt>Open Day</dt><dd>月一土曜日営業</dd></div>
+      <div><dt>Next Open</dt><dd>Coming Soon</dd></div>
+      <div><dt>Hours</dt><dd>22:00～23:30（24:00）</dd></div>
+      <div><dt>World</dt><dd><a href="#">「BunnyCafe EXTA」</a></dd></div>
+      <div><dt>Capacity<small>来場可能人数</small></dt><dd>12名のみ</dd></div>
+      <div><dt>Instance<small>インスタンス人数</small></dt><dd>26名（スタッフ含む）が上限</dd></div>
+      <div><dt>Contact</dt><dd><a href="#">Twitter(X) DMにてご連絡ください</a></dd></div>
+    </dl>
+  </div>
+</section>
+
+<section id="cast">
+  <div class="wrap">
+    <div class="head"><div class="head-no"><span class="phase" style="--shade:-100%"></span>07</div><div><small>Cast</small><h2>キャスト紹介</h2></div></div>
+    <p style="margin:-30px 0 40px;color:var(--soft)">オーナーとキャストバニー、合計10名で皆様をお迎えします。</p>
+    <div class="cast-row">
+      <article class="cast owner"><img src="../キャスト写真/web/てとら.png" alt="てとら"><div class="nm"><b>てとら</b><i>Owner</i></div></article>
+      <article class="cast"><img src="../キャスト写真/web/メガスターミー.png" alt=""><div class="nm"><b>メガスターミー</b><i>No.1</i></div></article>
+      <article class="cast"><img src="../キャスト写真/web/はやしすん.png" alt=""><div class="nm"><b>はやしすん</b><i>No.2</i></div></article>
+      <article class="cast"><img src="../キャスト写真/web/オロシ.png" alt=""><div class="nm"><b>オロシ</b><i>No.3</i></div></article>
+      <article class="cast"><img src="../キャスト写真/web/とらまる.png" alt=""><div class="nm"><b>とらまる</b><i>No.4</i></div></article>
+      <article class="cast"><img src="../キャスト写真/web/ユトロス.png" alt=""><div class="nm"><b>ユトロス</b><i>No.5</i></div></article>
+      <article class="cast"><img src="../キャスト写真/web/しえる.png" alt=""><div class="nm"><b>しえる</b><i>No.6</i></div></article>
+      <article class="cast"><img src="../キャスト写真/web/ムレン.png" alt=""><div class="nm"><b>ムレン</b><i>No.7</i></div></article>
+      <article class="cast"><img src="../キャスト写真/web/あかきのこ.png" alt=""><div class="nm"><b>あかきのこ</b><i>No.8</i></div></article>
+      <article class="cast"><img src="../キャスト写真/web/はるるん.png" alt=""><div class="nm"><b>はるるん</b><i>No.9</i></div></article>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <span class="big">EXTA</span>
+  <ul><li><a href="#top">Home</a></li><li><a href="#concept">Concept</a></li><li><a href="#mascot">Character</a></li><li><a href="#interior">Interior</a></li><li><a href="#menu">Menu</a></li><li><a href="#reservation">Reservation</a></li><li><a href="#shop">Shop Info</a></li><li><a href="#cast">Cast</a></li></ul>
+  <small>&copy; 2026 EXTA. All Rights Reserved.　※ デザイン案A（見本）</small>
+</footer>
+
+<div class="switch"><a class="on" href="a-nocturne.html">案A</a><a href="b-wonderland.html">案B</a><a href="c-quest.html">案C</a></div>
+</body>
+</html>
