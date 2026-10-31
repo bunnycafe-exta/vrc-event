@@ -2200,3 +2200,201 @@ html.is-maint .bgm-toggle { display: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .maint-title { animation: none; }
 }
+
+/* ==========================================================================
+   Magic theme（星と月の魔法）— 色はそのまま、飾りとやわらかい光だけを足す
+   ========================================================================== */
+
+:root {
+  /* 夜空の星（背景に敷く小さな光の粒） */
+  --stars:
+    radial-gradient(1.4px 1.4px at 8% 14%, rgba(246, 226, 178, 0.9), transparent 100%),
+    radial-gradient(1px 1px at 21% 62%, rgba(255, 255, 255, 0.8), transparent 100%),
+    radial-gradient(1.8px 1.8px at 33% 28%, rgba(246, 226, 178, 0.85), transparent 100%),
+    radial-gradient(1px 1px at 47% 82%, rgba(255, 255, 255, 0.7), transparent 100%),
+    radial-gradient(1.4px 1.4px at 58% 12%, rgba(255, 255, 255, 0.85), transparent 100%),
+    radial-gradient(1px 1px at 69% 48%, rgba(246, 226, 178, 0.8), transparent 100%),
+    radial-gradient(1.8px 1.8px at 79% 76%, rgba(246, 226, 178, 0.85), transparent 100%),
+    radial-gradient(1px 1px at 88% 24%, rgba(255, 255, 255, 0.8), transparent 100%),
+    radial-gradient(1.4px 1.4px at 94% 58%, rgba(255, 255, 255, 0.7), transparent 100%),
+    radial-gradient(1px 1px at 14% 90%, rgba(246, 226, 178, 0.75), transparent 100%),
+    radial-gradient(1.2px 1.2px at 40% 46%, rgba(255, 255, 255, 0.6), transparent 100%);
+}
+
+/* 暗い背景のセクションに、星空を重ねる（文字や写真の後ろ・背景の手前） */
+.concept,
+.menu,
+.reserve,
+.shop,
+.cast {
+  position: relative;
+  isolation: isolate;
+}
+
+.concept::before,
+.menu::before,
+.reserve::before,
+.shop::before,
+.cast::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--stars);
+  background-size: 400px 330px;
+  animation: starTwinkle 7s ease-in-out infinite alternate;
+}
+
+.menu::before { animation-delay: -2s; background-position: 160px 90px; }
+.shop::before { animation-delay: -4s; background-position: 60px 200px; }
+.cast::before { animation-delay: -1s; background-position: 240px 40px; }
+
+@keyframes starTwinkle {
+  0%   { opacity: 0.45; }
+  100% { opacity: 1; }
+}
+
+/* 見出しの飾り: 上に小さな星、下に星と月 */
+.section-eyebrow::before,
+.section-eyebrow::after {
+  content: "✦";
+  display: inline-block;
+  margin: 0 0.9em;
+  font-size: 0.7em;
+  color: var(--color-gold);
+  letter-spacing: 0;
+  opacity: 0.9;
+}
+
+.section-title {
+  text-shadow: 0 0 22px rgba(232, 202, 130, 0.22);
+}
+
+.section-title::after {
+  content: "✧ ☾ ✧";
+  display: block;
+  margin: 12px auto 0;
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.7em;
+  text-indent: 0.7em;
+  text-shadow: none;
+  color: var(--color-gold);
+  opacity: 0.85;
+}
+
+/* ボタン: ほんのり光って、触れると光がさっと走る */
+.btn { position: relative; overflow: hidden; }
+
+.btn-primary {
+  box-shadow: var(--shadow-soft), 0 0 22px rgba(232, 202, 130, 0.3);
+}
+
+.btn-primary:not(.is-closed)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  transform: translateX(-120%);
+  transition: transform 0.7s ease;
+  pointer-events: none;
+}
+
+.btn-primary:not(.is-closed):hover::after { transform: translateX(120%); }
+
+.btn-outline:hover { box-shadow: 0 0 20px rgba(201, 162, 75, 0.3); }
+
+/* カードの枠に、月明かりのような淡い光 */
+.shop-table,
+.reserve-card,
+.cast-card {
+  box-shadow: var(--shadow-card), 0 0 0 1px rgba(232, 202, 130, 0.1), 0 0 34px rgba(232, 202, 130, 0.07);
+}
+
+/* ヒーロー: 床の格子を、ゆっくり回る魔法陣に */
+.hero-grid {
+  opacity: 0.45;
+}
+
+.hero-particles {
+  animation: starTwinkle 5s ease-in-out infinite alternate;
+}
+
+.hero-floor {
+  left: 50%;
+  right: auto;
+  bottom: 3%;
+  width: min(1160px, 150vw);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  background: none;
+  translate: -50% 0;
+  transform: perspective(900px) rotateX(64deg);
+  transform-origin: 50% 100%;
+  mask-image: radial-gradient(circle, #000 46%, transparent 71%);
+  -webkit-mask-image: radial-gradient(circle, #000 46%, transparent 71%);
+  opacity: 0.9;
+}
+
+.hero-floor::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 500' fill='none' stroke='%23E8CA82' stroke-linecap='round'%3E%3Ccircle cx='250' cy='250' r='236' stroke-width='2.4' opacity='.95'/%3E%3Ccircle cx='250' cy='250' r='222' stroke-width='1' stroke-dasharray='2 7' opacity='.8'/%3E%3Ccircle cx='250' cy='250' r='168' stroke-width='1.6' opacity='.85'/%3E%3Ccircle cx='250' cy='250' r='132' stroke-width='1' stroke-dasharray='10 8' opacity='.7'/%3E%3Cpath stroke-width='1.8' d='M250 22 L447 364 L53 364 Z' opacity='.9'/%3E%3Cpath stroke-width='1.8' d='M250 478 L53 136 L447 136 Z' opacity='.9'/%3E%3Ccircle cx='250' cy='22' r='9' stroke-width='1.6'/%3E%3Ccircle cx='447' cy='364' r='9' stroke-width='1.6'/%3E%3Ccircle cx='53' cy='364' r='9' stroke-width='1.6'/%3E%3Ccircle cx='250' cy='478' r='9' stroke-width='1.6'/%3E%3Ccircle cx='53' cy='136' r='9' stroke-width='1.6'/%3E%3Ccircle cx='447' cy='136' r='9' stroke-width='1.6'/%3E%3Ccircle cx='250' cy='250' r='40' stroke-width='1.6'/%3E%3Cpath stroke-width='1.2' d='M250 210 V290 M210 250 H290' opacity='.8'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 0 10px rgba(232, 202, 130, 0.55));
+  animation: circleSpin 120s linear infinite;
+}
+
+@keyframes circleSpin { to { transform: rotate(360deg); } }
+
+/* ヒーロー: 右上に、やわらかく光る三日月 */
+.hero-particles::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--header-height) + 26px);
+  right: clamp(22px, 9vw, 120px);
+  width: clamp(46px, 7vw, 74px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  box-shadow: inset -0.28em 0 0 0 rgba(246, 226, 178, 0.95), 0 0 34px rgba(232, 202, 130, 0.45);
+  font-size: clamp(46px, 7vw, 74px);
+  rotate: -18deg;
+  animation: moonFloat 7s ease-in-out infinite alternate;
+}
+
+@keyframes moonFloat {
+  0%   { translate: 0 0; }
+  100% { translate: 0 -8px; }
+}
+
+/* ロパンくんのステージ: 回る魔法の輪を、もう1本 */
+.mascot-ring::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px dashed rgba(246, 226, 178, 0.45);
+  border-radius: 50%;
+  animation: mascotSpin 55s linear infinite reverse;
+}
+
+/* 「Coming Soon」の画面にも、星空 */
+.maint { position: fixed; }
+
+.maint::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--stars);
+  background-size: 520px 420px;
+  animation: starTwinkle 6s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.maint-inner { position: relative; }
+
+@media (prefers-reduced-motion: reduce) {
+  .concept::before, .menu::before, .reserve::before, .shop::before, .cast::before,
+  .hero-particles, .hero-particles::after, .hero-floor::before, .maint::before,
+  .mascot-ring::before { animation: none; }
+}
