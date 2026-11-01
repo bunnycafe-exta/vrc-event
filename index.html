@@ -21,7 +21,7 @@
   } catch (e) { /* 保存できない環境では、通常どおり表示 */ }
 })();
 </script>
-<link rel="stylesheet" href="css/site.css?v=30">
+<link rel="stylesheet" href="css/site.css?v=31">
 </head>
 <body>
 
@@ -54,12 +54,11 @@
 
 <!-- ===== Intro / Welcome Splash ===== -->
 <div class="intro-overlay" id="introOverlay" aria-hidden="true">
-  <div class="intro-logo-wrap">
-    <div class="intro-logo-bounce">
-      <img class="intro-logo" src="ロゴマーク/ロゴマーク.png" alt="">
-    </div>
-  </div>
+  <div class="intro-beams" id="introBeams"></div>
+  <div class="intro-dust" id="introDust"></div>
+  <img class="intro-logo" src="エクスタ_文字だけ_crop.png" alt="">
 </div>
+<div class="intro-leaves" id="introLeaves" aria-hidden="true"></div>
 
 <!-- ===== Header ===== -->
 <header class="site-header" id="siteHeader">
@@ -644,6 +643,6 @@
 
 <script src="js/config.js?v=6"></script>
 <script src="js/profiles.js?v=2"></script>
-<script src="js/script.js?v=14"></script>
+<script src="js/script.js?v=15"></script>
 </body>
 </html>

@@ -15,10 +15,53 @@ function hasChosenToday() {
   try { return localStorage.getItem(CONSENT_DATE_KEY) === todayKey(); } catch (e) { return false; }
 }
 
-// Intro / welcome splash: logo drops in, bounces, then dives into its own eye
+// Intro / welcome splash: the logo fades in over a dappled-light scene, then fallen leaves swirl up and carry us to the top page
 const introOverlay = document.getElementById('introOverlay');
+const introBeams = document.getElementById('introBeams');
+const introDust = document.getElementById('introDust');
+const introLeaves = document.getElementById('introLeaves');
 const heroLogoImg = document.querySelector('.hero-logo-img');
-const introLogoBounce = document.querySelector('.intro-logo-bounce');
+
+const INTRO_SWIRL_AT = 2900;
+const INTRO_HIDE_AT = 3700;
+const INTRO_LEAVES_END = 7000;
+
+function buildIntroScene() {
+  const rand = (min, max) => min + Math.random() * (max - min);
+  [12, 38, 64, 86].forEach((x, i) => {
+    const beam = document.createElement('div');
+    beam.className = 'intro-beam';
+    beam.style.left = `${x}%`;
+    beam.style.transform = `rotate(${14 + i * 3}deg)`;
+    beam.style.animationDelay = `${-i * 1.1}s`;
+    introBeams.appendChild(beam);
+  });
+  for (let i = 0; i < 22; i++) {
+    const p = document.createElement('span');
+    p.className = 'intro-dust-p';
+    p.style.setProperty('--x', `${rand(4, 96)}%`);
+    p.style.setProperty('--s', `${rand(3, 7)}px`);
+    p.style.setProperty('--d', `${rand(5, 10)}s`);
+    p.style.setProperty('--dl', `${-rand(0, 9)}s`);
+    introDust.appendChild(p);
+  }
+  if (!introLeaves) return;
+  const colors = ['#8DAA6B', '#6f9a58', '#E0B23A', '#C9A24B', '#4E7A44', '#b7cf8c'];
+  for (let i = 0; i < 34; i++) {
+    const leaf = document.createElement('span');
+    leaf.className = 'intro-leaf';
+    leaf.style.setProperty('--x', `${rand(2, 96)}%`);
+    leaf.style.setProperty('--b0', `${rand(1, 9)}%`);
+    leaf.style.setProperty('--s', `${rand(13, 30)}px`);
+    leaf.style.setProperty('--c', colors[i % colors.length]);
+    leaf.style.setProperty('--r0', `${rand(-90, 90)}deg`);
+    leaf.style.setProperty('--a', `${rand(30, 110)}px`);
+    leaf.style.setProperty('--d', `${rand(1.8, 2.8)}s`);
+    leaf.style.setProperty('--w', `${rand(0.9, 1.7)}s`);
+    leaf.style.setProperty('--dl', `${rand(0, 0.9)}s`);
+    introLeaves.appendChild(leaf);
+  }
+}
 
 function startWelcomeSequence() {
   if (!introOverlay) {
@@ -27,17 +70,28 @@ function startWelcomeSequence() {
   }
 
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const revealDelay = prefersReducedMotion ? 0 : 1500;
+  const hideDelay = prefersReducedMotion ? 0 : INTRO_HIDE_AT;
 
   if (!prefersReducedMotion) {
-    if (introLogoBounce) introLogoBounce.classList.add('is-animating');
+    buildIntroScene();
+    introOverlay.classList.add('is-playing');
+    if (introLeaves) {
+      introLeaves.classList.add('is-ready');
+      window.setTimeout(() => {
+        introOverlay.classList.add('is-swirl');
+        introLeaves.classList.add('is-swirl');
+      }, INTRO_SWIRL_AT);
+      window.setTimeout(() => introLeaves.remove(), INTRO_LEAVES_END);
+    }
+  } else if (introLeaves) {
+    introLeaves.remove();
   }
 
   window.setTimeout(() => {
     introOverlay.classList.add('is-hidden');
     document.documentElement.classList.remove('intro-locked');
     if (heroLogoImg) heroLogoImg.classList.add('is-revealed');
-  }, revealDelay);
+  }, hideDelay);
 
   introOverlay.addEventListener('transitionend', (e) => {
     if (e.target === introOverlay) introOverlay.remove();
