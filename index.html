@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Shippori+Mincho:wght@500;700;800&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script>
 // 管理画面で「Coming Soon」に切り替えているとき、前回の確認結果（1時間以内）が残っていれば、最初から「Coming Soon」の画面を出す
 // URLの末尾に ?preview=1 を付けると、このタブの間だけ、本来のサイトを確認できる（スタッフ用）
@@ -21,12 +21,9 @@
   } catch (e) { /* 保存できない環境では、通常どおり表示 */ }
 })();
 </script>
-<link rel="stylesheet" href="css/site.css?v=3">
+<link rel="stylesheet" href="css/site.css?v=12">
 </head>
 <body>
-
-<!-- ===== 夜空（全ページの背景） ===== -->
-<div class="sky" aria-hidden="true"></div>
 
 <!-- ===== Coming Soon（管理画面で切り替えたときだけ表示） ===== -->
 <div class="maint" id="maint" role="status">
@@ -49,8 +46,8 @@
     <p id="consentTitle" class="consent-title">音楽を再生しますか？</p>
     <p class="consent-text">このサイトではBGMが流れます。音量をご確認のうえ、お好みでお選びください。</p>
     <div class="consent-actions">
-      <button type="button" class="btn btn-primary consent-btn" id="consentEnterSound">音楽ありで入店する</button>
-      <button type="button" class="btn btn-outline consent-btn consent-btn-silent" id="consentEnterSilent">音楽なしで入店する</button>
+      <button type="button" class="btn btn-leaf consent-btn" id="consentEnterSound">音楽ありで入店する</button>
+      <button type="button" class="btn btn-line consent-btn consent-btn-silent" id="consentEnterSilent">音楽なしで入店する</button>
     </div>
   </div>
 </div>
@@ -77,14 +74,13 @@
 
     <nav class="nav" id="siteNav">
       <ul class="nav-list">
-        <li><a href="#hero" class="nav-link">Home</a></li>
         <li><a href="#concept" class="nav-link">Concept</a></li>
         <li><a href="#mascot" class="nav-link">Character</a></li>
         <li><a href="#interior" class="nav-link">Interior</a></li>
         <li><a href="#menu" class="nav-link">Menu</a></li>
-        <li><a href="#reservation" class="nav-link">Reservation</a></li>
         <li><a href="#shop" class="nav-link">Shop Info</a></li>
         <li><a href="#cast" class="nav-link">Cast</a></li>
+        <li><a href="#reservation" class="nav-link nav-go">Reservation</a></li>
       </ul>
     </nav>
 
@@ -96,86 +92,42 @@
 
 <main>
 
-  <!-- ===== Hero（魔法の鏡） ===== -->
+  <!-- ===== Hero ===== -->
   <section class="hero" id="hero">
-    <div class="hero-inner">
+    <div class="hero-img" role="img" aria-label="新しいワールド：ガラスの天井と、大きな木、鳥かごのあるカフェ"></div>
+    <div class="leaves" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
-      <p class="hero-next is-pending" data-next-open-box><span class="hero-next-label">Next Open</span><b data-next-open>Coming Soon</b></p>
-
-      <div class="hero-text">
-        <p class="hero-eyebrow">Virtual Cafe Event</p>
-        <h1 class="hero-title">
-          <img class="hero-logo-img" src="エクスタ_文字だけ_crop.png" alt="Bunny Cafe EXTA">
-        </h1>
-        <p class="hero-copy">午後の陽だまりに、うさぎ耳のもてなしを。<br>ヴァーチャル空間でゆったり過ごすカフェタイム。</p>
-        <p class="hero-tag"><span class="hero-tag-dot" aria-hidden="true"></span>Cafe × Entertainment × Bunny</p>
-        <div class="hero-actions">
-          <a href="#reservation" class="btn btn-primary" data-reserve-cta>来店予約はこちら</a>
-          <a href="#shop" class="btn btn-outline">店舗情報を見る</a>
-          <a href="#concept" class="btn btn-outline">コンセプトを知る</a>
-        </div>
-      </div>
-
-      <div class="hero-orb" aria-hidden="true">
-        <svg class="orb-svg" viewBox="0 0 600 600" fill="none" stroke="#E8CA82" stroke-linecap="round">
-          <g class="orb-r1">
-            <circle cx="300" cy="300" r="292" stroke-width="2" opacity=".9"/>
-            <circle cx="300" cy="300" r="279" stroke-width="1" stroke-dasharray="1.5 8" opacity=".8"/>
-            <circle cx="300" cy="300" r="266" stroke-width="7" stroke-dasharray="1 21.4" opacity=".45"/>
-            <circle cx="300" cy="9" r="6" fill="#F6E2B2" stroke="none"/>
-          </g>
-          <g class="orb-r2">
-            <circle cx="300" cy="300" r="246" stroke-width="1.2" stroke-dasharray="14 10" opacity=".7"/>
-            <path d="M0-11 L3-3 L11 0 L3 3 L0 11 L-3 3 L-11 0 L-3-3Z" transform="translate(300 54)" fill="#F6E2B2" stroke="none"/>
-            <path d="M0-11 L3-3 L11 0 L3 3 L0 11 L-3 3 L-11 0 L-3-3Z" transform="translate(546 300)" fill="#F6E2B2" stroke="none"/>
-            <path d="M0-11 L3-3 L11 0 L3 3 L0 11 L-3 3 L-11 0 L-3-3Z" transform="translate(300 546)" fill="#F6E2B2" stroke="none"/>
-            <path d="M0-11 L3-3 L11 0 L3 3 L0 11 L-3 3 L-11 0 L-3-3Z" transform="translate(54 300)" fill="#F6E2B2" stroke="none"/>
-          </g>
-          <g class="orb-r3">
-            <path stroke-width="1.6" opacity=".85" d="M300 72 L499 416 L101 416 Z"/>
-            <path stroke-width="1.6" opacity=".85" d="M300 528 L101 184 L499 184 Z"/>
-            <circle cx="300" cy="72" r="8" stroke-width="1.4"/>
-            <circle cx="499" cy="416" r="8" stroke-width="1.4"/>
-            <circle cx="101" cy="416" r="8" stroke-width="1.4"/>
-            <circle cx="300" cy="528" r="8" stroke-width="1.4"/>
-            <circle cx="101" cy="184" r="8" stroke-width="1.4"/>
-            <circle cx="499" cy="184" r="8" stroke-width="1.4"/>
-          </g>
-        </svg>
-
-        <div class="orb-glass">
-          <img class="hero-slide" src="営業の様子/web/scene-1.jpg" alt="">
-          <img class="hero-slide" src="営業の様子/web/scene-2.jpg" alt="" loading="lazy">
-          <img class="hero-slide" src="営業の様子/web/scene-3.jpg" alt="" loading="lazy">
-          <img class="hero-slide" src="営業の様子/web/scene-4.jpg" alt="" loading="lazy">
-          <img class="hero-slide" src="営業の様子/web/scene-5.jpg" alt="" loading="lazy">
-          <img class="hero-slide" src="営業の様子/web/scene-6.jpg" alt="" loading="lazy">
-        </div>
-
-        <span class="orb-moon"></span>
-        <span class="orb-spark">✦</span>
-        <span class="orb-spark">✧</span>
-        <span class="orb-spark">✦</span>
-        <span class="orb-spark">✧</span>
-        <span class="orb-spark">✦</span>
-      </div>
-
+    <!-- 次回営業日（管理画面で設定する）。吊るされた札 -->
+    <div class="hero-next is-pending" data-next-open-box>
+      <div class="hero-next-card"><span class="hero-next-label">NEXT OPEN</span><b data-next-open>Coming Soon</b></div>
     </div>
 
-    <a href="#concept" class="scroll-cue" aria-label="次のセクションへスクロール">
-      <span></span>
-    </a>
+    <div class="wrap hero-inner">
+      <div class="hero-chips"><span>PC Only</span><span>VRChat</span><span>月一・土曜日 22:00〜</span></div>
+      <p class="hero-eyebrow">Virtual Cafe Event</p>
+      <h1 class="hero-title">
+        <img class="hero-logo-img" src="エクスタ_文字だけ_crop.png" alt="Bunny Cafe EXTA">
+      </h1>
+      <p class="hero-copy">午後の陽だまりに、うさぎ耳のもてなしを。<br>ヴァーチャル空間でゆったり過ごすカフェタイム。</p>
+      <div class="hero-actions">
+        <a href="#reservation" class="btn btn-sun" data-reserve-cta>来店予約はこちら</a>
+        <a href="#shop" class="btn btn-out">店舗情報を見る</a>
+        <a href="#concept" class="btn btn-out">コンセプトを知る</a>
+      </div>
+    </div>
+
+    <div class="wave bottom"><svg viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40 C 180 5 360 70 540 38 S 900 4 1080 36 S 1320 62 1440 30 L1440 60 L0 60Z" fill="#F6F1E4"/></svg></div>
   </section>
 
-  <!-- ===== Concept（I） ===== -->
-  <section class="chapter concept" id="concept">
-    <div class="section-inner">
-      <header class="chapter-head" data-no="I">
+  <!-- ===== Concept ===== -->
+  <section class="concept" id="concept">
+    <div class="wrap">
+      <header class="head">
         <p class="section-eyebrow">Concept</p>
         <h2 class="section-title">やわらかな午後の、うさぎカフェ</h2>
       </header>
 
-      <div class="concept-layout">
+      <div class="concept-grid">
         <div class="concept-text">
           <p>
             EXTAは、VRChat上に佇む小さなバニーカフェイベントです。<br>
@@ -188,29 +140,27 @@
           </p>
         </div>
 
-        <div class="concept-photo" aria-hidden="true">
-          <div class="arch">
-            <img src="店内写真/web/interior-cup.jpg" alt="">
-          </div>
+        <div class="blob-wrap" aria-hidden="true">
+          <div class="blob"><img src="新ワールド/web/world-1.webp" alt="" loading="lazy"></div>
         </div>
       </div>
 
-      <ul class="spell-list">
-        <li class="spell-card">
-          <span class="spell-sigil" aria-hidden="true">✦</span>
-          <span class="spell-num">01</span>
+      <ul class="concept-points">
+        <li class="point-card">
+          <span class="point-no">01</span>
+          <div class="point-ico" aria-hidden="true">🌱</div>
           <h3>癒やしの空間デザイン</h3>
           <p>昼下がりの光をイメージした、あたたかみのあるワールド設計。</p>
         </li>
-        <li class="spell-card">
-          <span class="spell-sigil" aria-hidden="true">☾</span>
-          <span class="spell-num">02</span>
+        <li class="point-card">
+          <span class="point-no">02</span>
+          <div class="point-ico" aria-hidden="true">🐰</div>
           <h3>おもてなしキャスト</h3>
           <p>お客様一人ひとりに寄り添う、うさぎ耳キャストたちの接客。</p>
         </li>
-        <li class="spell-card">
-          <span class="spell-sigil" aria-hidden="true">❖</span>
-          <span class="spell-num">03</span>
+        <li class="point-card">
+          <span class="point-no">03</span>
+          <div class="point-ico" aria-hidden="true">🍵</div>
           <h3>ゆったり過ごせる時間</h3>
           <p>写真撮影やおしゃべりも自由に楽しめるアットホームな雰囲気。</p>
         </li>
@@ -218,14 +168,10 @@
     </div>
   </section>
 
-  <!-- ===== Character（II） ===== -->
-  <section class="chapter mascot" id="mascot">
-    <div class="mascot-sparkles" aria-hidden="true">
-      <span>✦</span><span>✦</span><span>✦</span><span>♡</span><span>✦</span><span>♡</span><span>✦</span><span>✦</span>
-    </div>
-
-    <div class="section-inner">
-      <header class="chapter-head" data-no="II">
+  <!-- ===== Character ===== -->
+  <section class="mascot" id="mascot">
+    <div class="wrap">
+      <header class="head">
         <p class="section-eyebrow">Official Character</p>
         <h2 class="section-title">公式キャラクター「ロパンくん」をご紹介！</h2>
       </header>
@@ -262,128 +208,138 @@
     </div>
   </section>
 
-  <!-- ===== Interior（III）魔法の鏡 ===== -->
-  <section class="chapter interior" id="interior">
-    <div class="section-inner">
-      <header class="chapter-head" data-no="III">
+  <!-- ===== Interior ===== -->
+  <section class="interior" id="interior">
+    <div class="wrap">
+      <header class="head">
         <p class="section-eyebrow">Interior</p>
         <h2 class="section-title">店内の様子</h2>
         <p class="section-lead">木漏れ日と木の温もりに包まれた、EXTAのワールドをのぞいてみてください。</p>
       </header>
     </div>
 
-    <div class="mirror-rail">
-      <figure class="mirror">
+    <div class="rail">
+      <figure class="is-big">
+        <img src="新ワールド/web/world-1.webp" alt="ガラスの天井と大きな木、鳥かごのある店内" loading="lazy">
+        <figcaption>新しいワールド</figcaption>
+      </figure>
+      <figure>
         <img src="店内写真/web/interior-tree.jpg" alt="木が佇む明るい店内の全景" loading="lazy">
+        <figcaption>全景</figcaption>
       </figure>
-      <figure class="mirror">
+      <figure>
         <img src="店内写真/web/interior-case.jpg" alt="焼き菓子やパンが並ぶショーケース" loading="lazy">
+        <figcaption>ショーケース</figcaption>
       </figure>
-      <figure class="mirror">
+      <figure>
         <img src="店内写真/web/interior-counter.jpg" alt="メニューボードが並ぶカウンター席" loading="lazy">
+        <figcaption>カウンター</figcaption>
       </figure>
-      <figure class="mirror">
+      <figure>
         <img src="店内写真/web/interior-cup.jpg" alt="窓辺の席から見える空とティーカップ" loading="lazy">
+        <figcaption>窓辺の席</figcaption>
       </figure>
-      <figure class="mirror">
+      <figure>
         <img src="店内写真/web/interior-logo-wall.jpg" alt="EXTAのロゴが飾られた壁" loading="lazy">
+        <figcaption>ロゴの壁</figcaption>
       </figure>
-      <figure class="mirror">
+      <figure>
         <img src="店内写真/web/interior-welcome.jpg" alt="EXTAへようこそと書かれたウェルカムボード" loading="lazy">
+        <figcaption>ウェルカムボード</figcaption>
       </figure>
-      <figure class="mirror">
+      <figure>
         <img src="店内写真/web/interior-window.jpg" alt="大きな窓から空が見える店内" loading="lazy">
+        <figcaption>大きな窓</figcaption>
       </figure>
     </div>
-    <p class="mirror-hint" aria-hidden="true">✦　横にスクロールしてね　✦</p>
+    <p class="rail-hint" aria-hidden="true">← 横にスクロールしてね →</p>
   </section>
 
-  <!-- ===== Menu（IV）魔導書 ===== -->
-  <section class="chapter menu" id="menu">
-    <div class="section-inner">
-      <header class="chapter-head" data-no="IV">
+  <!-- ===== Menu ===== -->
+  <section class="menu" id="menu">
+    <div class="wrap">
+      <header class="head">
         <p class="section-eyebrow">Menu</p>
         <h2 class="section-title">メニュー表</h2>
         <p class="section-lead">陽だまりの午後にぴったりの、こだわりメニューをご用意しました。</p>
       </header>
 
       <div class="menu-reveal">
-        <button type="button" class="btn btn-primary menu-reveal-btn" id="menuRevealBtn" aria-expanded="false" aria-controls="menuRevealPanel">メニューを表示する</button>
+        <button type="button" class="btn btn-sun menu-reveal-btn" id="menuRevealBtn" aria-expanded="false" aria-controls="menuRevealPanel">メニューを表示する</button>
       </div>
 
       <div class="menu-reveal-panel" id="menuRevealPanel">
-      <div class="menu-tabs">
-        <div class="menu-category">
-          <h3 class="menu-category-title"><span>🍕</span>Food</h3>
-          <ul class="menu-list menu-list-simple">
-            <li class="menu-item-simple">ピンチョス</li>
-            <li class="menu-item-simple">ハムエッグトースト</li>
-            <li class="menu-item-simple">ラビットトースト</li>
-            <li class="menu-item-simple">クロワッサンド</li>
-            <li class="menu-item-simple">サラダボール</li>
-            <li class="menu-item-simple">ブルスケッタ</li>
-            <li class="menu-item-simple">イチゴトースト</li>
-          </ul>
-        </div>
+        <div class="signs">
+          <div class="sign">
+            <h3>Food</h3>
+            <ul>
+              <li>ピンチョス</li>
+              <li>ハムエッグトースト</li>
+              <li>ラビットトースト</li>
+              <li>クロワッサンド</li>
+              <li>サラダボール</li>
+              <li>ブルスケッタ</li>
+              <li>イチゴトースト</li>
+            </ul>
+          </div>
 
-        <div class="menu-category">
-          <h3 class="menu-category-title"><span>🍰</span>Dessert</h3>
-          <ul class="menu-list menu-list-simple">
-            <li class="menu-item-simple">デザートクロワッサン</li>
-            <li class="menu-item-simple">アサイーボール</li>
-            <li class="menu-item-simple">クリームイチゴヨーグルト</li>
-            <li class="menu-item-simple">フルーツフレンチパン</li>
-            <li class="menu-item-simple">チョコスコーン</li>
-          </ul>
-        </div>
+          <div class="sign">
+            <h3>Dessert</h3>
+            <ul>
+              <li>デザートクロワッサン</li>
+              <li>アサイーボール</li>
+              <li>クリームイチゴヨーグルト</li>
+              <li>フルーツフレンチパン</li>
+              <li>チョコスコーン</li>
+            </ul>
+          </div>
 
-        <div class="menu-category">
-          <h3 class="menu-category-title"><span>☕</span>Drink</h3>
-          <ul class="menu-list menu-list-simple">
-            <li class="menu-item-simple">
-              スカッシュエード
-              <span class="menu-item-note">（グレフル・イチゴ・マスカット・レモン）</span>
-              <span class="menu-tags"><span class="menu-tag menu-tag-iced">ICED</span></span>
-            </li>
-            <li class="menu-item-simple">
-              エスプレッソコンパナ
-              <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span></span>
-            </li>
-            <li class="menu-item-simple">
-              アメリカーノ
-              <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span><span class="menu-tag menu-tag-iced">ICED</span></span>
-            </li>
-            <li class="menu-item-simple">
-              ラテ
-              <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span><span class="menu-tag menu-tag-iced">ICED</span></span>
-            </li>
-            <li class="menu-item-simple">
-              カプチーノ
-              <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span></span>
-            </li>
-            <li class="menu-item-simple">
-              カフェモカ
-              <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span><span class="menu-tag menu-tag-iced">ICED</span></span>
-            </li>
-            <li class="menu-item-simple">
-              キャラメルマキアート
-              <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span><span class="menu-tag menu-tag-iced">ICED</span></span>
-            </li>
-            <li class="menu-item-simple">
-              紅茶
-              <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span></span>
-            </li>
-          </ul>
+          <div class="sign">
+            <h3>Drink</h3>
+            <ul>
+              <li>
+                <span>スカッシュエード<span class="menu-item-note">（グレフル・イチゴ・マスカット・レモン）</span></span>
+                <span class="menu-tags"><span class="menu-tag menu-tag-iced">ICED</span></span>
+              </li>
+              <li>
+                エスプレッソコンパナ
+                <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span></span>
+              </li>
+              <li>
+                アメリカーノ
+                <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span><span class="menu-tag menu-tag-iced">ICED</span></span>
+              </li>
+              <li>
+                ラテ
+                <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span><span class="menu-tag menu-tag-iced">ICED</span></span>
+              </li>
+              <li>
+                カプチーノ
+                <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span></span>
+              </li>
+              <li>
+                カフェモカ
+                <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span><span class="menu-tag menu-tag-iced">ICED</span></span>
+              </li>
+              <li>
+                キャラメルマキアート
+                <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span><span class="menu-tag menu-tag-iced">ICED</span></span>
+              </li>
+              <li>
+                紅茶
+                <span class="menu-tags"><span class="menu-tag menu-tag-hot">HOT</span></span>
+              </li>
+            </ul>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   </section>
 
-  <!-- ===== Reservation（V）招待状 ===== -->
-  <section class="chapter reserve" id="reservation">
-    <div class="section-inner">
-      <header class="chapter-head is-center" data-no="V">
+  <!-- ===== Reservation ===== -->
+  <section class="reserve" id="reservation">
+    <div class="wrap">
+      <header class="head is-center">
         <p class="section-eyebrow">Reservation</p>
         <h2 class="section-title">来店予約</h2>
         <p class="section-lead">事前の来店予約を、Googleフォームで受け付けています。</p>
@@ -395,85 +351,90 @@
         <ol class="reserve-steps">
           <li>
             <span class="reserve-num" aria-hidden="true">1</span>
-            <b>「PC Only」イベントです</b>
-            <p>Quest・Android・iOSでは、ご参加いただけません。</p>
+            <div>
+              <b>「PC Only」イベントです</b>
+              <p>Quest・Android・iOSでは、ご参加いただけません。</p>
+            </div>
           </li>
           <li>
             <span class="reserve-num" aria-hidden="true">2</span>
-            <b>当店のVRChatグループへの参加が必要です</b>
-            <p>ご予約は、グループに参加されている方のみ、受け付けています。</p>
+            <div>
+              <b>当店のVRChatグループへの参加が必要です</b>
+              <p>ご予約は、グループに参加されている方のみ、受け付けています。</p>
+            </div>
           </li>
           <li>
             <span class="reserve-num" aria-hidden="true">3</span>
-            <b>X（旧Twitter）のDMを開放してください</b>
-            <p>ご予約のあとに、EXTAの公式アカウントから、DMでご連絡します。</p>
+            <div>
+              <b>X（旧Twitter）のDMを開放してください</b>
+              <p>ご予約のあとに、EXTAの公式アカウントから、DMでご連絡します。</p>
+            </div>
           </li>
         </ol>
 
         <div class="reserve-action" data-reserve-action>
           <p class="reserve-closed" hidden>定員に達したため、来店予約の受付を終了しました。<br>次回の受付開始まで、お待ちください。</p>
-          <a href="https://forms.gle/NnjXnEr8EPNq4aAaA" target="_blank" rel="noopener" class="btn btn-primary reserve-btn">来店予約フォームを開く</a>
+          <a href="https://forms.gle/NnjXnEr8EPNq4aAaA" target="_blank" rel="noopener" class="btn btn-leaf reserve-btn">来店予約フォームを開く</a>
           <p class="reserve-note">Googleフォームが、新しいタブで開きます。</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ===== Shop Info（VI）星図 ===== -->
-  <section class="chapter shop" id="shop">
-    <div class="section-inner">
-      <div class="shop-layout">
-        <header class="chapter-head" data-no="VI">
-          <p class="section-eyebrow">Shop Info</p>
-          <h2 class="section-title">店舗情報</h2>
-        </header>
+  <!-- ===== Shop Info ===== -->
+  <section class="shop" id="shop">
+    <div class="wave top"><svg viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C 200 62 380 0 600 30 S 1000 62 1200 28 S 1380 10 1440 34 L1440 60 L0 60Z" fill="#EFE8D3"/></svg></div>
+    <div class="wrap">
+      <header class="head is-center">
+        <p class="section-eyebrow">Shop Info</p>
+        <h2 class="section-title">店舗情報</h2>
+      </header>
 
-        <dl class="shop-table">
-          <div class="shop-row">
-            <dt>店名</dt>
-            <dd>EXTA</dd>
-          </div>
-          <div class="shop-row">
-            <dt>プラットフォーム</dt>
-            <dd>VRChat（PC Only）</dd>
-          </div>
-          <div class="shop-row">
-            <dt>営業日</dt>
-            <dd>月一土曜日営業</dd>
-          </div>
-          <div class="shop-row" data-next-open-box hidden>
-            <dt>次回営業日</dt>
-            <dd data-next-open></dd>
-          </div>
-          <div class="shop-row">
-            <dt>営業時間</dt>
-            <dd>22:00～23:30（24:00）</dd>
-          </div>
-          <div class="shop-row">
-            <dt>ワールド</dt>
-            <dd><a href="https://vrchat.com/home/world/wrld_d5037100-be53-4f9a-a292-ee7734f26829/info" target="_blank" rel="noopener" class="shop-link">「BunnyCafe EXTA」</a></dd>
-          </div>
-          <div class="shop-row">
-            <dt>来場可能人数</dt>
-            <dd>12名のみ</dd>
-          </div>
-          <div class="shop-row">
-            <dt>インスタンス人数</dt>
-            <dd>26名（スタッフ含む）が上限</dd>
-          </div>
-          <div class="shop-row">
-            <dt>お問い合わせ</dt>
-            <dd><a href="https://x.com/EXTA_VRC" target="_blank" rel="noopener" class="shop-link">Twitter(X) DMにてご連絡ください</a></dd>
-          </div>
-        </dl>
-      </div>
+      <dl class="shop-board">
+        <div class="shop-row">
+          <dt>店名</dt>
+          <dd>EXTA</dd>
+        </div>
+        <div class="shop-row">
+          <dt>プラットフォーム</dt>
+          <dd>VRChat（PC Only）</dd>
+        </div>
+        <div class="shop-row">
+          <dt>営業日</dt>
+          <dd>月一土曜日営業</dd>
+        </div>
+        <div class="shop-row" data-next-open-box hidden>
+          <dt>次回営業日</dt>
+          <dd data-next-open></dd>
+        </div>
+        <div class="shop-row">
+          <dt>営業時間</dt>
+          <dd>22:00～23:30（24:00）</dd>
+        </div>
+        <div class="shop-row">
+          <dt>ワールド</dt>
+          <dd><a href="https://vrchat.com/home/world/wrld_d5037100-be53-4f9a-a292-ee7734f26829/info" target="_blank" rel="noopener" class="shop-link">「BunnyCafe EXTA」</a></dd>
+        </div>
+        <div class="shop-row">
+          <dt>来場可能人数</dt>
+          <dd>12名のみ</dd>
+        </div>
+        <div class="shop-row">
+          <dt>インスタンス人数</dt>
+          <dd>26名（スタッフ含む）が上限</dd>
+        </div>
+        <div class="shop-row">
+          <dt>お問い合わせ</dt>
+          <dd><a href="https://x.com/EXTA_VRC" target="_blank" rel="noopener" class="shop-link">Twitter(X) DMにてご連絡ください</a></dd>
+        </div>
+      </dl>
     </div>
   </section>
 
-  <!-- ===== Cast（VII）タロットカード ===== -->
-  <section class="chapter cast" id="cast">
-    <div class="section-inner">
-      <header class="chapter-head is-center" data-no="VII">
+  <!-- ===== Cast ===== -->
+  <section class="cast" id="cast">
+    <div class="wrap">
+      <header class="head is-center">
         <p class="section-eyebrow">Cast</p>
         <h2 class="section-title">キャスト紹介</h2>
         <p class="section-lead">オーナーとキャストバニー、合計10名で皆様をお迎えします。</p>
@@ -610,6 +571,6 @@
 
 <script src="js/config.js?v=6"></script>
 <script src="js/profiles.js?v=2"></script>
-<script src="js/script.js?v=10"></script>
+<script src="js/script.js?v=11"></script>
 </body>
 </html>
