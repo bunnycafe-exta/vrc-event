@@ -1858,3 +1858,13 @@ html.profile-open { overflow: hidden; }
 .visit-steps-sub { max-width: none; }
 .visit-steps-sub .visit-no { box-shadow: 0 0 0 5px var(--sage); }
 .visit-reserve-link { margin-top: 22px; text-align: center; }
+
+/* 来店方法: 導入の文は、PCでは1行に。「ご用意いただくもの」の札は、文字を上下の中央に */
+.visit .section-lead { max-width: none; }
+
+@media (min-width: 900px) {
+  .visit .section-lead { white-space: nowrap; }
+}
+
+.visit-need li { display: flex; flex-direction: column; justify-content: center; }
+.visit-need ul { align-items: stretch; }
