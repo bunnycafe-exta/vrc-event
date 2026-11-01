@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>ウェルカム画面の案（見本） | BunnyCafe-EXTA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Shippori+Mincho:wght@500;700;800&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#F6F1E4; --paper:#FBF7EC; --leaf:#4E7A44; --leaf-d:#2F4A33; --leaf-dd:#1F3322;
+  --moss:#8DAA6B; --sage:#DCE6C9; --wood:#8A5A36; --wood-d:#5C3B22; --gold:#C9A24B; --gold-l:#E8CA82; --autumn:#E0B23A;
+  --ink:#243628; --ink-soft:#4d5f50;
+  --serif:"Shippori Mincho",serif; --sans:"Zen Maru Gothic",sans-serif; --en:"Cormorant Garamond",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--cream);color:var(--ink);line-height:1.8;padding:40px clamp(20px,5vw,56px) 80px}
+h1{font-family:var(--serif);font-size:1.5rem;color:var(--leaf-dd)}
+.lead{margin:8px 0 32px;color:var(--ink-soft);font-size:.95rem}
+.back{display:inline-block;margin-bottom:18px;color:var(--leaf-d);font-weight:700;font-size:.9rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(440px,100%),1fr));gap:30px}
+.card{background:var(--paper);border-radius:18px;padding:16px;box-shadow:0 14px 30px -20px rgba(31,51,34,.5)}
+.card h2{font-family:var(--serif);font-size:1.05rem;color:var(--leaf-dd);margin:14px 4px 2px}
+.card p{font-size:.88rem;color:var(--ink-soft);margin:0 4px 12px}
+.replay{margin:0 4px;padding:7px 18px;border:1.5px solid var(--leaf);border-radius:999px;background:transparent;color:var(--leaf-d);font:700 .85rem var(--sans);cursor:pointer}
+.replay:hover{background:var(--leaf);color:#fff}
+
+/* 共通のステージ（実際の画面と同じ背景色） */
+.stage{
+  position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:12px;container-type:inline-size;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(60% 50% at 50% 40%,rgba(141,170,107,.22),transparent 70%),var(--leaf-dd);
+}
+
+/* ---------- A: 輪が描かれて、文字が浮かぶ ---------- */
+.a-wrap{position:relative;width:42cqw;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.a-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.a-ring circle{fill:none;stroke:var(--gold-l);stroke-width:.9;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+.a-orbit{position:absolute;inset:0;opacity:0}
+.a-orbit i{position:absolute;left:50%;top:-.5cqw;width:1.3cqw;height:1.3cqw;margin-left:-.65cqw;border-radius:50%;background:var(--gold-l);box-shadow:0 0 2cqw .4cqw rgba(232,202,130,.8)}
+.a-name{font-family:var(--en);font-weight:700;font-size:9.5cqw;letter-spacing:.16em;margin-right:-.16em;color:var(--cream);line-height:1}
+.a-name span{display:inline-block;opacity:0;transform:translateY(3cqw)}
+.a-line{display:block;width:46%;height:1px;margin:2.6cqw 0 2cqw;background:linear-gradient(90deg,transparent,var(--gold-l),transparent);transform:scaleX(0)}
+.a-sub{font-family:var(--en);font-style:italic;font-weight:600;font-size:2.8cqw;letter-spacing:.34em;margin-right:-.34em;color:var(--gold-l);opacity:0}
+.play .a-ring circle{animation:aDraw 1.8s cubic-bezier(.6,.05,.3,1) .2s forwards}
+.play .a-orbit{animation:aFade .6s 1.8s forwards,aSpin 7s linear 1.8s infinite}
+.play .a-name span{animation:aRise .9s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:calc(.8s + var(--i)*.13s)}
+.play .a-line{animation:aLine .9s cubic-bezier(.3,.7,.2,1) 1.6s forwards}
+.play .a-sub{animation:aFade 1s 2s forwards}
+@keyframes aDraw{to{stroke-dashoffset:0}}
+@keyframes aFade{to{opacity:1}}
+@keyframes aSpin{to{transform:rotate(360deg)}}
+@keyframes aRise{to{opacity:1;transform:none}}
+@keyframes aLine{to{transform:scaleX(1)}}
+
+/* ---------- B: 木漏れ日と光の粒 ---------- */
+.b-beam{position:absolute;top:-25%;width:14cqw;height:150%;background:linear-gradient(180deg,rgba(255,240,190,.3),transparent 78%);transform:rotate(18deg);filter:blur(1cqw);opacity:0}
+.b-p{position:absolute;bottom:-6%;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;background:rgba(255,236,170,.95);box-shadow:0 0 1.4cqw rgba(255,226,140,.9);opacity:0}
+.b-text{position:relative;text-align:center}
+.b-name{font-family:var(--en);font-weight:700;font-size:11cqw;line-height:1;color:var(--cream);opacity:0;filter:blur(2.4cqw);letter-spacing:.7em;margin-right:-.7em;display:block}
+.b-sub{display:block;margin-top:2.2cqw;font-family:var(--en);font-style:italic;font-weight:600;font-size:2.8cqw;letter-spacing:.34em;margin-right:-.34em;color:var(--gold-l);opacity:0}
+.play .b-beam{animation:bBeam 4.5s ease-in-out infinite alternate}
+.play .b-p{animation:bFloat var(--d) linear var(--dl) infinite,bSway 3s ease-in-out var(--dl) infinite alternate}
+.play .b-name{animation:bIn 2.2s cubic-bezier(.2,.6,.2,1) .5s forwards}
+.play .b-sub{animation:aFade 1.2s 2s forwards}
+@keyframes bBeam{0%{opacity:.15}100%{opacity:.9}}
+@keyframes bFloat{0%{bottom:-6%;opacity:0}15%{opacity:1}85%{opacity:.9}100%{bottom:106%;opacity:0}}
+@keyframes bSway{from{translate:-2.2cqw 0}to{translate:2.2cqw 0}}
+@keyframes bIn{to{opacity:1;filter:blur(0);letter-spacing:.22em;margin-right:-.22em}}
+
+/* ---------- C: 舞う葉と、光が走る文字 ---------- */
+.c-leaf{position:absolute;top:-8%;left:var(--x);width:var(--s);height:var(--s);background:var(--c);border-radius:0 100% 0 100%;opacity:0}
+.c-text{position:relative;text-align:center}
+.c-name{display:block;font-family:var(--en);font-weight:700;font-size:11cqw;line-height:1.15;letter-spacing:.2em;margin-right:-.2em;padding:0 .1em;
+  background:linear-gradient(100deg,var(--cream) 38%,#fff 50%,var(--cream) 62%);background-size:260% 100%;background-position:130% 0;
+  -webkit-background-clip:text;background-clip:text;color:transparent;clip-path:inset(0 100% 0 0)}
+.c-sub{display:block;margin-top:1.4cqw;font-family:var(--en);font-style:italic;font-weight:600;font-size:2.8cqw;letter-spacing:.34em;margin-right:-.34em;color:var(--gold-l);opacity:0}
+.play .c-leaf{animation:cFall var(--d) ease-in var(--dl) infinite,cSway var(--w) ease-in-out var(--dl) infinite alternate}
+.play .c-name{animation:cWipe 1.3s cubic-bezier(.6,.05,.3,1) .5s forwards,cShine 3.6s ease-in-out 2s infinite}
+.play .c-sub{animation:aFade 1s 1.8s forwards}
+@keyframes cFall{0%{top:-8%;opacity:0}10%{opacity:.95}90%{opacity:.9}100%{top:108%;opacity:0}}
+@keyframes cSway{from{translate:-3cqw 0;rotate:-40deg}to{translate:3cqw 0;rotate:70deg}}
+@keyframes cWipe{to{clip-path:inset(0 0 0 0)}}
+@keyframes cShine{0%{background-position:130% 0}55%,100%{background-position:-30% 0}}
+
+/* ---------- D: 揺れる看板 ---------- */
+.d-hang{position:absolute;left:50%;top:0;width:40cqw;margin-left:-20cqw;transform-origin:50% 0;transform:translateY(-130%)}
+.d-swing{transform-origin:50% 0}
+.d-string{display:block;width:100%;height:9cqw;overflow:visible}
+.d-string path{fill:none;stroke:var(--gold-l);stroke-width:.7;vector-effect:non-scaling-stroke;stroke-width:1.2px}
+.d-sign{position:relative;margin-top:-.3cqw;padding:4.4cqw 2cqw 4cqw;text-align:center;border-radius:2cqw;
+  background:linear-gradient(160deg,#9c6b42,var(--wood) 45%,var(--wood-d));border:.5cqw solid var(--gold);
+  box-shadow:0 2.4cqw 3.6cqw -1.2cqw rgba(0,0,0,.55),inset 0 0 0 .4cqw rgba(0,0,0,.18)}
+.d-sign::before,.d-sign::after{content:"";position:absolute;top:1.6cqw;width:1.2cqw;height:1.2cqw;border-radius:50%;background:var(--gold-l);box-shadow:0 0 .8cqw rgba(0,0,0,.5)}
+.d-sign::before{left:2.2cqw}.d-sign::after{right:2.2cqw}
+.d-welcome{font-family:var(--en);font-style:italic;font-weight:600;font-size:2.6cqw;letter-spacing:.34em;margin-right:-.34em;color:var(--gold-l)}
+.d-name{font-family:var(--en);font-weight:700;font-size:9cqw;line-height:1.1;letter-spacing:.16em;margin-right:-.16em;color:var(--cream);text-shadow:0 .4cqw .6cqw rgba(0,0,0,.4)}
+.d-sub{font-family:var(--en);font-weight:600;font-size:2.8cqw;letter-spacing:.3em;margin-right:-.3em;color:var(--sage)}
+.play .d-hang{animation:dDrop 1s cubic-bezier(.3,1.35,.5,1) .2s forwards}
+.play .d-swing{animation:dSwing 4.4s ease-out 1s forwards,dSway 5s ease-in-out 5.4s infinite alternate}
+@keyframes dDrop{to{transform:none}}
+@keyframes dSwing{0%{transform:rotate(15deg)}12%{transform:rotate(-11deg)}24%{transform:rotate(7deg)}36%{transform:rotate(-4.2deg)}48%{transform:rotate(2.4deg)}60%{transform:rotate(-1.3deg)}100%{transform:rotate(-1.2deg)}}
+@keyframes dSway{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
+
+@media (prefers-reduced-motion:reduce){
+  .stage *{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}
+}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← デザイン案の一覧へ</a>
+<h1>ウェルカム画面の案（見本）</h1>
+<p class="lead">うさぎの画像は使わず、サイトの色（深い緑と金）に合わせた4つの案です。「もう一度見る」で最初から再生できます。実際のサイトでは、この動きが約3秒流れたあと、トップページに切り替わります。</p>
+
+<div class="grid">
+  <section class="card">
+    <div class="stage" id="stA">
+      <div class="a-wrap">
+        <svg class="a-ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" pathLength="1"/></svg>
+        <span class="a-orbit"><i></i></span>
+        <div class="a-name" id="aName">EXTA</div>
+        <span class="a-line"></span>
+        <div class="a-sub">Bunny Cafe</div>
+      </div>
+    </div>
+    <h2>A　金の輪と、浮かぶ文字</h2>
+    <p>細い金の輪がすっと描かれ、文字が1文字ずつ浮かびます。そのあとも、輪のまわりを光の粒がゆっくり回り続けます。いちばん上品で、静かな印象です。</p>
+    <button class="replay" data-target="stA">もう一度見る</button>
+  </section>
+
+  <section class="card">
+    <div class="stage" id="stB">
+      <div id="bBeams"></div>
+      <div id="bParticles"></div>
+      <div class="b-text"><span class="b-name">EXTA</span><span class="b-sub">Bunny Cafe</span></div>
+    </div>
+    <h2>B　木漏れ日と、光の粒</h2>
+    <p>森に差し込む光の筋がゆらぎ、小さな光の粒がふわふわと昇っていきます。文字は、ぼんやりした状態からくっきり浮かび上がります。新しいワールドの雰囲気にいちばん近い案です。</p>
+    <button class="replay" data-target="stB">もう一度見る</button>
+  </section>
+
+  <section class="card">
+    <div class="stage" id="stC">
+      <div id="cLeaves"></div>
+      <div class="c-text"><span class="c-name">EXTA</span><span class="c-sub">Bunny Cafe</span></div>
+    </div>
+    <h2>C　舞い落ちる葉と、光が走る文字</h2>
+    <p>葉がひらひらと舞い落ちる中で、文字が左から右へ現れます。そのあと、文字の上をときどき光がすっと走ります。動きが多く、にぎやかな印象です。</p>
+    <button class="replay" data-target="stC">もう一度見る</button>
+  </section>
+
+  <section class="card">
+    <div class="stage" id="stD">
+      <div class="d-hang">
+        <div class="d-swing">
+          <svg class="d-string" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M50 0 L10 20 M50 0 L90 20"/></svg>
+          <div class="d-sign">
+            <div class="d-welcome">Welcome</div>
+            <div class="d-name">EXTA</div>
+            <div class="d-sub">Bunny Cafe</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <h2>D　揺れるお店の看板</h2>
+    <p>お店の看板が上から下がってきて、ゆらゆらと揺れて落ち着きます。そのあとも、ほんの少しだけ揺れ続けます。カフェらしいあたたかさのある案です。</p>
+    <button class="replay" data-target="stD">もう一度見る</button>
+  </section>
+</div>
+
+<script>
+// 文字を1文字ずつに分ける（A）
+(function(){
+  var el=document.getElementById('aName'),t=el.textContent;el.textContent='';
+  t.split('').forEach(function(c,i){var s=document.createElement('span');s.textContent=c;s.style.setProperty('--i',i);el.appendChild(s)});
+})();
+// 光の筋と粒（B）
+(function(){
+  var beams=document.getElementById('bBeams'),pt=document.getElementById('bParticles');
+  [12,38,64,84].forEach(function(x,i){var b=document.createElement('div');b.className='b-beam';b.style.left=x+'%';b.style.animationDelay=(-i*1.1)+'s';b.style.transform='rotate('+(14+i*3)+'deg)';beams.appendChild(b)});
+  for(var i=0;i<22;i++){var p=document.createElement('span');p.className='b-p';
+    p.style.setProperty('--x',(4+Math.random()*92)+'%');
+    p.style.setProperty('--s',(.7+Math.random()*1.3)+'cqw');
+    p.style.setProperty('--d',(5+Math.random()*5)+'s');
+    p.style.setProperty('--dl',(-Math.random()*9)+'s');
+    pt.appendChild(p)}
+})();
+// 葉（C）
+(function(){
+  var box=document.getElementById('cLeaves'),cols=['#8DAA6B','#6f9a58','#E0B23A','#C9A24B','#4E7A44','#b7cf8c'];
+  for(var i=0;i<14;i++){var l=document.createElement('span');l.className='c-leaf';
+    l.style.setProperty('--x',(3+Math.random()*94)+'%');
+    l.style.setProperty('--s',(1.8+Math.random()*2.2)+'cqw');
+    l.style.setProperty('--c',cols[i%cols.length]);
+    l.style.setProperty('--d',(6+Math.random()*4)+'s');
+    l.style.setProperty('--w',(1.6+Math.random()*1.4)+'s');
+    l.style.setProperty('--dl',(-Math.random()*9)+'s');
+    box.appendChild(l)}
+})();
+// 再生
+function play(st){st.classList.remove('play');void st.offsetWidth;st.classList.add('play')}
+var stages=document.querySelectorAll('.stage');
+stages.forEach(function(s){play(s)});
+document.querySelectorAll('.replay').forEach(function(b){b.addEventListener('click',function(){play(document.getElementById(b.dataset.target))})});
+</script>
+</body>
+</html>
