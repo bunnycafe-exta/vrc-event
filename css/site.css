@@ -1868,3 +1868,32 @@ html.profile-open { overflow: hidden; }
 
 .visit-need li { display: flex; flex-direction: column; justify-content: center; }
 .visit-need ul { align-items: stretch; }
+
+/* スマホ: 来店方法の導入は2行、手順のタイトルは1行、予約の最初の1文は1行に収める（画面の幅に合わせて文字を縮める） */
+@media (max-width: 860px) {
+  .visit .section-lead {
+    font-size: clamp(11.5px, calc((100vw - 56px) / 23), 17px);
+    line-height: 1.9;
+    text-wrap: balance;
+  }
+
+  .visit-steps h3 {
+    white-space: nowrap;
+    font-size: clamp(7px, calc((100vw - 114px) / 18.4), 19px);
+  }
+
+  .visit-reserve { padding-left: 16px; padding-right: 16px; }
+
+  .visit-steps-sub li { grid-template-columns: 32px minmax(0, 1fr); gap: 10px; }
+  .visit-steps-sub .visit-no { width: 32px; height: 32px; font-size: 0.95rem; }
+  .visit-steps-sub li::before { left: 15px; top: 32px; }
+  .visit-steps-sub h3 {
+    font-size: clamp(7px, calc((100vw - 130px) / 22.8), 19px);
+  }
+
+  .vr-line1 {
+    display: block;
+    white-space: nowrap;
+    font-size: clamp(7px, calc((100vw - 94px) / 24.5), 17px);
+  }
+}
