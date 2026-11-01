@@ -25,7 +25,7 @@
 
   --serif: "Shippori Mincho", serif;
   --sans: "Zen Maru Gothic", sans-serif;
-  --en: "Cormorant Garamond", serif;
+  --en: "Shippori Mincho", serif;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -231,7 +231,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   align-items: center;
   gap: 12px;
   font-family: var(--en);
-  font-style: italic;
+  font-style: normal;
   font-weight: 600;
   font-size: clamp(1.3rem, 3vw, 1.9rem);
   line-height: 1.5;
@@ -519,7 +519,6 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   z-index: -1;
 }
 
-.blob-wrap::after { content: "🌿"; position: absolute; left: -14px; bottom: 10%; font-size: 2.4rem; transform: rotate(-20deg); }
 
 .blob {
   position: relative;
@@ -548,7 +547,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   box-shadow: 0 18px 30px -22px rgba(31, 51, 34, 0.55);
 }
 
-.point-no { position: absolute; right: 20px; top: 16px; font-family: var(--en); font-style: italic; font-weight: 700; font-size: 2.6rem; color: var(--sage); }
+.point-no { position: absolute; right: 20px; top: 16px; font-family: var(--en); font-style: normal; font-weight: 700; font-size: 2.6rem; color: var(--sage); }
 
 .point-ico {
   width: 52px;
@@ -628,7 +627,6 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   pointer-events: none;
 }
 
-.mascot-ring::after { content: "🍃"; position: absolute; right: 8%; top: 2%; font-size: 2rem; transform: rotate(30deg); }
 
 @keyframes spinCw { to { transform: rotate(360deg); } }
 
@@ -793,7 +791,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   background: var(--leaf);
   color: #fff;
   font-family: var(--en);
-  font-style: italic;
+  font-style: normal;
   font-weight: 700;
   font-size: 1.4rem;
   letter-spacing: 0.1em;
@@ -875,7 +873,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   background: var(--leaf);
   color: #fff;
   font-family: var(--en);
-  font-style: italic;
+  font-style: normal;
   font-weight: 700;
   font-size: 1.5rem;
   box-shadow: 0 0 0 5px var(--sage);
@@ -934,7 +932,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   margin-bottom: 40px;
   text-align: center;
   font-family: var(--en);
-  font-style: italic;
+  font-style: normal;
   font-weight: 700;
   font-size: 1.5rem;
   color: var(--leaf);
@@ -977,7 +975,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 
 .cast-card:hover .cast-photo img { transform: scale(1.05); }
 
-.cast-role { margin-top: 12px; font-family: var(--en); font-style: italic; font-weight: 700; font-size: 0.95rem; line-height: 1.4; color: var(--leaf); }
+.cast-role { margin-top: 12px; font-family: var(--en); font-style: normal; font-weight: 700; font-size: 0.95rem; line-height: 1.4; color: var(--leaf); }
 
 .cast-name {
   position: relative;
@@ -1374,7 +1372,7 @@ html.is-maint .bgm-toggle { display: none !important; }
 .maint-title {
   margin-bottom: 20px;
   font-family: var(--en);
-  font-style: italic;
+  font-style: normal;
   font-size: clamp(2.2rem, 9vw, 3.2rem);
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1474,6 +1472,7 @@ html.is-maint .bgm-toggle { display: none !important; }
 .profile-modal.is-textonly .profile-photo { display: none; }
 
 .profile-close {
+  font-family: var(--sans);
   position: absolute;
   top: 12px;
   right: 12px;
@@ -1847,7 +1846,7 @@ html.profile-open { overflow: hidden; }
   background: var(--leaf);
   color: #fff;
   font-family: var(--en);
-  font-style: italic;
+  font-style: normal;
   font-weight: 700;
   font-size: 1.5rem;
   font-variant-numeric: lining-nums;
