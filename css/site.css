@@ -279,7 +279,7 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(20, 40, 24, 0.5) 0, rgba(20, 40, 24, 0.12) 30%, rgba(20, 40, 24, 0.26) 55%, rgba(20, 40, 24, 0.82) 100%);
+  background: linear-gradient(180deg, rgba(20, 40, 24, 0.5) 0, rgba(20, 40, 24, 0.14) 28%, rgba(20, 40, 24, 0.42) 55%, rgba(20, 40, 24, 0.88) 100%);
 }
 
 .hero-inner {
@@ -1113,9 +1113,22 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
   .hero-next-card { padding: 12px 22px 10px; }
   .hero-next-label { font-size: 0.66rem; line-height: 1.4; }
   .hero-next b { font-size: 1.2rem; }
-  .hero::before { background: linear-gradient(180deg, rgba(20, 40, 24, 0.62) 0, rgba(20, 40, 24, 0.4) 30%, rgba(20, 40, 24, 0.5) 60%, rgba(20, 40, 24, 0.9) 100%); }
-  .hero-copy { text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9), 0 0 22px rgba(0, 0, 0, 0.7); }
-  .hero-copy br { display: none; }
+  .hero::before { background: linear-gradient(180deg, rgba(20, 40, 24, 0.66) 0, rgba(20, 40, 24, 0.5) 28%, rgba(20, 40, 24, 0.62) 45%, rgba(20, 40, 24, 0.84) 72%, rgba(20, 40, 24, 0.95) 100%); }
+
+  /* 文章は、2行に収める（1文を1行）。背景と同化しないように、うっすら暗い板を敷いて、文字を太く、影を濃くする */
+  .hero-copy {
+    display: inline-block;
+    margin: 20px 0 26px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(20, 40, 24, 0.5);
+    font-size: clamp(12px, calc((100vw - 90px) / 22.6), 18px);
+    font-weight: 800;
+    line-height: 1.9;
+    letter-spacing: 0;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 16px rgba(0, 0, 0, 0.8);
+  }
   .hero-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
   .hero-actions .btn { width: 100%; padding: 15px 8px; }
   .hero-actions .btn-sun { grid-column: 1 / -1; }
@@ -1697,4 +1710,9 @@ html.profile-open { overflow: hidden; }
 
 @media (max-width: 480px) {
   .cast-tab { min-width: 108px; padding: 10px 20px; }
+}
+
+/* とても狭い画面（幅340px以下）では、2行に収まらないので、折り返して、はみ出さないようにする */
+@media (max-width: 340px) {
+  .hero-copy { white-space: normal; font-size: 12.5px; }
 }
