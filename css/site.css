@@ -21,6 +21,8 @@
   --ink: #243628;
   --ink-soft: #4d5f50;
 
+  --sec-pad: clamp(76px, 10vw, 130px);
+
   --serif: "Shippori Mincho", serif;
   --sans: "Zen Maru Gothic", sans-serif;
   --en: "Cormorant Garamond", serif;
@@ -30,7 +32,7 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 76px;
+  scroll-padding-top: 64px;
 }
 
 html.intro-locked { overflow: hidden; }
@@ -58,7 +60,11 @@ ul, ol { list-style: none; }
   padding: 0 clamp(28px, 7vw, 48px);
 }
 
-section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
+section { position: relative; padding: var(--sec-pad) 0; }
+
+/* メニューから飛んだとき、見出しが、ヘッダーのすぐ下に出るようにする（セクションの上の余白の分だけ、さらに下へ進める） */
+section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
+.hero { scroll-margin-top: 0; }
 
 /* ==========================================================================
    Buttons
