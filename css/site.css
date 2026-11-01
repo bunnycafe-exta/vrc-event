@@ -1786,6 +1786,7 @@ html.profile-open { overflow: hidden; }
 
 .enjoy-link:hover { color: var(--leaf); }
 
+.enjoy { padding-bottom: clamp(36px, 5vw, 56px); }
 .enjoy-note { margin-top: 34px; text-align: center; font-family: var(--serif); font-weight: 700; font-size: 1.08rem; color: var(--leaf-dd); }
 
 .visit { background: #E9F0DB; }
@@ -1836,6 +1837,9 @@ html.profile-open { overflow: hidden; }
   font-style: italic;
   font-weight: 700;
   font-size: 1.5rem;
+  font-variant-numeric: lining-nums;
+  line-height: 1;
+  padding-bottom: 0.1em;
   box-shadow: 0 0 0 5px #fff;
 }
 
