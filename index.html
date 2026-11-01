@@ -21,7 +21,7 @@
   } catch (e) { /* 保存できない環境では、通常どおり表示 */ }
 })();
 </script>
-<link rel="stylesheet" href="css/site.css?v=16">
+<link rel="stylesheet" href="css/site.css?v=19">
 </head>
 <body>
 
@@ -201,7 +201,7 @@
 
           <figure class="mascot-bubble">
             <figcaption>ロパンくんより</figcaption>
-            <blockquote>「森から来たお客様と会えるのを楽しみに待ってるよ～！僕もがんばるぞ！」</blockquote>
+            <blockquote>「お客様と会えるのを楽しみにまってるよ～！僕も頑張るぞ！」</blockquote>
           </figure>
         </div>
       </div>
@@ -378,10 +378,6 @@
           <dd>22:00～23:30（24:00）</dd>
         </div>
         <div class="shop-row">
-          <dt>ワールド</dt>
-          <dd><a href="https://vrchat.com/home/world/wrld_d5037100-be53-4f9a-a292-ee7734f26829/info" target="_blank" rel="noopener" class="shop-link">「BunnyCafe EXTA」</a></dd>
-        </div>
-        <div class="shop-row">
           <dt>来場可能人数</dt>
           <dd>12名のみ</dd>
         </div>
@@ -406,6 +402,12 @@
         <p class="section-lead">オーナーとキャストバニー、合計10名で皆様をお迎えします。</p>
       </header>
 
+      <div class="cast-tabs" role="tablist" aria-label="キャストとスタッフ">
+        <button type="button" class="cast-tab is-active" role="tab" id="castTabCast" aria-selected="true" aria-controls="castPanelCast">キャスト</button>
+        <button type="button" class="cast-tab" role="tab" id="castTabStaff" aria-selected="false" aria-controls="castPanelStaff">スタッフ</button>
+      </div>
+
+      <div class="cast-panel" id="castPanelCast" role="tabpanel" aria-labelledby="castTabCast">
       <div class="cast-owner">
         <article class="cast-card cast-card-owner">
           <div class="cast-photo"><img src="キャスト写真/web/てとら.png" alt="てとら" loading="lazy"></div>
@@ -478,6 +480,16 @@
           <h3 class="cast-name">はるるん</h3>
         </article>
       </div>
+      </div>
+
+      <!-- スタッフの紹介（準備中）。人数が決まったら、ここに、キャストと同じカードを並べる -->
+      <div class="cast-panel" id="castPanelStaff" role="tabpanel" aria-labelledby="castTabStaff" hidden>
+        <div class="staff-soon">
+          <span class="staff-soon-ico" aria-hidden="true">🌿</span>
+          <p class="staff-soon-title">スタッフ紹介</p>
+          <p>ただいま、準備中です。<br>もうしばらく、お待ちください。</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -537,6 +549,6 @@
 
 <script src="js/config.js?v=6"></script>
 <script src="js/profiles.js?v=2"></script>
-<script src="js/script.js?v=11"></script>
+<script src="js/script.js?v=12"></script>
 </body>
 </html>

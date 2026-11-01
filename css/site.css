@@ -279,7 +279,7 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(20, 40, 24, 0.5) 0, rgba(20, 40, 24, 0.05) 30%, rgba(20, 40, 24, 0.15) 55%, rgba(20, 40, 24, 0.8) 100%);
+  background: linear-gradient(180deg, rgba(20, 40, 24, 0.5) 0, rgba(20, 40, 24, 0.12) 30%, rgba(20, 40, 24, 0.26) 55%, rgba(20, 40, 24, 0.82) 100%);
 }
 
 .hero-inner {
@@ -613,7 +613,7 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
   align-items: center;
   padding: 7px 16px;
   line-height: 1.5;
-  border-radius: 999px;
+  border-radius: 14px;
   background: #fff;
   border: 2px solid var(--moss);
 }
@@ -1071,6 +1071,7 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
 @media (max-width: 980px) {
   .concept-grid,
   .mascot-grid { grid-template-columns: minmax(0, 1fr); }
+  .mascot-stage { width: min(400px, 76%); }
 
   .blob-wrap { justify-self: center; width: min(80%, 380px); }
   .concept-points { grid-template-columns: 1fr; }
@@ -1103,8 +1104,17 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
   .nav-link { display: block; padding: 10px 16px; font-size: 1.2rem; }
   .nav-go { margin-top: 8px; }
 
-  .hero-inner { padding-bottom: 110px; }
-  .hero-next { right: 14px; top: 56px; }
+  /* トップは、中央にそろえる。吊るした札は、上の中央に置いて、下の文字と重ならないようにする */
+  .hero-inner { padding-top: 168px; padding-bottom: 110px; text-align: center; }
+  .hero-chips { justify-content: center; }
+  .hero-logo-img { margin-inline: auto; }
+  .hero-next { left: 50%; right: auto; top: 66px; translate: -50% 0; }
+  .hero-next::before { height: 22px; }
+  .hero-next-card { padding: 12px 22px 10px; }
+  .hero-next-label { font-size: 0.66rem; line-height: 1.4; }
+  .hero-next b { font-size: 1.2rem; }
+  .hero::before { background: linear-gradient(180deg, rgba(20, 40, 24, 0.62) 0, rgba(20, 40, 24, 0.4) 30%, rgba(20, 40, 24, 0.5) 60%, rgba(20, 40, 24, 0.9) 100%); }
+  .hero-copy { text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9), 0 0 22px rgba(0, 0, 0, 0.7); }
   .hero-copy br { display: none; }
   .hero-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
   .hero-actions .btn { width: 100%; padding: 15px 8px; }
@@ -1112,18 +1122,18 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
 
   .shop-row { grid-template-columns: 1fr; gap: 2px; }
 
-  /* 「ロップイヤー ＋ ラパン ＝ ロパンくん」は、スマホでも1行に収める（画面幅に合わせて縮める） */
-  .mascot-origin { flex-wrap: nowrap; gap: 1.6vw; justify-content: center; }
-  .mascot-chip { flex: 0 1 auto; min-width: 0; padding: 1.4vw 2.4vw; text-align: center; line-height: 1.35; }
-  .mascot-chip b { font-size: min(1.05rem, 3.9vw); white-space: nowrap; }
-  .mascot-chip small { font-size: min(0.68rem, 2.4vw); word-break: keep-all; }
-  .mascot-op { font-size: min(1.3rem, 4.6vw); }
-  .mascot-result { gap: 1.6vw; }
-  .mascot-chip-result b { font-size: min(1.15rem, 4.2vw); }
+  /* 「ロップイヤー ＋ ラパン ＝ ロパンくん」は、スマホでも、できるだけ1行に。全体を、画面の幅に合わせて縮める（入りきらない小さな画面では、折り返す） */
+  .mascot-origin { font-size: clamp(11px, 3.4vw, 15px); flex-wrap: wrap; gap: 0.35em; justify-content: center; }
+  .mascot-chip { padding: 0.5em 0.55em; border-radius: 0.9em; text-align: center; line-height: 1.4; }
+  .mascot-chip b { font-size: 1em; white-space: nowrap; }
+  .mascot-chip small { display: block; width: min-content; margin-inline: auto; font-size: 0.68em; word-break: keep-all; white-space: normal; }
+  .mascot-op { font-size: 1.2em; }
+  .mascot-result { gap: 0.35em; }
+  .mascot-chip-result b { font-size: 1.1em; }
 }
 
 @media@media (max-width: 480px) {
-  .mascot-stage { width: min(400px, 86%); }
+  .mascot-stage { width: min(400px, 70%); }
   .logo-genre { display: none; }
 }
 
@@ -1633,4 +1643,58 @@ html.profile-open { overflow: hidden; }
   .profile-photo { height: 42vh; max-height: 380px; }
   .profile-photo img { object-position: 50% 8%; }
   .profile-body { padding: 24px 22px 30px; overflow: visible; }
+}
+
+/* ==========================================================================
+   Cast / Staff の切り替え
+   ========================================================================== */
+
+.cast-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  width: fit-content;
+  margin: 0 auto 48px;
+  padding: 6px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 2px solid var(--sage);
+  box-shadow: 0 14px 24px -18px rgba(31, 51, 34, 0.6);
+}
+
+.cast-tab {
+  min-width: 128px;
+  padding: 11px 26px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--leaf-d);
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.cast-tab:hover { background: var(--sage); }
+.cast-tab.is-active { background: var(--leaf); color: #fff; }
+.cast-tab:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+.staff-soon {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 56px 28px;
+  text-align: center;
+  background: var(--paper);
+  border: 3px dashed var(--moss);
+  border-radius: 36px;
+}
+
+.staff-soon-ico { display: block; margin-bottom: 8px; font-size: 2.4rem; }
+.staff-soon-title { margin-bottom: 8px; font-family: var(--serif); font-weight: 800; font-size: 1.4rem; color: var(--leaf-dd); }
+.staff-soon p { color: var(--ink-soft); }
+
+@media (max-width: 480px) {
+  .cast-tab { min-width: 108px; padding: 10px 20px; }
 }

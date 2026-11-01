@@ -478,3 +478,21 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     })
     .catch(() => { /* 変えないだけ */ });
 })();
+
+// キャスト／スタッフの切り替え
+(function setupCastTabs() {
+  const tabs = Array.from(document.querySelectorAll('.cast-tab'));
+  if (!tabs.length) return;
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      tabs.forEach((t) => {
+        const on = t === tab;
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-selected', String(on));
+        const panel = document.getElementById(t.getAttribute('aria-controls'));
+        if (panel) panel.hidden = !on;
+      });
+    });
+  });
+})();
