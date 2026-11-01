@@ -314,9 +314,13 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
     rgba(14, 28, 17, 0.14);
 }
 
+.hero { --hero-w: 1320px; }
+
+/* トップだけ、中身の幅を、少し広げる。左の文字と、右上の札を、同じ枠の左右の端にそろえて、全体が、画面の中心にくるようにする */
 .hero-inner {
   position: relative;
   width: 100%;
+  max-width: var(--hero-w);
   padding-top: 130px;
   padding-bottom: clamp(110px, 13vw, 150px);
 }
@@ -380,7 +384,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 /* 吊るされた札（次回営業日。管理画面で設定する） */
 .hero-next {
   position: absolute;
-  right: clamp(16px, 9vw, 140px);
+  right: max(clamp(28px, 7vw, 48px), calc((100% - var(--hero-w)) / 2 + clamp(28px, 7vw, 48px)));
   top: 56px;
   z-index: 3;
   transform-origin: 50% 0;
