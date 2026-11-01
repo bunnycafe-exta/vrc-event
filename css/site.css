@@ -394,13 +394,13 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 
 @keyframes sway { 0%, 100% { transform: rotate(3deg); } 50% { transform: rotate(-3deg); } }
 
+.hero-next { --hang: clamp(34px, 7vw, 90px); }
+
+/* 吊り紐の分の高さだけ、場所を空けておく（紐そのものは、札の穴から描く） */
 .hero-next::before {
   content: "";
   display: block;
-  width: 2px;
-  height: clamp(34px, 7vw, 90px);
-  margin: 0 auto;
-  background: linear-gradient(#e8dcc0, #a8895a);
+  height: var(--hang);
 }
 
 /* 読み込み中は、場所だけ空けておく（表示が切り替わって、画面がずれないように） */
@@ -417,9 +417,22 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   box-shadow: 0 18px 30px -12px rgba(0, 0, 0, 0.6);
 }
 
+/* 吊り紐と札の穴は、どちらも札の真ん中(left: 50%)から描く。紐の先は穴の中心まで届く */
 .hero-next-card::before {
   content: "";
   position: absolute;
+  left: 50%;
+  bottom: calc(100% + 1px);
+  width: 2px;
+  height: calc(var(--hang) + 3px);
+  margin-left: -1px;
+  background: linear-gradient(#e8dcc0, #a8895a);
+}
+
+.hero-next-card::after {
+  content: "";
+  position: absolute;
+  box-sizing: border-box;
   left: 50%;
   top: -8px;
   width: 14px;
@@ -1080,7 +1093,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   .hero-chips { justify-content: center; }
   .hero-logo-img { margin-inline: auto; }
   .hero-next { left: 50%; right: auto; top: 66px; translate: -50% 0; }
-  .hero-next::before { height: 22px; }
+  .hero-next { --hang: 22px; }
   .hero-next-card { padding: 12px 22px 10px; }
   .hero-next-label { font-size: 0.66rem; line-height: 1.4; }
   .hero-next b { font-size: 1.2rem; }
