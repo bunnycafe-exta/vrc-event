@@ -21,7 +21,7 @@
   } catch (e) { /* 保存できない環境では、通常どおり表示 */ }
 })();
 </script>
-<link rel="stylesheet" href="css/site.css?v=20">
+<link rel="stylesheet" href="css/site.css?v=21">
 </head>
 <body>
 
@@ -94,7 +94,10 @@
 
   <!-- ===== Hero ===== -->
   <section class="hero" id="hero">
-    <div class="hero-img" role="img" aria-label="新しいワールド：ガラスの天井と、大きな木、鳥かごのあるカフェ"></div>
+    <!-- 背景の写真。複数にするときは、下の hero-slide の行を、増やす（最大6枚、6秒ごとに切り替わる） -->
+    <div class="hero-slides" role="img" aria-label="新しいワールド：ガラスの天井と、大きな木、鳥かごのあるカフェ">
+      <div class="hero-slide" style="background-image: url('新ワールド/web/world-1.webp');"></div>
+    </div>
     <div class="leaves" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
     <!-- 次回営業日（管理画面で設定する）。吊るされた札 -->
@@ -549,6 +552,6 @@
 
 <script src="js/config.js?v=6"></script>
 <script src="js/profiles.js?v=2"></script>
-<script src="js/script.js?v=12"></script>
+<script src="js/script.js?v=13"></script>
 </body>
 </html>

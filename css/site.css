@@ -265,21 +265,47 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
   background: var(--leaf-dd);
 }
 
-.hero-img {
+/* 背景の写真（1枚でも、複数でも使える）。写真の上に、全体を暗くする膜（scrim）をかぶせて、どんな写真でも、文字が読みやすくする */
+.hero-slides { position: absolute; inset: 0; overflow: hidden; }
+
+.hero-slide {
   position: absolute;
   inset: 0;
-  background: url("../新ワールド/web/world-1.webp") center 45% / cover no-repeat;
-  transform: scale(1.04);
-  animation: drift 30s ease-in-out infinite alternate;
+  background-size: cover;
+  background-position: center 45%;
+  filter: brightness(0.82) saturate(0.95);
+  opacity: 0;
+  animation: heroSlide 36s linear infinite;
 }
 
-@keyframes drift { to { transform: scale(1.12) translateX(-1.5%); } }
+/* 写真が1枚のときは、ずっと表示して、ゆっくり動かすだけ */
+.hero-slide:only-child { opacity: 1; animation: drift 30s ease-in-out infinite alternate; }
 
-.hero::before {
+/* 複数のとき（最大6枚）は、6秒ごとに、切り替える */
+.hero-slide:nth-child(1) { animation-delay: 0s; }
+.hero-slide:nth-child(2) { animation-delay: 6s; }
+.hero-slide:nth-child(3) { animation-delay: 12s; }
+.hero-slide:nth-child(4) { animation-delay: 18s; }
+.hero-slide:nth-child(5) { animation-delay: 24s; }
+.hero-slide:nth-child(6) { animation-delay: 30s; }
+
+@keyframes heroSlide {
+  0%   { opacity: 0; transform: scale(1); }
+  5%   { opacity: 1; }
+  17%  { opacity: 1; }
+  22%  { opacity: 0; transform: scale(1.07); }
+  100% { opacity: 0; transform: scale(1.07); }
+}
+
+@keyframes drift { from { transform: scale(1.04); } to { transform: scale(1.12) translateX(-1.5%); } }
+
+.hero-slides::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(20, 40, 24, 0.5) 0, rgba(20, 40, 24, 0.14) 28%, rgba(20, 40, 24, 0.42) 55%, rgba(20, 40, 24, 0.88) 100%);
+  background:
+    linear-gradient(180deg, rgba(14, 28, 17, 0.62) 0%, rgba(14, 28, 17, 0.5) 30%, rgba(14, 28, 17, 0.6) 60%, rgba(14, 28, 17, 0.9) 100%),
+    rgba(14, 28, 17, 0.14);
 }
 
 .hero-inner {
@@ -1113,16 +1139,12 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
   .hero-next-card { padding: 12px 22px 10px; }
   .hero-next-label { font-size: 0.66rem; line-height: 1.4; }
   .hero-next b { font-size: 1.2rem; }
-  .hero::before { background: linear-gradient(180deg, rgba(20, 40, 24, 0.66) 0, rgba(20, 40, 24, 0.5) 28%, rgba(20, 40, 24, 0.62) 45%, rgba(20, 40, 24, 0.84) 72%, rgba(20, 40, 24, 0.95) 100%); }
+  .hero-slides::after { background: linear-gradient(180deg, rgba(14, 28, 17, 0.68) 0%, rgba(14, 28, 17, 0.58) 30%, rgba(14, 28, 17, 0.68) 60%, rgba(14, 28, 17, 0.92) 100%), rgba(14, 28, 17, 0.14); }
 
-  /* 文章は、2行に収める（1文を1行）。背景と同化しないように、うっすら暗い板を敷いて、文字を太く、影を濃くする */
+  /* 文章は、2行に収める（1文を1行）。文字だけに板を敷くのではなく、背景全体を暗くして、文字を太く、影を濃くする */
   .hero-copy {
-    display: inline-block;
     margin: 20px 0 26px;
-    padding: 12px 14px;
-    border-radius: 16px;
-    background: rgba(20, 40, 24, 0.5);
-    font-size: clamp(12px, calc((100vw - 90px) / 22.6), 18px);
+    font-size: clamp(12px, calc((100vw - 58px) / 22.6), 18px);
     font-weight: 800;
     line-height: 1.9;
     letter-spacing: 0;
@@ -1152,7 +1174,7 @@ section { position: relative; padding: clamp(76px, 10vw, 130px) 0; }
 
 /* 「動きを減らす」設定の端末では、動きを止める */
 @media (prefers-reduced-motion: reduce) {
-  .hero-img, .hero-next, .leaves i, .mascot-img, .mascot-ring, .mascot-hint { animation: none; }
+  .hero-slide, .hero-next, .leaves i, .mascot-img, .mascot-ring, .mascot-hint { animation: none; }
   .leaves { display: none; }
   .hero-logo-img { opacity: 1; }
   .hero-logo-img.is-revealed { animation: none; }
