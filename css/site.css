@@ -2003,3 +2003,35 @@ html.profile-open { overflow: hidden; }
     font-size: min(var(--fs-s), calc((100vw - 86px) / 24.5));
   }
 }
+
+/* スマホ: 「ご用意いただくもの」は、文字を小さくして、まわりの余白を広げる */
+@media (max-width: 860px) {
+  .visit-need {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 24px 20px 26px;
+    text-align: center;
+  }
+
+  .visit-need-title { font-size: var(--fs-s); letter-spacing: 0.08em; }
+  .visit-need ul { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
+
+  .visit-need li {
+    padding: 12px 18px;
+    border-radius: 22px;
+    font-size: var(--fs-s);
+    line-height: 1.7;
+  }
+
+  .visit-need small { margin-top: 6px; font-size: var(--fs-xs); line-height: 1.8; }
+}
+
+/* スマホ: 受付終了の案内は、1文ずつ1行に収める */
+@media (max-width: 860px) {
+  .reserve-closed {
+    white-space: nowrap;
+    font-size: min(var(--fs-s), calc((100vw - 106px) / 23.2));
+    line-height: 1.9;
+  }
+}
