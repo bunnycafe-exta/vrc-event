@@ -1116,29 +1116,6 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 }
 
 @media (max-width: 860px) {
-  .nav-toggle { display: flex; }
-
-  /* 全画面のメニュー */
-  .nav {
-    position: fixed;
-    inset: 0;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 80px 24px 40px;
-    overflow-y: auto;
-    background: rgba(246, 241, 228, 0.98);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.25s ease, visibility 0.25s ease;
-  }
-
-  .nav.is-open { opacity: 1; visibility: visible; }
-
-  .nav-list { flex-direction: column; align-items: center; gap: 6px; min-height: min-content; }
-  .nav-link { display: block; padding: 10px 16px; font-size: 1.2rem; }
-  .nav-go { margin-top: 8px; }
 
   /* トップは、中央にそろえる。吊るした札は、上の中央に置いて、下の文字と重ならないようにする */
   .hero-inner { padding-top: 168px; padding-bottom: 110px; text-align: center; }
@@ -1747,4 +1724,150 @@ html.profile-open { overflow: hidden; }
 /* とても狭い画面（幅340px以下）では、2行に収まらないので、折り返して、はみ出さないようにする */
 @media (max-width: 340px) {
   .hero-copy { white-space: normal; font-size: 12.5px; }
+}
+
+/* ==========================================================================
+   Enjoy（楽しみ方）／ Visit（来店方法）
+   ========================================================================== */
+
+.enjoy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(18px, 3vw, 32px); }
+
+.enjoy-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper);
+  border-radius: 6px 44px 6px 44px;
+  border: 2px solid var(--sage);
+  box-shadow: 0 22px 36px -26px rgba(31, 51, 34, 0.6);
+}
+
+.enjoy-card figure { aspect-ratio: 16 / 9; overflow: hidden; }
+.enjoy-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+.enjoy-card:hover img { transform: scale(1.05); }
+
+.enjoy-body { padding: 22px 26px 26px; }
+.enjoy-body h3 { margin-bottom: 6px; font-family: var(--serif); font-size: 1.2rem; line-height: 1.5; color: var(--leaf-dd); }
+.enjoy-body p { font-size: 0.98rem; line-height: 1.95; color: var(--ink-soft); }
+
+.enjoy-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--leaf-d);
+  font-weight: 900;
+  text-decoration: underline;
+  text-decoration-color: var(--moss);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
+.enjoy-link:hover { color: var(--leaf); }
+
+.enjoy-note { margin-top: 34px; text-align: center; font-family: var(--serif); font-weight: 700; font-size: 1.08rem; color: var(--leaf-dd); }
+
+.visit { background: #E9F0DB; }
+
+.visit-need {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin-bottom: 38px;
+  padding: 20px 26px;
+  background: var(--paper);
+  border-radius: 20px;
+  border: 2px solid var(--sage);
+}
+
+.visit-need-title { font-weight: 900; color: var(--leaf); }
+.visit-need ul { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.visit-need li {
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--moss);
+  font-weight: 700;
+  color: var(--leaf-dd);
+}
+
+.visit-need small { display: block; font-size: 0.72rem; font-weight: 500; color: var(--ink-soft); }
+
+.visit-steps { position: relative; max-width: 820px; margin: 0 auto; }
+
+.visit-steps li { position: relative; display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 20px; padding: 0 0 30px; }
+.visit-steps li:last-child { padding-bottom: 0; }
+.visit-steps li::before { content: ""; position: absolute; left: 26px; top: 54px; bottom: -2px; border-left: 3px dotted var(--moss); }
+.visit-steps li:last-child::before { display: none; }
+
+.visit-no {
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--leaf);
+  color: #fff;
+  font-family: var(--en);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.5rem;
+  box-shadow: 0 0 0 5px #fff;
+}
+
+.visit-steps h3 { margin-bottom: 4px; font-family: var(--serif); font-size: 1.18rem; line-height: 1.6; color: var(--leaf-dd); }
+.visit-steps p { font-size: 0.98rem; line-height: 1.95; color: var(--ink-soft); }
+
+.visit-cancel { max-width: 820px; margin: 36px auto 0; padding: 16px 22px; text-align: center; border-radius: 16px; background: rgba(255, 255, 255, 0.7); font-size: 0.98rem; }
+
+.visit-rules {
+  max-width: 820px;
+  margin: 34px auto 0;
+  padding: 26px clamp(20px, 4vw, 36px);
+  background: var(--paper);
+  border-radius: 14px;
+  border: 4px solid var(--wood);
+  box-shadow: 0 0 0 2px #E9F0DB, 0 22px 36px -26px rgba(92, 59, 34, 0.7);
+}
+
+.visit-rules-title { margin-bottom: 12px; font-family: var(--serif); font-weight: 800; font-size: 1.15rem; color: var(--wood-d); }
+
+.visit-rules li { position: relative; padding: 8px 0 8px 28px; border-bottom: 1.5px dashed rgba(78, 122, 68, 0.35); font-weight: 700; }
+.visit-rules li::before { content: ""; position: absolute; left: 4px; top: 17px; width: 11px; height: 15px; border-radius: 0 100% 0 100%; background: var(--moss); }
+.visit-rules li:last-child { border-bottom: 0; }
+.visit-rules-note { margin-top: 12px; font-size: 0.9rem; color: var(--ink-soft); }
+
+@media (max-width: 860px) {
+  .enjoy-grid { grid-template-columns: minmax(0, 1fr); }
+  .visit-steps li { grid-template-columns: 44px minmax(0, 1fr); gap: 14px; }
+  .visit-no { width: 44px; height: 44px; font-size: 1.25rem; }
+  .visit-steps li::before { left: 21px; top: 44px; }
+}
+
+/* メニュー項目が増えたので、ハンバーガーメニューに切り替える幅を、広げる（980px以下） */
+@media (max-width: 980px) {
+  .nav-toggle { display: flex; }
+
+  /* 全画面のメニュー */
+  .nav {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px 40px;
+    overflow-y: auto;
+    background: rgba(246, 241, 228, 0.98);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+
+  .nav.is-open { opacity: 1; visibility: visible; }
+
+  .nav-list { flex-direction: column; align-items: center; gap: 6px; min-height: min-content; }
+  .nav-link { display: block; padding: 10px 16px; font-size: 1.2rem; }
+  .nav-go { margin-top: 8px; }
 }
