@@ -213,11 +213,11 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   height: 2px;
   border-radius: 2px;
   background: #fff;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition: transform 0.3s ease, opacity 0.2s ease;
 }
 
 .nav-toggle.is-active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.nav-toggle.is-active span:nth-child(2) { opacity: 0; }
+.nav-toggle.is-active span:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .nav-toggle.is-active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
 /* ==========================================================================
