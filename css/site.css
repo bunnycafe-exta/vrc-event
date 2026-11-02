@@ -111,7 +111,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 .btn-leaf { background: var(--leaf); color: #fff; box-shadow: 0 12px 26px -12px rgba(47, 74, 51, 0.8); }
 .btn-leaf:hover { background: var(--leaf-d); transform: translateY(-3px); }
 
-.btn-sun { background: linear-gradient(120deg, var(--gold), var(--gold-l)); color: #2a1f08; box-shadow: 0 12px 26px -12px rgba(150, 110, 20, 0.7); }
+.btn-sun { background: linear-gradient(120deg, var(--gold), var(--gold-l)); background-origin: border-box; color: #2a1f08; box-shadow: 0 12px 26px -12px rgba(150, 110, 20, 0.7); }
 .btn-sun:hover { transform: translateY(-3px); }
 
 .btn-out { border-color: #fff; color: #fff; background: rgba(20, 40, 24, 0.28); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
@@ -1839,15 +1839,15 @@ html.profile-open { overflow: hidden; }
 .visit-need ul { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .visit-need li {
-  padding: 6px 16px;
-  border-radius: 999px;
+  padding: 14px 32px;
+  border-radius: 30px;
   background: #fff;
   border: 2px solid var(--moss);
   font-weight: 500;
   color: var(--leaf-dd);
 }
 
-.visit-need small { display: block; font-size: var(--fs-xs); font-weight: 500; color: var(--ink-soft); }
+.visit-need small { display: block; margin-top: 4px; line-height: 1.8; font-size: var(--fs-xs); font-weight: 500; color: var(--ink-soft); }
 
 .visit-steps { position: relative; max-width: 820px; margin: 0 auto; }
 
