@@ -2035,3 +2035,16 @@ html.profile-open { overflow: hidden; }
     line-height: 1.9;
   }
 }
+
+/* 見出しは、すべて太字にそろえる（本文は、ふつうの太さ） */
+h1, h2, h3, h4,
+.section-title,
+.reserve-steps b,
+.visit-reserve-title,
+.visit-rules-title,
+.visit-need-title,
+.profile-heading,
+.consent-title,
+.staff-soon-title {
+  font-weight: 700 !important;
+}
