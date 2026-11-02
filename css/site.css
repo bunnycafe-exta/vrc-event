@@ -40,12 +40,12 @@
 
 @media (max-width: 860px) {
   :root {
-    --fs-xs: 10px;
-    --fs-s: 11.5px;
-    --fs-m: 13px;
-    --fs-l: 14.5px;
-    --fs-xl: 17px;
-    --fs-title: 21px;
+    --fs-xs: 8.5px;
+    --fs-s: 9.5px;
+    --fs-m: 10.5px;
+    --fs-l: 12px;
+    --fs-xl: 14px;
+    --fs-title: 17px;
   }
 }
 
@@ -1120,7 +1120,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   /* 文章は、2行に収める（1文を1行）。文字だけに板を敷くのではなく、背景全体を暗くして、文字を太く、影を濃くする */
   .hero-copy {
     margin: 20px 0 26px;
-    font-size: clamp(12px, calc((100vw - 58px) / 22.6), 18px);
+    font-size: clamp(9px, calc((100vw - 58px) / 27), 15px);
     font-weight: 500;
     line-height: 1.9;
     letter-spacing: 0;
@@ -1778,7 +1778,7 @@ html.profile-open { overflow: hidden; }
 
 /* とても狭い画面（幅340px以下）では、2行に収まらないので、折り返して、はみ出さないようにする */
 @media (max-width: 340px) {
-  .hero-copy { white-space: normal; font-size: 12.5px; }
+  .hero-copy { white-space: normal; font-size: 10.5px; }
 }
 
 /* ==========================================================================
@@ -1994,7 +1994,7 @@ html.profile-open { overflow: hidden; }
   .visit-steps-sub .visit-no { width: 28px; height: 28px; font-size: var(--fs-s); box-shadow: 0 0 0 4px var(--sage); }
   .visit-steps-sub li::before { left: 13px; top: 28px; }
   .visit-steps-sub h3 {
-    font-size: min(var(--fs-s), calc((100vw - 122px) / 21.9));
+    font-size: min(var(--fs-l), calc((100vw - 122px) / 22.4));
   }
 
   .vr-line1 {
@@ -2047,4 +2047,13 @@ h1, h2, h3, h4,
 .consent-title,
 .staff-soon-title {
   font-weight: 700 !important;
+}
+
+/* スマホ: 文字を全体的に小さくしたぶん、ボタンやロゴも少し小さくする */
+@media (max-width: 860px) {
+  body { line-height: 1.95; }
+  .btn { padding: 13px 26px; }
+  .logo-name { font-size: 1.25rem; }
+  .footer-logo .logo-name { font-size: 1.7rem; }
+  .mascot .section-title { font-size: min(var(--fs-title), calc((100vw - 62px) / 25)); }
 }
