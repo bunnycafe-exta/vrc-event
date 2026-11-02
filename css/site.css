@@ -2096,7 +2096,7 @@ h1, h2, h3, h4,
 @media (max-width: 860px) {
   .profile-modal.is-fullphoto .profile-card { grid-template-columns: 1fr; }
   .profile-modal.is-fullphoto .profile-photo { height: min(68vh, 520px); min-height: 0; max-height: none; }
-  .profile-modal.is-fullphoto .profile-photo img { object-fit: contain; object-position: 50% 50%; }
+  .profile-modal.is-fullphoto .profile-photo img { object-fit: cover; object-position: 50% 10%; }
 }
 
 /* リンクの文字は、リンクだとわかる色（青）にする */
