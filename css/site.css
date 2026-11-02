@@ -995,7 +995,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 
 .cast-card:hover .cast-photo img { transform: scale(1.05); }
 
-.cast-role { margin: 12px 0 8px; font-family: var(--en); font-style: normal; font-weight: 500; font-size: var(--fs-s); line-height: 1.8; color: var(--leaf); }
+.cast-role { margin: 10px 0 5px; font-family: var(--en); font-style: normal; font-weight: 500; font-size: var(--fs-s); line-height: 1.6; color: var(--leaf); }
 
 .cast-name {
   position: relative;
@@ -1040,10 +1040,11 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 
 .profile-hint {
   display: block;
-  margin: 6px auto 0;
-  padding: 2px 8px;
+  margin: 5px auto 0;
+  padding: 0 8px;
   font: inherit;
   font-size: var(--fs-xs);
+  line-height: 1.6;
   font-weight: 500;
   letter-spacing: 0.2em;
   color: var(--leaf);
