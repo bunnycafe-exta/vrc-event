@@ -35,8 +35,8 @@
   --fs-xl: 1.55rem;
   --fs-title: clamp(1.8rem, 3.6vw, 2.6rem);
 
-  --link: #2B6A9A;
-  --link-u: #8DB8D8;
+  --link: #8A5326;
+  --link-u: #C9A24B;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-weight: inherit; }
@@ -675,13 +675,14 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 @keyframes hintPulse { from { opacity: 0.55; } to { opacity: 1; } }
 
 /* 名前の由来: ロップイヤー ＋ ラパン ＝ ロパンくん */
-.mascot-origin { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 22px; }
+.mascot-origin { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin-bottom: 22px; }
+.mascot-origin > .mascot-op { align-self: center; }
 
 .mascot-chip {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  padding: 7px 16px;
+  padding: 7px 14px;
   line-height: 1.5;
   border-radius: 14px;
   background: #fff;
@@ -693,7 +694,9 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 .mascot-op { font-size: var(--fs-l); font-weight: 500; color: var(--leaf); }
 
 /* 「＝」と「ロパンくん」は、いつも同じ行に並べる */
-.mascot-result { display: inline-flex; align-items: center; gap: 8px; }
+.mascot-result { display: inline-flex; align-items: stretch; gap: 8px; }
+.mascot-result > .mascot-op { align-self: center; }
+.mascot-chip-result { justify-content: center; }
 
 .mascot-chip-result { background: var(--leaf); border-color: var(--leaf); }
 .mascot-chip-result b { color: #fff; font-size: var(--fs-l); }
@@ -801,11 +804,12 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
 
 .sign::before,
 .sign::after { content: ""; position: absolute; top: -30px; width: 2px; height: 34px; background: #d8c9a4; }
-.sign::before { left: 24%; }
-.sign::after { right: 24%; }
+.sign::before { left: 24%; z-index: 0; }
+.sign::after { right: 24%; z-index: 0; }
 
 .sign h3 {
   position: absolute;
+  z-index: 1;
   left: 50%;
   top: -20px;
   transform: translateX(-50%);
@@ -2106,7 +2110,7 @@ h1, h2, h3, h4,
   text-decoration-color: var(--link-u);
 }
 .enjoy-link:hover,
-.shop-link:hover { color: #1c4a70; }
+.shop-link:hover { color: #5C3B22; }
 
 /* 「メニューを表示する／閉じる」は、文字数が変わっても、ボタンの幅を変えない */
 .menu-reveal-btn { width: 15em; max-width: 100%; padding-left: 0; padding-right: 0; }
@@ -2123,4 +2127,27 @@ h1, h2, h3, h4,
 /* パソコンだけで見せる文字（スマホでは、改行の位置で、読点を消す） */
 @media (max-width: 860px) {
   .pc-only { display: none; }
+}
+
+/* パソコン：コンセプトの写真を少し小さくして、左の文章と高さを近づける（下に空白が残りすぎないように） */
+@media (min-width: 861px) {
+  .blob-wrap { max-width: 340px; }
+  .blob { aspect-ratio: 1 / 1; }
+}
+
+/* スマホ：番号の丸は、来店方法・来店予約のどちらも、同じ小さい大きさにそろえる */
+@media (max-width: 860px) {
+  .visit-steps li,
+  .reserve-steps li { grid-template-columns: 28px minmax(0, 1fr); gap: 12px; }
+  .visit-steps li::before,
+  .reserve-steps li::before { left: 13px; top: 28px; }
+  .visit-no,
+  .reserve-num,
+  .visit-steps-sub .visit-no {
+    width: 28px;
+    height: 28px;
+    font-size: var(--fs-m);
+    box-shadow: 0 0 0 4px var(--sage);
+  }
+  .visit-steps-sub li { grid-template-columns: 28px minmax(0, 1fr); gap: 8px; }
 }
