@@ -43,12 +43,15 @@
 
 @media (max-width: 860px) {
   :root {
-    --fs-xs: 9.5px;
-    --fs-s: 10.5px;
-    --fs-m: 12px;
-    --fs-l: 13.5px;
-    --fs-xl: 16px;
-    --fs-title: 19px;
+    /* スマホの文字は、2種類だけ: 本文（12px・店舗情報の文字と同じ）と、見出し（14px） */
+    --fs-body: 12px;
+    --fs-head: 14px;
+    --fs-xs: var(--fs-body);
+    --fs-s: var(--fs-body);
+    --fs-m: var(--fs-body);
+    --fs-l: var(--fs-head);
+    --fs-xl: var(--fs-head);
+    --fs-title: var(--fs-head);
   }
 }
 
@@ -2149,4 +2152,45 @@ h1, h2, h3, h4,
     box-shadow: 0 0 0 4px var(--sage);
   }
   .visit-steps-sub li { grid-template-columns: 28px minmax(0, 1fr); gap: 8px; }
+}
+
+/* スマホ: 文字の大きさは、本文と見出しの2種類だけにそろえる（画面の幅に合わせて文字を縮める指定は、やめる）。ロゴ・絵文字・番号・×ボタンなどの飾りは、対象外 */
+@media (max-width: 860px) {
+  .hero-copy,
+  .visit .section-lead,
+  .visit-steps-sub h3,
+  .vr-line1,
+  .reserve-closed { font-size: var(--fs-body); }
+
+  .visit-steps h3,
+  .mascot .section-title { font-size: var(--fs-head); }
+
+  .hero-eyebrow,
+  .hero-next-label,
+  .footer-copy,
+  .profile-hint { font-size: var(--fs-body); }
+}
+
+/* 幅が狭い画面（360px未満）では、1行に収まらない文は折り返して、はみ出さないようにする */
+@media (max-width: 359px) {
+  .hero-copy,
+  .visit-steps h3,
+  .vr-line1,
+  .reserve-closed,
+  .mascot .section-title { white-space: normal; }
+}
+
+/* スマホ: 予約の手順のタイトルは、長いので、12pxでは1行に収まらない。折り返して、行の長さをそろえる */
+@media (max-width: 860px) {
+  .visit-steps-sub h3 { white-space: normal; text-wrap: balance; }
+}
+
+/* スマホ: 受付終了の案内は、12pxだと少しはみ出すので、左右の余白をわずかに広げて1行に収める */
+@media (max-width: 860px) {
+  .reserve-closed { margin-inline: -8px; }
+}
+
+@media (max-width: 380px) {
+  .reserve-closed { margin-inline: -16px; }
+  .vr-line1 { margin-inline: -10px; }
 }
