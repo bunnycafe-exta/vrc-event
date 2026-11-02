@@ -2119,3 +2119,8 @@ h1, h2, h3, h4,
 @media (max-width: 860px) {
   .shop-row dd { font-size: var(--fs-m); }
 }
+
+/* パソコンだけで見せる文字（スマホでは、改行の位置で、読点を消す） */
+@media (max-width: 860px) {
+  .pc-only { display: none; }
+}
