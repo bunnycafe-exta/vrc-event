@@ -331,9 +331,8 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     lastTrigger = trigger;
     // 写真がない人は、写真の枠なしで、文章だけを表示する
     modal.classList.toggle('is-textonly', !p.photo);
-    // photoFit: 'full' の人は、写真を切らずに、全体を表示する（まわりは、同じ写真をぼかして敷く）
+    // photoFit: 'full' の人は、写真を切らずに、全体を表示する（写真の縦横比に合わせた枠にする）
     modal.classList.toggle('is-fullphoto', p.photoFit === 'full');
-    photo.parentElement.style.setProperty('--photo', p.photo ? `url("${p.photo}")` : 'none');
     if (p.photo) {
       photo.src = p.photo;
       photo.alt = `${cardName}のプロフィール写真`;

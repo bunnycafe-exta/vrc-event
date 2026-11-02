@@ -28,24 +28,27 @@
   --en: "Shippori Mincho", serif;
 
   /* 文字の大きさは、この6段階だけを使う（太さは、すべて同じ） */
-  --fs-xs: 0.72rem;
-  --fs-s: 0.84rem;
-  --fs-m: 0.95rem;
-  --fs-l: 1.1rem;
-  --fs-xl: 1.4rem;
-  --fs-title: clamp(1.7rem, 3.4vw, 2.4rem);
+  --fs-xs: 0.8rem;
+  --fs-s: 0.92rem;
+  --fs-m: 1.1rem;
+  --fs-l: 1.25rem;
+  --fs-xl: 1.55rem;
+  --fs-title: clamp(1.8rem, 3.6vw, 2.6rem);
+
+  --link: #2B6A9A;
+  --link-u: #8DB8D8;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-weight: inherit; }
 
 @media (max-width: 860px) {
   :root {
-    --fs-xs: 8.5px;
-    --fs-s: 9.5px;
-    --fs-m: 10.5px;
-    --fs-l: 12px;
-    --fs-xl: 14px;
-    --fs-title: 17px;
+    --fs-xs: 9.5px;
+    --fs-s: 10.5px;
+    --fs-m: 12px;
+    --fs-l: 13.5px;
+    --fs-xl: 16px;
+    --fs-title: 19px;
   }
 }
 
@@ -1121,7 +1124,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   /* 文章は、2行に収める（1文を1行）。文字だけに板を敷くのではなく、背景全体を暗くして、文字を太く、影を濃くする */
   .hero-copy {
     margin: 20px 0 26px;
-    font-size: clamp(9px, calc((100vw - 58px) / 27), 15px);
+    font-size: clamp(9px, calc((100vw - 58px) / 24.5), 15px);
     font-weight: 500;
     line-height: 1.9;
     letter-spacing: 0;
@@ -1138,7 +1141,7 @@ section[id] { scroll-margin-top: calc(var(--sec-pad) * -1 + 24px); }
   .mascot-origin { font-size: var(--fs-s); flex-wrap: wrap; gap: 0.35em; justify-content: center; }
   .mascot-chip { padding: 0.5em 0.55em; border-radius: 0.9em; text-align: center; line-height: 1.4; }
   .mascot-chip b { font-size: var(--fs-s); white-space: nowrap; }
-  .mascot-chip small { display: block; width: min-content; margin-inline: auto; font-size: var(--fs-xs); word-break: keep-all; white-space: normal; }
+  .mascot-chip small { display: block; margin-inline: auto; font-size: var(--fs-xs); white-space: nowrap; }
   .mascot-op { font-size: var(--fs-s); }
   .mascot-result { gap: 0.35em; }
   .mascot-chip-result b { font-size: var(--fs-s); }
@@ -1779,7 +1782,7 @@ html.profile-open { overflow: hidden; }
 
 /* とても狭い画面（幅340px以下）では、2行に収まらないので、折り返して、はみ出さないようにする */
 @media (max-width: 340px) {
-  .hero-copy { white-space: normal; font-size: 10.5px; }
+  .hero-copy { white-space: normal; font-size: 11.5px; }
 }
 
 /* ==========================================================================
@@ -2081,37 +2084,38 @@ h1, h2, h3, h4,
   filter: none;
 }
 
-.profile-modal.is-fullphoto .profile-photo { position: relative; overflow: hidden; background: #1c2b1f; }
-.profile-modal.is-fullphoto .profile-photo::before {
-  content: "";
-  position: absolute;
-  inset: -24px;
-  background: var(--photo) center / cover no-repeat;
-  filter: blur(22px) brightness(0.85);
+/* 写真を全体表示する人：写真と同じ縦横比の枠にして、上下や左右に余白（黒い帯）が出ないようにする */
+.profile-modal.is-fullphoto .profile-card { grid-template-columns: calc(min(88vh, 760px) * 0.5625) 1fr; }
+.profile-modal.is-fullphoto .profile-photo {
+  min-height: min(88vh, 760px);
+  background: #1c2b1f;
 }
-.profile-modal.is-fullphoto .profile-photo img { position: relative; object-fit: contain; object-position: 50% 50%; }
+.profile-modal.is-fullphoto .profile-photo img { object-fit: cover; object-position: 50% 50%; }
+.profile-modal.is-fullphoto .profile-body { align-self: stretch; }
 
 @media (max-width: 860px) {
-  .profile-modal.is-fullphoto .profile-photo { height: min(68vh, 520px); max-height: none; }
+  .profile-modal.is-fullphoto .profile-card { grid-template-columns: 1fr; }
+  .profile-modal.is-fullphoto .profile-photo { width: 100%; height: auto; min-height: 0; max-height: none; aspect-ratio: 9 / 16; }
   .profile-modal.is-fullphoto .profile-photo img { object-position: 50% 50%; }
 }
 
-/* スマホ: プロフィールを下までスクロールしても、「×」がいつも画面の右上に見えて押せるようにする */
+/* リンクの文字は、リンクだとわかる色（青）にする */
+.enjoy-link,
+.shop-link {
+  color: var(--link);
+  text-decoration-color: var(--link-u);
+}
+.enjoy-link:hover,
+.shop-link:hover { color: #1c4a70; }
+
+/* 「メニューを表示する／閉じる」は、文字数が変わっても、ボタンの幅を変えない */
+.menu-reveal-btn { width: 15em; max-width: 100%; padding-left: 0; padding-right: 0; }
+
+/* コンセプト：見出しと本文を近づける（本文を、見出しのすぐ下から始める） */
+.concept .head { margin-bottom: clamp(22px, 3vw, 34px); }
+.concept-grid { align-items: start; }
+
+/* スマホ: 店舗情報の右側の文字は、本文と同じ大きさにそろえる */
 @media (max-width: 860px) {
-  .profile-modal {
-    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
-  }
-
-  .profile-card { max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
-
-  .profile-close {
-    position: fixed;
-    top: calc(max(12px, env(safe-area-inset-top, 0px)) + 10px);
-    right: 22px;
-    z-index: 10;
-    width: 44px;
-    height: 44px;
-    background: #fff;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-  }
+  .shop-row dd { font-size: var(--fs-m); }
 }
