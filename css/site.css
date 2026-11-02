@@ -2057,3 +2057,9 @@ h1, h2, h3, h4,
   .footer-logo .logo-name { font-size: 1.7rem; }
   .mascot .section-title { font-size: min(var(--fs-title), calc((100vw - 62px) / 25)); }
 }
+
+/* スマホだけで効く改行 */
+.br-sp { display: none; }
+@media (max-width: 860px) {
+  .br-sp { display: inline; }
+}
