@@ -2063,3 +2063,33 @@ h1, h2, h3, h4,
 @media (max-width: 860px) {
   .br-sp { display: inline; }
 }
+
+/* オーナー：カードは、写真の顔を中心に切り取る。プロフィールは、写真の全体を見せる */
+.cast-card-owner .cast-photo img {
+  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 58% 0%;
+  scale: 1.25;
+  transform-origin: 58% 14%;
+  filter: none;
+}
+
+.profile-modal.is-fullphoto .profile-photo { position: relative; overflow: hidden; background: #1c2b1f; }
+.profile-modal.is-fullphoto .profile-photo::before {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  background: var(--photo) center / cover no-repeat;
+  filter: blur(22px) brightness(0.85);
+}
+.profile-modal.is-fullphoto .profile-photo img { position: relative; object-fit: contain; object-position: 50% 50%; }
+
+@media (max-width: 860px) {
+  .profile-modal.is-fullphoto .profile-photo { height: min(68vh, 520px); max-height: none; }
+  .profile-modal.is-fullphoto .profile-photo img { object-position: 50% 50%; }
+}
