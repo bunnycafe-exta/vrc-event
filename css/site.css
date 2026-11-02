@@ -1989,7 +1989,8 @@ html.profile-open { overflow: hidden; }
   }
 
   .visit-reserve { padding-left: 12px; padding-right: 12px; }
-  .visit-reserve-lead { font-size: var(--fs-s); }
+  .visit-reserve-lead { margin-bottom: 18px; font-size: var(--fs-s); line-height: 1.8; }
+  .visit-reserve-lead .vr-line1 + br { display: none; }  /* ブロックの直後の改行が、空の1行になるのを防ぐ */
 
   .visit-steps-sub li { grid-template-columns: 28px minmax(0, 1fr); gap: 8px; }
   .visit-steps-sub .visit-no { width: 28px; height: 28px; font-size: var(--fs-s); box-shadow: 0 0 0 4px var(--sage); }
