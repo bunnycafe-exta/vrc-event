@@ -2110,6 +2110,7 @@ h1, h2, h3, h4,
 .shop-link {
   color: var(--link);
   text-decoration-color: var(--link-u);
+  text-decoration-thickness: 1px;
 }
 .enjoy-link:hover,
 .shop-link:hover { color: #5C3B22; }
