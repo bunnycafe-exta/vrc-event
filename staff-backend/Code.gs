@@ -78,7 +78,7 @@ function doGet() {
   } catch (err) {
     console.error(err);
   }
-  return json_({ ok: true, service: 'EXTA staff API', version: 18, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
+  return json_({ ok: true, service: 'EXTA staff API', version: 19, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
 }
 
 function doPost(e) {
@@ -115,8 +115,8 @@ function route_(req) {
     case 'answer': return withLock_(() => answer_(user, req));
     case 'previewEvent': requireOwner_(user); return previewEvent_(req);
     case 'createEvent': requireOwner_(user); return withLock_(() => createEvent_(user, req));
-    case 'closeNow': requireOwner_(user); return withLock_(() => closeNow_(user));
-    case 'cancelEvent': requireOwner_(user); return withLock_(() => cancelEvent_(user));
+    case 'closeNow': requireOwner_(user); return withLock_(() => closeNow_(user, req));
+    case 'cancelEvent': requireOwner_(user); return withLock_(() => cancelEvent_(user, req));
     case 'reopen': requireOwner_(user); return withLock_(() => reopen_(user, req));
     case 'setFinal': requireOwner_(user); return withLock_(() => setFinal_(user, req));
     case 'history': requireOwner_(user); return history_(req);
@@ -135,8 +135,8 @@ function route_(req) {
     case 'addStaff': requireOwner_(user); return withLock_(() => addStaff_(req));
     case 'reissue': requireOwner_(user); return withLock_(() => reissue_(req));
     case 'setActive': requireOwner_(user); return withLock_(() => setActive_(req));
-    case 'assign': requireOwner_(user); return withLock_(() => assign_(user));
-    case 'publishPlacement': requireOwner_(user); return withLock_(() => publishPlacement_(user));
+    case 'assign': requireOwner_(user); return withLock_(() => assign_(user, req));
+    case 'publishPlacement': requireOwner_(user); return withLock_(() => publishPlacement_(user, req));
     case 'swapPlacement': requireOwner_(user); return withLock_(() => swapPlacement_(user, req));
     default: return fail_('不明な操作です');
   }
@@ -267,11 +267,26 @@ function eventFromRow_(r) {
   };
 }
 
+// いま扱っている出勤確認（複数ある）。営業日が過ぎたものは、ここには出さない（履歴には残る）。近い営業日から順に並べる
+function activeEvents_() {
+  const today = nowMinute_().slice(0, 10);
+  return readRows_('Events').map(eventFromRow_)
+    .filter(e => e.status === 'active' && e.date >= today)
+    .sort((a, b) => a.date !== b.date ? (a.date < b.date ? -1 : 1) : (a.createdAt < b.createdAt ? -1 : 1));
+}
+
 function currentEvent_() {
-  const list = readRows_('Events').map(eventFromRow_)
-    .filter(e => e.status === 'active')
-    .sort((a, b) => a.createdAt < b.createdAt ? 1 : -1);
+  const list = activeEvents_();
   return list.length ? list[0] : null;
+}
+
+// 操作の対象にする出勤確認。画面が eventId を送ってきたらそれを、なければ、いちばん近い営業日のものを使う
+function targetEvent_(req) {
+  const id = String((req && req.eventId) || '');
+  if (!id) return currentEvent_();
+  const e = activeEvents_().find(x => x.id === id);
+  if (!e) fail_('その出勤確認は、すでにありません。画面を更新してください');
+  return e;
 }
 
 function phaseOf_(e) {
@@ -330,8 +345,9 @@ function previewEvent_(req) {
 function createEvent_(user, req) {
   const input = parseEventInput_(req);
   const sh = sheet_('Events');
-  // 前の出勤確認が締め切り済みなら「履歴に保存(archived)」、締め切り前の作り直しなら「取り消し(cancelled)」
-  readRows_('Events').map(eventFromRow_).filter(e => e.status === 'active')
+  // 出勤確認は、日付が違えば、並べて複数出せる。同じ営業日の出勤確認だけが、新しい内容に置き換わる
+  // （前のものが締め切り済みなら「履歴に保存(archived)」、締め切り前の作り直しなら「取り消し(cancelled)」）
+  activeEvents_().filter(e => e.date === input.date)
     .forEach(e => sh.getRange(e._row, 7).setValue(phaseOf_(e) === 'closed' ? 'archived' : 'cancelled'));
   clearPlacement_(input.date); // 同じ日付の古い配置が新しい出勤確認に混ざらないようにする
   sh.appendRow([
@@ -341,8 +357,8 @@ function createEvent_(user, req) {
   return state_(user);
 }
 
-function closeNow_(user) {
-  const e = currentEvent_();
+function closeNow_(user, req) {
+  const e = targetEvent_(req);
   if (!e) fail_('現在、出勤の確認はありません');
   sheet_('Events').getRange(e._row, 5).setValue(nowMinute_());
   return state_(user);
@@ -350,7 +366,7 @@ function closeNow_(user) {
 
 // 締め切り済みの出勤確認を、新しい締め切りでもう一度受け付ける。回答はそのまま残し、配置の抽選結果は取り消す
 function reopen_(user, req) {
-  const e = currentEvent_();
+  const e = targetEvent_(req);
   if (!e) fail_('現在、出勤の確認はありません');
   if (phaseOf_(e) !== 'closed') fail_('すでに回答を受け付けています');
   const deadline = String(req.deadline || '').replace('T', ' ').slice(0, 16);
@@ -363,8 +379,8 @@ function reopen_(user, req) {
   return state_(user);
 }
 
-function cancelEvent_(user) {
-  const e = currentEvent_();
+function cancelEvent_(user, req) {
+  const e = targetEvent_(req);
   if (!e) fail_('現在、出勤の確認はありません');
   sheet_('Events').getRange(e._row, 7).setValue('cancelled');
   return state_(user);
@@ -408,11 +424,9 @@ function detail_(e, responses) {
   };
 }
 
-function state_(user) {
-  const out = { ok: true, user: { name: user.name, role: user.role }, event: null, myAnswer: '', placement: null };
-  const e = currentEvent_();
-  if (!e) return out;
-  out.event = eventView_(e);
+// 出勤確認1件ぶんの画面用データ
+function eventState_(user, e) {
+  const out = { event: eventView_(e), myAnswer: '', placement: null };
   const responses = responsesOf_(e.id);
   if (user.role === 'owner') {
     out.detail = detail_(e, responses);
@@ -431,11 +445,21 @@ function state_(user) {
   return out;
 }
 
+// events に、出勤確認を全部（近い営業日から順に）入れる。event 以下の項目は、いちばん近い1件ぶんで、古い画面との互換のために残している
+function state_(user) {
+  const out = { ok: true, user: { name: user.name, role: user.role }, events: [], event: null, myAnswer: '', placement: null };
+  out.events = activeEvents_().map(e => eventState_(user, e));
+  if (!out.events.length) return out;
+  const first = out.events[0];
+  Object.keys(first).forEach(k => { out[k] = first[k]; });
+  return out;
+}
+
 function answer_(user, req) {
   if (user.role === 'owner') fail_('オーナーは回答の対象ではありません');
   const answer = String(req.answer);
   if (answer !== 'yes' && answer !== 'no') fail_('回答が正しくありません');
-  const e = currentEvent_();
+  const e = targetEvent_(req);
   if (!e) fail_('現在、出勤の確認はありません');
   if (phaseOf_(e) === 'closed') fail_('締め切られました。オーナーに直接ご連絡ください');
 
@@ -453,7 +477,7 @@ function answer_(user, req) {
 }
 
 function setFinal_(user, req) {
-  const e = currentEvent_();
+  const e = targetEvent_(req);
   if (!e) fail_('現在、出勤の確認はありません');
   if (phaseOf_(e) !== 'closed') fail_('回答の締め切り後に設定できます');
   const value = String(req.final);
@@ -1069,8 +1093,8 @@ function planCasts_(castNames, staffCounts) {
   ];
 }
 
-function assign_(user) {
-  const e = currentEvent_();
+function assign_(user, req) {
+  const e = targetEvent_(req);
   if (!e) fail_('現在、出勤の確認はありません');
   if (phaseOf_(e) !== 'closed') fail_('回答の締め切り後に抽選できます');
 
@@ -1139,7 +1163,7 @@ function locateCell_(rows, ref) {
 }
 
 function swapPlacement_(user, req) {
-  const e = currentEvent_();
+  const e = targetEvent_(req);
   if (!e) fail_('現在、出勤の確認はありません');
   const rows = readRows_('Placements').filter(r => asDate_(r.date) === e.date);
   if (!rows.length) fail_('先に配置を抽選してください');
@@ -1199,8 +1223,8 @@ function clearPlacement_(date) {
     .map(r => r._row).sort((a, b) => b - a).forEach(row => sh.deleteRow(row));
 }
 
-function publishPlacement_(user) {
-  const e = currentEvent_();
+function publishPlacement_(user, req) {
+  const e = targetEvent_(req);
   if (!e) fail_('現在、出勤の確認はありません');
   if (!getPlacement_(e.date)) fail_('先に配置を抽選してください');
   setPublished_(e.id, true);

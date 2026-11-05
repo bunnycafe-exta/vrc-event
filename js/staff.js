@@ -242,14 +242,14 @@
     }
     if (!user) return fail('ログインの有効期限が切れました。もう一度ログインしてください');
 
-    const current = () => db.events.filter((e) => e.status === 'active').sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] || null;
+    // 出勤確認は、日付が違えば、複数同時に出せる（営業日が過ぎたものは出さない）。操作の対象は、p.eventId で選ぶ
+    const activeList = () => db.events.filter((e) => e.status === 'active' && e.date >= jstNowMinute().slice(0, 10))
+      .sort((a, b) => (a.date !== b.date ? (a.date < b.date ? -1 : 1) : (a.createdAt < b.createdAt ? -1 : 1)));
+    const current = () => (p.eventId ? activeList().find((e) => e.id === p.eventId) : activeList()[0]) || null;
     const phase = (e) => (jstNowMinute() >= e.deadline ? 'closed' : 'open');
     const eff = (e, name) => { const r = e.responses[name]; if (r && r.final) return r.final; return r && r.answer === 'yes' ? 'ok' : 'ng'; };
-    const stateOf = () => {
-      const e = current();
-      const out = { user: { name: user.name, role: user.role }, event: null, myAnswer: '', placement: null };
-      if (!e) return out;
-      out.event = { id: e.id, date: e.date, startTime: e.startTime, endTime: e.endTime, deadline: e.deadline, note: e.note, phase: phase(e), message: demoMessage(e) };
+    const entryOf = (e) => {
+      const out = { event: { id: e.id, date: e.date, startTime: e.startTime, endTime: e.endTime, deadline: e.deadline, note: e.note, phase: phase(e), message: demoMessage(e) }, myAnswer: '', placement: null };
       if (user.role === 'cast') out.myAnswer = (e.responses[user.name] || {}).answer || '';
       else {
         const rows = DEMO_ALL.map(({ name, role }) => ({ name, role, answer: (e.responses[name] || {}).answer || '', final: (e.responses[name] || {}).final || '', effective: eff(e, name) }));
@@ -265,6 +265,10 @@
         out.placement = placement && published ? placement : null;
       }
       return out;
+    };
+    const stateOf = () => {
+      const events = activeList().map(entryOf);
+      return { user: { name: user.name, role: user.role }, events, event: null, myAnswer: '', placement: null, ...(events[0] || {}) };
     };
     const parseInput = () => {
       const deadline = String(p.deadline || '').replace('T', ' ').slice(0, 16);
@@ -296,7 +300,7 @@
         if (needOwner()) return needOwner();
         const r = parseInput();
         if (r.error) return fail(r.error);
-        db.events.forEach((e) => { if (e.status === 'active') e.status = phase(e) === 'closed' ? 'archived' : 'cancelled'; });
+        activeList().filter((e) => e.date === r.value.date).forEach((e) => { e.status = phase(e) === 'closed' ? 'archived' : 'cancelled'; });
         const responses = {};
         DEMO_CASTS.slice(1, 8).forEach((n) => { responses[n] = { answer: 'yes' }; });
         DEMO_CASTS.slice(8).forEach((n) => { responses[n] = { answer: 'no' }; });
@@ -686,11 +690,12 @@
   async function swapCells(a, b) {
     const msg = $('placementMessage');
     say(msg, '');
-    const res = await api('swapPlacement', { a, b });
+    const res = await api('swapPlacement', { a, b, eventId: selectedEventId });
     if (!res.ok) {
       if (!handleAuthError(res)) {
         say(msg, res.error);
-        renderPlacement($('ownerPlacement'), currentState && currentState.placement, true); // プルダウンを元に戻す
+        const entry = selectedEntry();
+        renderPlacement($('ownerPlacement'), entry && entry.placement, true); // プルダウンを元に戻す
       }
       return;
     }
@@ -706,40 +711,117 @@
     return `${m}月${d}日 ${time}`;
   }
 
-  function renderCast(state) {
-    const e = state.event;
-    $('castEmpty').hidden = Boolean(e);
-    $('castEvent').hidden = !e;
-    $('castPlacementCard').hidden = !state.placement;
-    renderPlacement($('castPlacement'), state.placement);
-    if (!e) return;
+  // 出勤確認は、日付が違えば、複数同時に出せる。state.events の1件ぶんを「entry」と呼ぶ
+  // （古いサーバーは events を返さないので、そのときは、event などの項目から1件ぶんを作る）
+  function entriesOf(state) {
+    if (!state) return [];
+    if (Array.isArray(state.events)) return state.events;
+    if (!state.event) return [];
+    const { event, myAnswer, detail, placement, placementStatus, placementMessage } = state;
+    return [{ event, myAnswer, detail, placement, placementStatus, placementMessage }];
+  }
 
+  // オーナー画面で、いま開いている出勤確認
+  let selectedEventId = '';
+
+  function selectedEntry() {
+    const list = entriesOf(currentState);
+    return list.find((x) => x.event.id === selectedEventId) || list[0] || null;
+  }
+
+  function eventChipLabel(e) {
+    const [y, m, d] = e.date.split('-').map(Number);
+    const dow = '日月火水木金土'.charAt(new Date(Date.UTC(y, m - 1, d)).getUTCDay());
+    return `${m}月${d}日（${dow}）`;
+  }
+
+  function castEventBlock(entry) {
+    const e = entry.event;
     const closed = e.phase === 'closed';
-    const badge = $('castPhase');
-    badge.textContent = closed ? '回答は締め切られました' : `回答受付中（${deadlineLabel(e.deadline)}まで）`;
-    badge.classList.toggle('is-closed', closed);
-    $('castMessage').textContent = e.message;
-    $('castAnswerBlock').hidden = closed && !state.myAnswer;
-    $('castAnswerBlock').querySelector('.staff-ask').textContent = closed ? 'あなたの回答' : 'この日時に出勤できますか？';
-    [['answerYes', 'yes'], ['answerNo', 'no']].forEach(([id, value]) => {
-      const btn = $(id);
-      btn.classList.toggle('is-selected', state.myAnswer === value);
-      btn.disabled = closed;
-    });
+    const wrap = el('div', 'staff-event');
+    wrap.dataset.eventId = e.id;
+    const phaseLine = el('p');
+    phaseLine.append(el('span', 'staff-badge' + (closed ? ' is-closed' : ''), closed ? '回答は締め切られました' : `回答受付中（${deadlineLabel(e.deadline)}まで）`));
+    wrap.append(phaseLine, el('pre', 'staff-message-box', e.message));
+
+    if (!(closed && !entry.myAnswer)) {
+      const block = el('div');
+      block.append(el('p', 'staff-ask', closed ? 'あなたの回答' : 'この日時に出勤できますか？'));
+      const actions = el('div', 'staff-answer-actions');
+      [['yes', '出勤できます'], ['no', '出勤できません']].forEach(([value, label]) => {
+        const btn = el('button', `staff-answer is-${value}` + (entry.myAnswer === value ? ' is-selected' : ''), label);
+        btn.type = 'button';
+        btn.disabled = closed;
+        btn.addEventListener('click', () => answer(value, e.id));
+        actions.append(btn);
+      });
+      block.append(actions);
+      wrap.append(block);
+    }
 
     const info = [];
     if (closed) info.push('回答は締め切られました。変更・追加はオーナーに直接ご連絡ください。');
-    else if (state.myAnswer) info.push('回答を受け付けました。（締め切りまでは変更できます）');
+    else if (entry.myAnswer) info.push('回答を受け付けました。（締め切りまでは変更できます）');
     else info.push('締め切りまでに、どちらかを選んでください。');
-    if (state.myAnswer && !state.placement) info.push('配置場所が出るまでお待ちください。');
-    $('castInfo').textContent = info.join('\n');
-    $('castInfo').style.whiteSpace = 'pre-line';
+    if (entry.myAnswer && !entry.placement) info.push('配置場所が出るまでお待ちください。');
+    const infoNode = el('p', 'staff-info', info.join('\n'));
+    infoNode.style.whiteSpace = 'pre-line';
+    wrap.append(infoNode);
+    return wrap;
+  }
+
+  function renderCast(state) {
+    const list = entriesOf(state);
+    $('castEmpty').hidden = list.length > 0;
+    const events = $('castEvents');
+    events.replaceChildren();
+    list.forEach((entry) => events.append(castEventBlock(entry)));
+
+    const placements = $('castPlacements');
+    placements.replaceChildren();
+    list.filter((entry) => entry.placement).forEach((entry) => {
+      const card = el('div', 'staff-card');
+      card.append(el('h2', 'staff-h2', list.length > 1 ? `店内配置（${eventChipLabel(entry.event)}）` : '店内配置'));
+      const body = el('div');
+      renderPlacement(body, entry.placement);
+      card.append(body);
+      placements.append(card);
+    });
+  }
+
+  // 出勤確認を切り替えるボタン。2件以上あるときだけ出す
+  function renderOwnerPickers(list) {
+    ['ownerPickerStatus', 'ownerPickerPlacement'].forEach((id) => {
+      const box = $(id);
+      box.replaceChildren();
+      box.hidden = list.length < 2;
+      list.forEach((entry) => {
+        const e = entry.event;
+        const chip = el('button', 'staff-event-chip' + (e.id === selectedEventId ? ' is-active' : ''), eventChipLabel(e));
+        chip.type = 'button';
+        chip.setAttribute('role', 'tab');
+        chip.setAttribute('aria-selected', e.id === selectedEventId ? 'true' : 'false');
+        chip.append(el('small', '', e.phase === 'closed' ? '締め切り済み' : '回答受付中'));
+        chip.addEventListener('click', () => {
+          selectedEventId = e.id;
+          $('reopenForm').hidden = true;
+          say($('ownerMessageText'), '');
+          say($('placementMessage'), '');
+          renderOwner(currentState);
+        });
+        box.append(chip);
+      });
+    });
   }
 
   function renderOwner(state) {
     loadHistory(false);
     loadManage(false);
-    const e = state.event;
+    const list = entriesOf(state);
+    const entry = selectedEntry();
+    const e = entry && entry.event;
+    if (entry) selectedEventId = e.id;
+    renderOwnerPickers(list);
     $('ownerEmpty').hidden = Boolean(e);
     $('ownerEvent').hidden = !e;
     $('ownerPlacementCard').hidden = !e;
@@ -755,12 +837,12 @@
     $('reopenBtn').hidden = !closed;
     if (!closed) $('reopenForm').hidden = true;
 
-    const c = state.detail.counts;
+    const c = entry.detail.counts;
     $('ownerCounts').textContent = `出勤できます ${c.yes}名 ／ 出勤できません ${c.no}名 ／ 未回答 ${c.none}名`;
 
     const body = $('ownerBody');
     body.replaceChildren();
-    state.detail.rows.forEach((r) => {
+    entry.detail.rows.forEach((r) => {
       const tr = el('tr');
       tr.append(el('td', '', r.role === 'staff' ? `${r.name}（スタッフ）` : r.name));
       tr.append(el('td', r.answer === 'yes' ? 'staff-answer-yes' : (r.answer === 'no' ? 'staff-answer-no' : ''), ANSWER_LABEL[r.answer]));
@@ -785,14 +867,14 @@
       : '締め切り後に、各キャストの出勤の可否を決められます。';
 
     $('assignBtn').disabled = !closed;
-    $('assignBtn').textContent = state.placement ? 'もう一度抽選する' : '配置を抽選する';
-    renderPlacement($('ownerPlacement'), state.placement, true);
-    $('swapHint').hidden = !state.placement;
+    $('assignBtn').textContent = entry.placement ? 'もう一度抽選する' : '配置を抽選する';
+    renderPlacement($('ownerPlacement'), entry.placement, true);
+    $('swapHint').hidden = !entry.placement;
 
-    const status = state.placementStatus;
-    $('placementPreview').hidden = !state.placement;
-    if (state.placement) {
-      $('placementMessageBox').textContent = state.placementMessage;
+    const status = entry.placementStatus;
+    $('placementPreview').hidden = !entry.placement;
+    if (entry.placement) {
+      $('placementMessageBox').textContent = entry.placementMessage;
       const badge = $('placementBadge');
       badge.textContent = status === 'published' ? '確定済み（キャスト・スタッフの画面に表示中）' : '抽選結果（確定するまで、あなたにだけ見えます）';
       badge.classList.toggle('is-closed', status !== 'published');
@@ -831,10 +913,10 @@
 
   /* Cast actions */
 
-  async function answer(value) {
+  async function answer(value, eventId) {
     const msg = $('castMessageText');
     say(msg, '');
-    const res = await api('answer', { answer: value });
+    const res = await api('answer', { answer: value, eventId });
     if (!res.ok) {
       if (!handleAuthError(res)) { say(msg, res.error); await loadState(true); }
       return;
@@ -873,15 +955,20 @@
 
   async function confirmEvent() {
     if (!pendingEvent) return;
-    const prev = currentState && currentState.event;
+    // 営業日が違えば、いまの出勤確認と並べて出せる。同じ営業日のものがあるときだけ、置き換わる
+    const prevEntry = entriesOf(currentState).find((x) => x.event.date === pendingEvent.date);
+    const prev = prevEntry && prevEntry.event;
     if (prev && !confirm(prev.phase === 'closed'
-      ? '現在の出勤確認は履歴に保存され、新しい出勤確認に切り替わります。よろしいですか？'
-      : '現在の出勤確認はまだ締め切られていないため、取り消されて新しい内容に置き換わります。よろしいですか？')) return;
+      ? '同じ営業日の出勤確認は履歴に保存され、新しい出勤確認に切り替わります。よろしいですか？'
+      : '同じ営業日の出勤確認は、まだ締め切られていないため、取り消されて新しい内容に置き換わります。よろしいですか？')) return;
     const msg = $('eventFormMessage');
+    const createdDate = pendingEvent.date;
     const res = await api('createEvent', pendingEvent);
     if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
     hidePreview();
     $('eventNote').value = '';
+    const created = entriesOf(res).find((x) => x.event.date === createdDate);
+    if (created) selectedEventId = created.event.id; // 作った出勤確認を、すぐ開く
     renderState(res);
     loadHistory(true);
     activateOwnerTab('status', true);
@@ -902,7 +989,7 @@
   async function ownerAction(action, payload, successText) {
     const msg = $('ownerMessageText');
     say(msg, '');
-    const res = await api(action, payload);
+    const res = await api(action, { eventId: selectedEventId, ...payload });
     if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
     renderState(res);
     loadHistory(true);
@@ -1441,9 +1528,10 @@
   async function assign() {
     const msg = $('placementMessage');
     say(msg, '');
-    if (currentState && currentState.placementStatus === 'published' &&
+    const entry = selectedEntry();
+    if (entry && entry.placementStatus === 'published' &&
       !confirm('確定済みの配置を取り消して、抽選し直します。キャストの画面からは、確定するまで配置が消えます。よろしいですか？')) return;
-    const res = await api('assign');
+    const res = await api('assign', { eventId: selectedEventId });
     if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
     renderState(res);
     say(msg, '配置を抽選しました。内容を確認して、よければ下の「確定」を押してください。', true);
@@ -1452,7 +1540,7 @@
   async function publishPlacement() {
     const msg = $('placementMessage');
     say(msg, '');
-    const res = await api('publishPlacement');
+    const res = await api('publishPlacement', { eventId: selectedEventId });
     if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return; }
     renderState(res);
     say(msg, '確定しました。キャスト・スタッフの画面に表示されます。下の文面をコピーして、お知らせにお使いください。', true);
@@ -1483,8 +1571,6 @@
     });
 
     $('logoutBtn').addEventListener('click', logout);
-    $('answerYes').addEventListener('click', () => answer('yes'));
-    $('answerNo').addEventListener('click', () => answer('no'));
 
     $('eventForm').addEventListener('submit', previewEvent);
     $('eventForm').addEventListener('input', hidePreview);
@@ -1501,7 +1587,8 @@
       e.preventDefault();
       if (!confirm('もう一度、回答を受け付けます。配置の抽選結果は取り消されます。よろしいですか？')) return;
       await ownerAction('reopen', { deadline: $('reopenDeadline').value }, '再募集を始めました。キャスト・スタッフが、新しい締め切りまで回答できます。上の文面をコピーして連絡してください。');
-      if (currentState && currentState.event && currentState.event.phase === 'open') $('reopenForm').hidden = true;
+      const entry = selectedEntry();
+      if (entry && entry.event.phase === 'open') $('reopenForm').hidden = true;
     });
     $('cancelEventBtn').addEventListener('click', () => {
       if (confirm('この出勤確認を取り消します。キャストの回答も見えなくなります。よろしいですか？')) ownerAction('cancelEvent', {}, '取り消しました。');
@@ -1532,8 +1619,8 @@
 
     // Lock the answer buttons as soon as the deadline passes, even if the page was left open
     window.setInterval(() => {
-      const e = currentState && currentState.event;
-      if (!appView.hidden && e && e.phase === 'open' && jstNowMinute() >= e.deadline) loadState(true);
+      const expired = entriesOf(currentState).some((x) => x.event.phase === 'open' && jstNowMinute() >= x.event.deadline);
+      if (!appView.hidden && expired) loadState(true);
     }, 5000);
 
     if (getToken() && await loadState()) showView('app');

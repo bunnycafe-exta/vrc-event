@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/staff.css?v=36">
+<link rel="stylesheet" href="css/staff.css?v=37">
 </head>
 <body class="staff-body">
 
@@ -69,27 +69,13 @@
         <h2 class="staff-h2">出勤の確認</h2>
         <p class="staff-muted" id="castEmpty" hidden>現在、出勤の確認はありません。</p>
 
-        <div id="castEvent" hidden>
-          <p><span class="staff-badge" id="castPhase"></span></p>
-          <pre class="staff-message-box" id="castMessage"></pre>
-
-          <div id="castAnswerBlock">
-            <p class="staff-ask">この日時に出勤できますか？</p>
-            <div class="staff-answer-actions">
-              <button type="button" class="staff-answer is-yes" id="answerYes">出勤できます</button>
-              <button type="button" class="staff-answer is-no" id="answerNo">出勤できません</button>
-            </div>
-          </div>
-
-          <p class="staff-message" id="castMessageText" role="alert"></p>
-          <p class="staff-info" id="castInfo"></p>
-        </div>
+        <!-- 出勤確認は、日付ごとに、ここへ並べて表示する（staff.js） -->
+        <div id="castEvents"></div>
+        <p class="staff-message" id="castMessageText" role="alert"></p>
       </div>
 
-      <div class="staff-card" id="castPlacementCard" hidden>
-        <h2 class="staff-h2">店内配置</h2>
-        <div id="castPlacement"></div>
-      </div>
+      <!-- 確定した店内配置も、営業日ごとに、ここへ並べて表示する（staff.js） -->
+      <div id="castPlacements"></div>
     </div>
 
     <!-- ===== Owner ===== -->
@@ -179,6 +165,7 @@
       <div class="staff-tabpanel" data-panel="status">
       <div class="staff-card">
         <h2 class="staff-h2">現在の出勤確認</h2>
+        <div class="staff-event-picker" id="ownerPickerStatus" role="tablist" aria-label="出勤確認を選ぶ" hidden></div>
         <div id="ownerEmpty" hidden>
           <p class="staff-muted">まだ出勤確認を作成していません。</p>
           <button type="button" class="btn btn-primary" id="goCreate">営業日を作る</button>
@@ -222,6 +209,7 @@
 
       <div class="staff-tabpanel" data-panel="placement" hidden>
       <p class="staff-muted" id="placementEmpty">出勤確認を作って締め切ると、ここで配置を抽選できます。</p>
+      <div class="staff-event-picker" id="ownerPickerPlacement" role="tablist" aria-label="出勤確認を選ぶ" hidden></div>
       <div class="staff-card" id="ownerPlacementCard" hidden>
         <h2 class="staff-h2">店内配置</h2>
         <p class="staff-muted">「出勤」と判断した人からランダムに決めます。</p>
@@ -394,6 +382,6 @@
 </main>
 
 <script src="js/config.js?v=6"></script>
-<script src="js/staff.js?v=38"></script>
+<script src="js/staff.js?v=39"></script>
 </body>
 </html>
