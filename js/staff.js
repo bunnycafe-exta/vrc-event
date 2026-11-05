@@ -127,11 +127,30 @@
     return Array(DEMO_POSITIONS).fill('');
   }
 
+  // スタッフの配置エリア（4か所）。サーバーの STAFF_AREAS と同じ
+  const AREAS = ['A-1', 'A-2', 'B-1', 'B-2'];
+  const emptyAreas = () => Object.fromEntries(AREAS.map((a) => [a, []]));
+
+  function demoSplitStaff(names) {
+    const groups = emptyAreas();
+    const bigger = demoShuffle(AREAS).slice(0, names.length % AREAS.length);
+    const base = Math.floor(names.length / AREAS.length);
+    let next = 0;
+    AREAS.forEach((a) => {
+      const size = base + (bigger.includes(a) ? 1 : 0);
+      groups[a] = names.slice(next, next + size);
+      next += size;
+    });
+    return groups;
+  }
+
   function demoSpread(names, counts) {
-    const size = { A: counts.A, B: counts.B };
-    const result = { A: [], B: [] };
+    const size = Object.fromEntries(AREAS.map((a) => [a, counts[a] || 0]));
+    const result = emptyAreas();
     demoShuffle(names).forEach((name) => {
-      const g = size.A < size.B ? 'A' : (size.B < size.A ? 'B' : (Math.random() < 0.5 ? 'A' : 'B'));
+      const min = Math.min(...AREAS.map((a) => size[a]));
+      const candidates = AREAS.filter((a) => size[a] === min);
+      const g = candidates[Math.floor(Math.random() * candidates.length)];
       result[g].push(name); size[g]++;
     });
     return result;
@@ -207,11 +226,11 @@
       else x.rot.sideMembers[x.side] = x.rot.sideMembers[x.side].filter((m) => m !== x.member);
     } else if (A.kind === 'extra' && B.kind === 'extra') {
       if (!sameRotation()) return '同じローテの中で入れ替えてください';
-      if (A.side === B.side) return '同じサイドです。反対のサイドの人を選んでください';
+      if (A.side === B.side) return '同じエリアです。別のエリアの人を選んでください';
       A.rot.sideMembers[A.side] = A.rot.sideMembers[A.side].map((m) => (m === A.member ? B.member : m));
       B.rot.sideMembers[B.side] = B.rot.sideMembers[B.side].map((m) => (m === B.member ? A.member : m));
     } else if (A.kind === 'staff' && B.kind === 'staff') {
-      if (A.side === B.side) return '同じサイドです。反対のサイドの人を選んでください';
+      if (A.side === B.side) return '同じエリアです。別のエリアの人を選んでください';
       const move = (name, from, to) => {
         pl.staff[from] = pl.staff[from].filter((n) => n !== name);
         pl.staff[to].push(name);
@@ -224,9 +243,9 @@
       move(A.name, A.side, B.side);
       move(B.name, B.side, A.side);
     } else {
-      return 'この組み合わせは入れ替えできません（キャスト同士・サイド同士で入れ替えてください）';
+      return 'この組み合わせは入れ替えできません（キャスト同士・エリア同士で入れ替えてください）';
     }
-    pl.rotations.forEach((r) => { r.staffSides = { A: r.sideMembers.A.map((m) => m.name), B: r.sideMembers.B.map((m) => m.name) }; });
+    pl.rotations.forEach((r) => { r.staffSides = Object.fromEntries(AREAS.map((a) => [a, r.sideMembers[a].map((m) => m.name)])); });
     return '';
   }
 
@@ -356,22 +375,17 @@
         const castNames = DEMO_CASTS.filter((n) => eff(e, n) === 'ok');
         const staffNames = demoShuffle(DEMO_STAFF.filter((n) => eff(e, n) === 'ok'));
         if (!castNames.length && !staffNames.length) return fail('出勤する人がいません');
-        let sizeA = Math.ceil(staffNames.length / 2);
-        if (staffNames.length % 2 === 1 && Math.random() < 0.5) sizeA = staffNames.length - sizeA;
-        const sideA = staffNames.slice(0, sizeA);
-        const sideB = staffNames.slice(sizeA);
+        const groups = demoSplitStaff(staffNames);
+        const counts = Object.fromEntries(AREAS.map((a) => [a, groups[a].length]));
         db.placements[e.date] = {
           date: e.date,
-          rotations: castNames.length ? demoPlanCasts(castNames, { A: sideA.length, B: sideB.length }).map((rot) => ({
+          rotations: castNames.length ? demoPlanCasts(castNames, counts).map((rot) => ({
             rotation: rot.rotation,
             slots: rot.slots,
-            staffSides: { A: sideA.concat(rot.overflow.A), B: sideB.concat(rot.overflow.B) },
-            sideMembers: {
-              A: sideA.map((name) => ({ name, kind: 'staff' })).concat(rot.overflow.A.map((name) => ({ name, kind: 'extra' }))),
-              B: sideB.map((name) => ({ name, kind: 'staff' })).concat(rot.overflow.B.map((name) => ({ name, kind: 'extra' })))
-            }
+            staffSides: Object.fromEntries(AREAS.map((a) => [a, groups[a].concat(rot.overflow[a])])),
+            sideMembers: Object.fromEntries(AREAS.map((a) => [a, groups[a].map((name) => ({ name, kind: 'staff' })).concat(rot.overflow[a].map((name) => ({ name, kind: 'extra' })))]))
           })) : [],
-          staff: { A: sideA, B: sideB }
+          staff: groups
         };
         db.published = db.published || {};
         delete db.published[e.id];
@@ -590,7 +604,7 @@
 
   const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
   const ROTATION_NAMES = ['', '第一', '第二'];
-  const SIDE_LABELS = { A: '①～③サイド', B: '④～⑥サイド' };
+  const SIDE_LABELS = Object.fromEntries(AREAS.map((a) => [a, a])); // スタッフのエリアの表示（A-1 など）
 
   // 入れ替えの相手を選ぶプルダウン。先頭が今の人で、ほかの人を選ぶと、その人と入れ替わる
   function swapSelect(label, currentText, options, selfRef) {
@@ -619,17 +633,16 @@
   function slotOptions(rot, slot) {
     const others = rot.slots.filter((s) => s.position !== slot.position && (s.name || slot.name))
       .map((s) => ({ label: `${s.name || '空き'}（${CIRCLED[s.position - 1]}）`, ref: slotRef(rot, s) }));
-    const extras = ['A', 'B'].flatMap((side) => (rot.sideMembers ? rot.sideMembers[side] : [])
+    const extras = AREAS.flatMap((side) => ((rot.sideMembers && rot.sideMembers[side]) || [])
       .filter((m) => m.kind === 'extra')
       .map((m) => ({ label: `${m.name}（${SIDE_LABELS[side]}）`, ref: memberRef(rot, side, m) })));
     return others.concat(extras);
   }
 
   function memberOptions(rot, side, member) {
-    const opposite = side === 'A' ? 'B' : 'A';
-    const list = rot.sideMembers[opposite]
+    const list = AREAS.filter((area) => area !== side).flatMap((area) => (rot.sideMembers[area] || [])
       .filter((m) => m.kind === member.kind)
-      .map((m) => ({ label: `${m.name}（${SIDE_LABELS[opposite]}）`, ref: memberRef(rot, opposite, m) }));
+      .map((m) => ({ label: `${m.name}（${SIDE_LABELS[area]}）`, ref: memberRef(rot, area, m) })));
     if (member.kind === 'extra') {
       const slots = rot.slots.map((s) => ({ label: `${s.name || '空き'}（${CIRCLED[s.position - 1]}）`, ref: slotRef(rot, s) }));
       return slots.concat(list);
@@ -638,11 +651,11 @@
   }
 
   function renderSides(container, rot, editable) {
-    const sides = rot.staffSides || { A: [], B: [] };
+    const sides = rot.staffSides || emptyAreas();
     container.append(el('p', 'placement-note', '🎩スタッフ'));
     const grid = el('div', 'placement-grid placement-grid-staff');
-    ['A', 'B'].forEach((key) => {
-      const names = sides[key];
+    AREAS.forEach((key) => {
+      const names = sides[key] || [];
       const card = el('div', 'placement-slot' + (me && names.includes(me.name) ? ' is-me' : ''));
       card.append(el('span', 'placement-stations', SIDE_LABELS[key]));
       if (!names.length) card.append(el('span', 'placement-name', '—'));

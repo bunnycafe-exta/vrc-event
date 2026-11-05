@@ -12,7 +12,7 @@
  *   デプロイ → デプロイを管理 → 鉛筆アイコン → バージョン「新バージョン」→ デプロイ（URLは変わらない）
  * スタッフ追加・パスワード再発行・無効化: オーナー画面の「スタッフ管理」からできる
  *   （画面を使わない場合は、下の TARGETS に名前と役割を書いて「issueCredentials」を実行）
- *   役割: cast=キャスト（①〜⑥の配置） / staff=スタッフ（①～③サイド・④～⑥サイド） / owner=オーナー（配置の対象外）
+ *   役割: cast=キャスト（①〜⑥の配置） / staff=スタッフ（A-1・A-2・B-1・B-2の4エリア） / owner=オーナー（配置の対象外）
  */
 
 // スプレッドシートに紐づけず script.google.com で単独のプロジェクトとして作る場合のみ、
@@ -33,6 +33,7 @@ const SESSION_SECONDS = 21600; // ログインの有効時間（6時間）
 const MAX_FAILS = 5;           // ログイン失敗の許容回数
 const LOCK_SECONDS = 600;      // 超えた場合のロック時間（10分）
 const POSITIONS_PER_ROTATION = 6; // 1ローテーションの人数（店内番号1〜12を2つずつ担当）
+const STAFF_AREAS = ['A-1', 'A-2', 'B-1', 'B-2']; // スタッフの配置エリア（4か所）
 
 const STAFF_LIST = [
   { name: 'てとら', role: 'owner' },
@@ -78,7 +79,7 @@ function doGet() {
   } catch (err) {
     console.error(err);
   }
-  return json_({ ok: true, service: 'EXTA staff API', version: 19, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
+  return json_({ ok: true, service: 'EXTA staff API', version: 20, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
 }
 
 function doPost(e) {
@@ -955,25 +956,44 @@ function history_(req) {
 /* ---------- Placement ---------- */
 
 // Placements シートの rotation 列:
-//   数字(1,2)=キャストのローテーション番号 / A1・B2 など=そのローテーションで「あふれて」スタッフグループに加わるキャスト
-//   A・B=スタッフ側のサイド（スタッフ。両ローテーション共通）
-// 返す配置の rotations[].staffSides は「サイドのスタッフ＋そのローテーションであふれたキャスト」
+//   数字(1,2)=キャストのローテーション番号 / A-1@1・B-2@2 など=そのローテーションで「あふれて」エリアに加わるキャスト
+//   A-1・A-2・B-1・B-2=スタッフの配置エリア（スタッフ。両ローテーション共通）
+//   （エリアが2つだった頃の A・B・A1 などは、A-1・B-1 として読む）
+// 返す配置の rotations[].staffSides は「エリアのスタッフ＋そのローテーションであふれたキャスト」
+const LEGACY_AREA = { A: 'A-1', B: 'B-1' };
+
+function emptyAreas_() {
+  const o = {};
+  STAFF_AREAS.forEach(a => { o[a] = []; });
+  return o;
+}
+
+function isLegacyPlacementKey_(key) {
+  return /^[AB]\d*$/.test(key);
+}
+
 function getPlacement_(date) {
   const rows = readRows_('Placements').filter(r => asDate_(r.date) === date);
   if (!rows.length) return null;
   const rotations = {};
   const overflow = {};
-  const sides = { A: [], B: [] };
+  const areas = emptyAreas_();
+  const addOverflow = (rot, area, name) => { (overflow[rot] = overflow[rot] || emptyAreas_())[area].push(name); };
   rows.forEach(r => {
     const key = String(r.rotation);
-    const joined = key.match(/^([AB])(\d+)$/);
+    const name = String(r.name);
+    const joined = key.match(/^([AB]-[12])@(\d+)$/);
+    const legacyJoined = key.match(/^([AB])(\d+)$/);
     if (/^\d+$/.test(key)) {
-      (rotations[Number(key)] = rotations[Number(key)] || []).push({ position: Number(r.position), name: String(r.name) });
+      (rotations[Number(key)] = rotations[Number(key)] || []).push({ position: Number(r.position), name: name });
     } else if (joined) {
-      const rot = Number(joined[2]);
-      (overflow[rot] = overflow[rot] || { A: [], B: [] })[joined[1]].push(String(r.name));
-    } else if (sides[key]) {
-      sides[key].push(String(r.name));
+      addOverflow(Number(joined[2]), joined[1], name);
+    } else if (legacyJoined) {
+      addOverflow(Number(legacyJoined[2]), LEGACY_AREA[legacyJoined[1]], name);
+    } else if (areas[key]) {
+      areas[key].push(name);
+    } else if (LEGACY_AREA[key]) {
+      areas[LEGACY_AREA[key]].push(name);
     }
   });
   return {
@@ -984,20 +1004,18 @@ function getPlacement_(date) {
         const found = rotations[rot].find(s => s.position === p);
         slots.push({ position: p, stations: [p * 2 - 1, p * 2], name: found ? found.name : '' });
       }
-      const extra = overflow[rot] || { A: [], B: [] };
+      const extra = overflow[rot] || emptyAreas_();
       const member = (kind) => (n) => ({ name: n, kind: kind });
-      return {
-        rotation: rot,
-        slots: slots,
-        staffSides: { A: sides.A.concat(extra.A), B: sides.B.concat(extra.B) },
+      const staffSides = {};
+      const sideMembers = {};
+      STAFF_AREAS.forEach(a => {
+        staffSides[a] = areas[a].concat(extra[a]);
         // 入れ替えの画面用。staff=スタッフ（両ローテ共通） / extra=その回であふれて加わったキャスト
-        sideMembers: {
-          A: sides.A.map(member('staff')).concat(extra.A.map(member('extra'))),
-          B: sides.B.map(member('staff')).concat(extra.B.map(member('extra')))
-        }
-      };
+        sideMembers[a] = areas[a].map(member('staff')).concat(extra[a].map(member('extra')));
+      });
+      return { rotation: rot, slots: slots, staffSides: staffSides, sideMembers: sideMembers };
     }),
-    staff: sides // キャストが誰も出勤しない日のための予備
+    staff: areas // キャストが誰も出勤しない日のための予備
   };
 }
 
@@ -1062,12 +1080,29 @@ function placeAvoiding_(names, prevPos) {
   return slots;
 }
 
-// あふれたキャストを、スタッフの人数が少ないほうのグループに入れる（同数ならランダム）
+// スタッフを、4つのエリアにできるだけ同じ人数で分ける（割り切れないときは、人数が多くなるエリアをランダムに決める）
+function splitStaff_(names) {
+  const groups = emptyAreas_();
+  const bigger = shuffle_(STAFF_AREAS).slice(0, names.length % STAFF_AREAS.length);
+  const base = Math.floor(names.length / STAFF_AREAS.length);
+  let next = 0;
+  STAFF_AREAS.forEach(a => {
+    const size = base + (bigger.indexOf(a) >= 0 ? 1 : 0);
+    groups[a] = names.slice(next, next + size);
+    next += size;
+  });
+  return groups;
+}
+
+// あふれたキャストを、いまの人数がいちばん少ないエリアに入れる（同数ならランダム）
 function spreadOverflow_(names, counts) {
-  const size = { A: counts.A, B: counts.B };
-  const result = { A: [], B: [] };
+  const size = {};
+  const result = emptyAreas_();
+  STAFF_AREAS.forEach(a => { size[a] = counts[a] || 0; });
   shuffle_(names).forEach(name => {
-    const g = size.A < size.B ? 'A' : (size.B < size.A ? 'B' : (Math.random() < 0.5 ? 'A' : 'B'));
+    const min = Math.min.apply(null, STAFF_AREAS.map(a => size[a]));
+    const candidates = STAFF_AREAS.filter(a => size[a] === min);
+    const g = candidates[Math.floor(Math.random() * candidates.length)];
     result[g].push(name);
     size[g]++;
   });
@@ -1077,7 +1112,7 @@ function spreadOverflow_(names, counts) {
 // キャストを第1・第2ローテーションに配置する。
 //  - 同じキャストが両方に入ってよい（第2は第1であふれた人を優先）
 //  - 第2では、第1と同じ場所には置かない
-//  - ローテーションごとにあふれた人は、スタッフ側のどちらかのサイド（A/B）に回す
+//  - ローテーションごとにあふれた人は、スタッフの4つのエリア（A-1・A-2・B-1・B-2）のうち、人数がいちばん少ないところに回す
 function planCasts_(castNames, staffCounts) {
   const P = POSITIONS_PER_ROTATION;
   const all = shuffle_(castNames);
@@ -1108,17 +1143,17 @@ function assign_(user, req) {
 
   const stamp = nowSecond_();
   const out = [];
-  // スタッフは2つのサイドに半分ずつ分ける（奇数のときは、多いほうをランダムに決める）
-  let sizeA = Math.ceil(staffNames.length / 2);
-  if (staffNames.length % 2 === 1 && Math.random() < 0.5) sizeA = staffNames.length - sizeA;
-  const sideA = staffNames.slice(0, sizeA);
-  const sideB = staffNames.slice(sizeA);
-  sideA.forEach((name, i) => out.push([e.date, 'A', i + 1, name, stamp]));
-  sideB.forEach((name, i) => out.push([e.date, 'B', i + 1, name, stamp]));
+  // スタッフは4つのエリア（A-1・A-2・B-1・B-2）に分ける
+  const groups = splitStaff_(staffNames);
+  const counts = {};
+  STAFF_AREAS.forEach(a => {
+    groups[a].forEach((name, i) => out.push([e.date, a, i + 1, name, stamp]));
+    counts[a] = groups[a].length;
+  });
   if (castNames.length) {
-    planCasts_(castNames, { A: sideA.length, B: sideB.length }).forEach(rot => {
+    planCasts_(castNames, counts).forEach(rot => {
       rot.slots.forEach((name, i) => { if (name) out.push([e.date, rot.rotation, i + 1, name, stamp]); });
-      ['A', 'B'].forEach(g => rot.overflow[g].forEach((name, i) => out.push([e.date, g + rot.rotation, i + 1, name, stamp])));
+      STAFF_AREAS.forEach(g => rot.overflow[g].forEach((name, i) => out.push([e.date, g + '@' + rot.rotation, i + 1, name, stamp])));
     });
   }
 
@@ -1132,8 +1167,8 @@ function assign_(user, req) {
 /* ---------- Placement: manual swap (owner) ---------- */
 // 入れ替えられる場所の指定:
 //   {kind:'slot',  rotation, position}            キャストの①〜⑥（空きも可）
-//   {kind:'extra', rotation, side, name}          その回であふれて、サイドに加わったキャスト
-//   {kind:'staff', side, name}                    サイドのスタッフ（両ローテ共通）
+//   {kind:'extra', rotation, side, name}          その回であふれて、エリアに加わったキャスト（side は A-1 など）
+//   {kind:'staff', side, name}                    エリアのスタッフ（両ローテ共通）
 
 function locateCell_(rows, ref) {
   if (!ref || typeof ref !== 'object') fail_('入れ替える場所が正しくありません');
@@ -1147,10 +1182,10 @@ function locateCell_(rows, ref) {
   }
   const side = String(ref.side);
   const name = String(ref.name || '');
-  if (side !== 'A' && side !== 'B') fail_('入れ替える場所が正しくありません');
+  if (STAFF_AREAS.indexOf(side) < 0) fail_('入れ替える場所が正しくありません');
   if (kind === 'extra') {
     const rotation = Number(ref.rotation);
-    const row = rows.find(r => String(r.rotation) === side + rotation && String(r.name) === name);
+    const row = rows.find(r => String(r.rotation) === side + '@' + rotation && String(r.name) === name);
     if (!row) fail_('最新の配置と合いません。画面を更新してください');
     return { kind: kind, rotation: rotation, side: side, row: row };
   }
@@ -1167,6 +1202,7 @@ function swapPlacement_(user, req) {
   if (!e) fail_('現在、出勤の確認はありません');
   const rows = readRows_('Placements').filter(r => asDate_(r.date) === e.date);
   if (!rows.length) fail_('先に配置を抽選してください');
+  if (rows.some(r => isLegacyPlacementKey_(String(r.rotation)))) fail_('スタッフの配置が4か所（A-1・A-2・B-1・B-2）に変わりました。もう一度「配置を抽選する」を押してください');
   const a = locateCell_(rows, req.a);
   const b = locateCell_(rows, req.b);
   if (JSON.stringify(req.a) === JSON.stringify(req.b)) fail_('同じ場所です');
@@ -1199,20 +1235,20 @@ function swapPlacement_(user, req) {
       setName(s, String(x.row.name));
       setName(x, n);
     } else {
-      setKey(x, String(s.rotation)); // 空いている場所へ、サイドから移る
+      setKey(x, String(s.rotation)); // 空いている場所へ、エリアから移る
       setPos(x, s.position);
     }
   } else if (a.kind === 'extra' && b.kind === 'extra') {
     if (a.rotation !== b.rotation) fail_('同じローテの中で入れ替えてください');
-    if (a.side === b.side) fail_('同じサイドです。反対のサイドの人を選んでください');
-    setKey(a, b.side + b.rotation);
-    setKey(b, a.side + a.rotation);
+    if (a.side === b.side) fail_('同じエリアです。別のエリアの人を選んでください');
+    setKey(a, b.side + '@' + b.rotation);
+    setKey(b, a.side + '@' + a.rotation);
   } else if (a.kind === 'staff' && b.kind === 'staff') {
-    if (a.side === b.side) fail_('同じサイドです。反対のサイドの人を選んでください');
+    if (a.side === b.side) fail_('同じエリアです。別のエリアの人を選んでください');
     setKey(a, b.side);
     setKey(b, a.side);
   } else {
-    fail_('この組み合わせは入れ替えできません（キャスト同士・サイド同士で入れ替えてください）');
+    fail_('この組み合わせは入れ替えできません（キャスト同士・エリア同士で入れ替えてください）');
   }
   return state_(user);
 }

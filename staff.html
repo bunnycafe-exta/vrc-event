@@ -215,8 +215,8 @@
         <p class="staff-muted">「出勤」と判断した人からランダムに決めます。</p>
         <ul class="staff-rules">
           <li>キャストは第一・第二ローテの両方に入り、第二は第一と違う場所になります（①〜⑥）。</li>
-          <li>スタッフは「①～③サイド」と「④～⑥サイド」に半分ずつ分かれます（オーナーは対象外です）。</li>
-          <li>6人を超えたキャストは、その回の人数が少ないほうのサイドに回ります。</li>
+          <li>スタッフは「A-1」「A-2」「B-1」「B-2」の4か所に、できるだけ同じ人数で分かれます（オーナーは対象外です）。</li>
+          <li>6人を超えたキャストは、その回の人数がいちばん少ないエリアに回ります。</li>
           <li>抽選した結果は、確定するまでてとらさんにだけ見えます。</li>
         </ul>
         <button type="button" class="btn btn-primary staff-assign" id="assignBtn">配置を抽選する</button>
@@ -369,7 +369,7 @@
             <span>役割</span>
             <select id="addRole">
               <option value="cast">キャスト（①〜⑥の配置）</option>
-              <option value="staff">スタッフ（サイドの配置）</option>
+              <option value="staff">スタッフ（A-1・A-2・B-1・B-2の配置）</option>
             </select>
           </label>
           <button type="submit" class="btn btn-outline">追加してID・パスワードを作る</button>
@@ -382,6 +382,6 @@
 </main>
 
 <script src="js/config.js?v=7"></script>
-<script src="js/staff.js?v=39"></script>
+<script src="js/staff.js?v=40"></script>
 </body>
 </html>
