@@ -2195,3 +2195,34 @@ h1, h2, h3, h4,
   .reserve-closed { margin-inline: -16px; }
   .vr-line1 { margin-inline: -10px; }
 }
+
+/* 背景つきの縦長の写真（切り抜きではない写真）を使うカード: 枠いっぱいに、顔を中心に見せる */
+.cast-photo.is-shot img {
+  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%;
+  filter: none;
+}
+
+/* 写真がまだ無い人の枠 */
+.cast-photo.is-empty { display: flex; align-items: center; justify-content: center; }
+.cast-photo-empty { font-family: var(--en); font-size: var(--fs-s); letter-spacing: 0.2em; color: var(--leaf); opacity: 0.75; }
+
+/* スタッフ: 人数が3の倍数でなくても、最後の段を中央にそろえる */
+.cast-grid-staff {
+  --gx: clamp(14px, 2vw, 28px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(20px, 3vw, 34px) var(--gx);
+}
+.cast-grid-staff > .cast-card { flex: 0 0 calc((100% - 2 * var(--gx)) / 3); }
+
+@media (max-width: 980px) {
+  .cast-grid-staff > .cast-card { flex-basis: calc((100% - var(--gx)) / 2); }
+}
