@@ -123,8 +123,8 @@ window.EXTA_PROFILES = {
     message: ['甘いひと時も｜楽しいひと時も｜味わえる｜本の世界へ'],
     photo: 'キャスト写真/web/のきなみ-photo.jpg'
   },
-  'しぐれな': {
-    name: 'しぐれな',
+  'しぐ': {
+    name: 'しぐ',
     avatar: 'Alué',
     heading: 'ひとこと',
     message: ['キャストに｜メロがってる｜場合じゃない、｜仕事しなきゃ'],
