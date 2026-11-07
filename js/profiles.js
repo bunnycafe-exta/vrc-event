@@ -106,5 +106,12 @@ window.EXTA_PROFILES = {
       'お店で｜お会いできるのを｜楽しみに｜しています。'
     ],
     photo: 'キャスト写真/web/ユトロス-photo.jpg'
+  },
+  'お兄ちゃん': {
+    name: 'お兄ちゃん',
+    avatar: 'マリシア',
+    heading: 'ひとこと',
+    message: ['どうか｜あなたの｜推しが｜見つかります｜ように。'],
+    photo: 'キャスト写真/web/お兄ちゃん-photo.jpg'
   }
 };
