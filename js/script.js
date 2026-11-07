@@ -336,6 +336,8 @@ siteNav.querySelectorAll('.nav-link').forEach((link) => {
     if (p.photo) {
       photo.src = p.photo;
       photo.alt = `${cardName}のプロフィール写真`;
+      // photoPosition: 写真の、どこを枠の中心にするか（切り取られるとき用。例: '50% 80%' = 下寄り）。指定がなければ、CSSの初期値
+      photo.style.objectPosition = p.photoPosition || '';
     } else {
       photo.removeAttribute('src');
       photo.alt = '';
