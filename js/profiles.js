@@ -59,7 +59,8 @@ window.EXTA_PROFILES = {
       '元気に｜跳ねて、｜ちょっぴり｜甘く。',
       '寂しがりやの｜うさぎが、｜耳を｜ぴんと伸ばして｜あなたの｜足音を｜待ってます。'
     ],
-    photo: 'キャスト写真/web/はるるん-photo.jpg'
+    photo: 'キャスト写真/web/はるるん-photo.jpg',
+    photoPosition: '50% 44%'
   },
   'オロシ': {
     name: 'オロシ',
