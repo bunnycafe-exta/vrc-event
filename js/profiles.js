@@ -49,7 +49,7 @@ window.EXTA_PROFILES = {
     avatar: '士堂',
     heading: 'ひとこと',
     message: ['EXTA随一の｜脇、｜お見せ｜いたします…'],
-    photo: 'スタッフメッセージ/web/はやしすん.jpg'
+    photo: 'キャスト写真/web/はやしすん-photo.jpg'
   },
   'はるるん': {
     name: 'はるるん',
@@ -86,7 +86,7 @@ window.EXTA_PROFILES = {
       '楽しい｜時間を｜提供できるように｜頑張ります！',
       '皆様の｜ご来店を｜お待ちしております！'
     ],
-    photo: 'スタッフメッセージ/web/ムレン.jpg'
+    photo: 'キャスト写真/web/ムレン-photo.jpg'
   },
   'あかきのこ': {
     name: 'あかきのこ',
@@ -114,7 +114,7 @@ window.EXTA_PROFILES = {
     avatar: 'マリシア',
     heading: 'ひとこと',
     message: ['どうか｜あなたの｜推しが｜見つかりますよ', 'うに。'],
-    photo: 'キャスト写真/web/お兄ちゃん-photo.jpg',
+    photo: 'キャスト写真/web/お兄ちゃん-photo.jpg?v=2',
     photoPosition: '50% 80%'
   },
   'のきなみ': {
