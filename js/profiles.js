@@ -122,5 +122,22 @@ window.EXTA_PROFILES = {
     heading: 'ひとこと',
     message: ['甘いひと時も｜楽しいひと時も｜味わえる｜本の世界へ'],
     photo: 'キャスト写真/web/のきなみ-photo.jpg'
+  },
+  'しぐれな': {
+    name: 'しぐれな',
+    avatar: 'Alué',
+    heading: 'ひとこと',
+    message: ['キャストに｜メロがってる｜場合じゃない、｜仕事しなきゃ'],
+    photo: 'キャスト写真/web/しぐれな-photo.jpg'
+  },
+  'ささっち': {
+    name: 'ささっち',
+    avatar: '真冬',
+    heading: 'ひとこと',
+    message: [
+      '可愛いと｜面白いの｜世界へ｜ようこそ。',
+      '僕にも｜構ってね'
+    ],
+    photo: 'キャスト写真/web/ささっち-photo.jpg'
   }
 };
