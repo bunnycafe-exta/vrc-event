@@ -115,5 +115,12 @@ window.EXTA_PROFILES = {
     message: ['どうか｜あなたの｜推しが｜見つかりますよ', 'うに。'],
     photo: 'キャスト写真/web/お兄ちゃん-photo.jpg',
     photoPosition: '50% 80%'
+  },
+  'のきなみ': {
+    name: 'のきなみ',
+    avatar: 'Gifter',
+    heading: 'ひとこと',
+    message: ['甘いひと時も｜楽しいひと時も｜味わえる｜本の世界へ'],
+    photo: 'キャスト写真/web/のきなみ-photo.jpg'
   }
 };
