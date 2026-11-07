@@ -59,7 +59,7 @@ window.EXTA_PROFILES = {
       '元気に｜跳ねて、｜ちょっぴり｜甘く。',
       '寂しがりやの｜うさぎが、｜耳を｜ぴんと伸ばして｜あなたの｜足音を｜待ってます。'
     ],
-    photo: 'スタッフメッセージ/web/はるるん.jpg'
+    photo: 'キャスト写真/web/はるるん-photo.jpg'
   },
   'オロシ': {
     name: 'オロシ',
@@ -75,7 +75,7 @@ window.EXTA_PROFILES = {
     message: ['ぶちかます｜わよぉ～～～｜♡♡♡♡♡♡'],
     large: true,
     effect: 'pachinko',
-    photo: 'スタッフメッセージ/web/メガスターミー.jpg'
+    photo: 'キャスト写真/web/メガスターミー-photo.jpg'
   },
   'ムレン': {
     name: 'ムレン',
@@ -122,6 +122,16 @@ window.EXTA_PROFILES = {
     heading: 'ひとこと',
     message: ['甘いひと時も｜楽しいひと時も｜味わえる｜本の世界へ'],
     photo: 'キャスト写真/web/のきなみ-photo.jpg'
+  },
+  'やさい': {
+    name: 'やさい',
+    avatar: 'Linne',
+    heading: 'ひとこと',
+    message: [
+      '一冊の本を｜開いたその先で、｜ぴょこんと揺れる｜うさぎの耳。',
+      'そのささやかな｜仕草ひとつも｜見逃せなくなるほど、｜夢中になれる｜魔法のような｜ひとときを｜あなたに。'
+    ],
+    photo: 'キャスト写真/web/やさい-photo.jpg?v=2'
   },
   'しぐ': {
     name: 'しぐ',
