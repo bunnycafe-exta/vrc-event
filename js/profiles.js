@@ -42,7 +42,8 @@ window.EXTA_PROFILES = {
       '不思議なバニーの｜お店で｜私達と｜お話ししませんか？',
       '皆様の｜ご来店を｜心待ちに｜しております'
     ],
-    photo: 'スタッフメッセージ/web/とらまる.jpg'
+    photo: 'キャスト写真/web/とらまる-photo.jpg',
+    photoPosition: '50% 40%'
   },
   'はやしすん': {
     name: 'はやしすん',
