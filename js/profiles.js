@@ -134,6 +134,13 @@ window.EXTA_PROFILES = {
     ],
     photo: 'キャスト写真/web/やさい-photo.jpg?v=2'
   },
+  'めいるな': {
+    name: 'めいるな',
+    avatar: 'Lime',
+    heading: 'ひとこと',
+    message: ['うさぎ達が｜紡ぐ物語、｜今宵は｜どんな出会いが｜待っているのでしょうか？'],
+    photo: 'キャスト写真/web/めいるな-photo.jpg'
+  },
   'しぐ': {
     name: 'しぐ',
     avatar: 'Alué',
