@@ -142,6 +142,16 @@ window.EXTA_PROFILES = {
     message: ['うさぎ達が｜紡ぐ物語、｜今宵は｜どんな出会いが｜待っているのでしょうか？'],
     photo: 'キャスト写真/web/めいるな-photo.jpg'
   },
+  'てばちゃ': {
+    name: 'てばちゃ',
+    avatar: 'ショコラ',
+    heading: 'ひとこと',
+    message: [
+      '静かな｜本の世界で、｜楽しい｜ひと時を｜過ごしませんか？',
+      'ご来店｜お待ちしております！！！！！'
+    ],
+    photo: 'キャスト写真/web/てばちゃ-photo.jpg'
+  },
   'しぐ': {
     name: 'しぐ',
     avatar: 'Alué',
