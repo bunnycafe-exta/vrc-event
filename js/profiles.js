@@ -81,7 +81,7 @@ window.EXTA_PROFILES = {
   },
   'ムレン': {
     name: 'ムレン',
-    avatar: '彼方',
+    avatar: '竜胆',
     heading: 'ひとこと',
     message: [
       '楽しい｜時間を｜提供できるように｜頑張ります！',
