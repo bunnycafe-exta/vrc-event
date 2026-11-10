@@ -444,13 +444,14 @@
           stats: { customers: 3, repeaters: 2, businessDays: 3 }
         });
       }
-      case 'vip': case 'vipDraw': case 'vipUndo': case 'vipAdjust': {
+      case 'vip': case 'vipDraw': case 'vipUndo': case 'vipAdjust': case 'vipNominate': {
         if (needOwner()) return needOwner();
         const WEIGHTS = [4, 2, 1];
         const MIN = 4;
         const date = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' }).format(new Date());
         const prevDate = demoPastEvents()[0].date;
-        const vip = db.vip = db.vip || { log: [{ date: prevDate, key: 'usr-hinata', name: 'ひなた', status: 'win' }, { date: '2000-01-01', key: 'usr-yuzu', name: 'ゆず', status: 'win' }], adj: {} };
+        const vip = db.vip = db.vip || { log: [{ date: prevDate, key: 'usr-hinata', name: 'ひなた', status: 'win', choice: 'none', nominee: '', carry: '' }, { date: '2000-01-01', key: 'usr-yuzu', name: 'ゆず', status: 'win', choice: '', nominee: '', carry: '' }], adj: {} };
+        const CAST = [{ name: 'しえる', attend: 'ok' }, { name: 'とらまる', attend: 'ng' }, { name: 'はやしすん', attend: 'ok' }, { name: 'あかきのこ', attend: 'ng' }, { name: 'てとら', attend: 'unknown' }];
         const people = [
           { key: 'usr-sakura', name: 'さくら', guests: 2, ordinal: 4 },
           { key: 'usr-hinata', name: 'ひなた', guests: 1, ordinal: 5 },
@@ -458,50 +459,95 @@
           { key: 'usr-yuzu', name: 'ゆず', guests: 1, ordinal: 6 },
           { key: 'usr-mike', name: 'みけ', guests: 1, ordinal: 4 }
         ];
+        const sat = (l) => l.status === 'win' || l.status === 'carry';
         const view = () => {
-          const winRow = vip.log.find((l) => l.status === 'win' && l.date === date);
+          const winRow = vip.log.find((l) => sat(l) && l.date === date);
+          let carryOffer = null;
+          let carryLapsed = null;
+          if (!winRow) {
+            const src = vip.log.find((l) => l.status === 'win' && l.carry === 'yes' && l.date === prevDate);
+            if (src) {
+              const who = people.find((x) => x.key === src.key);
+              if (who) carryOffer = { key: src.key, name: who.name, nominee: src.nominee, from: src.date };
+              else carryLapsed = { name: src.name, nominee: src.nominee, from: src.date };
+            }
+          }
           const cands = people.map((p) => {
             const a = vip.adj[p.key] || { visit: 0, win: 0 };
             const past = vip.log.filter((l) => l.key === p.key && l.status === 'win' && l.date !== date);
-            const lastWin = past.reduce((m, l) => (l.date > m ? l.date : m), '');
+            const lastWin = vip.log.filter((l) => l.key === p.key && sat(l) && l.date !== date).reduce((m, l) => (l.date > m ? l.date : m), '');
             const visits = p.ordinal + a.visit;
             const wins = Math.max(0, past.length + a.win);
             const declined = vip.log.some((l) => l.key === p.key && l.status === 'declined' && l.date === date);
             let reason = '';
-            if (winRow && winRow.key === p.key) reason = '今回の当選';
+            if (winRow && winRow.key === p.key) reason = winRow.status === 'carry' ? '持ち越しのVIP' : '今回の当選';
             else if (declined) reason = '辞退（今回は対象外）';
+            else if (carryOffer && carryOffer.key === p.key) reason = '持ち越しのVIP（抽選なし）';
+            else if (carryOffer) reason = '持ち越しのVIPがいるため、今回は抽選なし';
             else if (visits < MIN) reason = `来店${Math.max(visits, 0)}回目（${MIN}回目から対象）`;
             else if (lastWin === prevDate) reason = '前回の営業でVIPに当選（連続は避ける）';
-            return { key: p.key, name: p.name, guests: p.guests, visits, visitBase: p.ordinal, visitAdjust: a.visit, wins, winBase: past.length, winAdjust: a.win, lastWin, eligible: !reason, reason, weight: WEIGHTS[Math.min(wins, 2)], isWinner: Boolean(winRow && winRow.key === p.key), percent: 0 };
+            return { key: p.key, name: p.name, guests: p.guests, visits, visitBase: p.ordinal, visitAdjust: a.visit, wins, winBase: past.length, winAdjust: a.win, lastWin, eligible: !reason, reason, weight: WEIGHTS[Math.min(wins, 2)], isWinner: Boolean(winRow && winRow.key === p.key), isCarry: Boolean(carryOffer && carryOffer.key === p.key), percent: 0 };
           });
           const pool = cands.filter((c) => c.eligible);
           const total = pool.reduce((s, c) => s + c.weight, 0);
           pool.forEach((c) => { c.percent = Math.round((c.weight / total) * 1000) / 10; });
-          cands.sort((a, b) => (b.isWinner - a.isWinner) || (b.eligible - a.eligible) || (b.visits - a.visits));
+          cands.sort((a, b) => (b.isWinner - a.isWinner) || (b.isCarry - a.isCarry) || (b.eligible - a.eligible) || (b.visits - a.visits));
+          const noteOf = (l) => (l.status === 'carry' ? '持ち越し' : '')
+            + (l.choice === 'cast' && l.nominee ? (l.status === 'carry' ? '・' : '') + '指名：' + l.nominee + (l.carry === 'yes' ? '（当日不在のため、次回へ持ち越し）' : '') : '')
+            + (l.choice === 'none' ? (l.status === 'carry' ? '・' : '') + '指名なし' : '');
           return {
             date, prevDate, minVisits: MIN, weights: WEIGHTS, candidates: cands, eligibleCount: pool.length,
-            winner: winRow ? { key: winRow.key, name: winRow.name, date } : null,
-            history: vip.log.filter((l) => l.status === 'win').sort((a, b) => (a.date < b.date ? 1 : -1)).map((l) => ({ date: l.date, name: l.name }))
+            winner: winRow ? { key: winRow.key, name: winRow.name, date, type: winRow.status, choice: winRow.choice || '', nominee: winRow.nominee || '', carry: winRow.carry === 'yes', carryFrom: winRow.carryFrom || '' } : null,
+            carryOffer, carryLapsed, cast: CAST, attendState: 'closed',
+            history: vip.log.filter(sat).sort((a, b) => (a.date < b.date ? 1 : -1)).map((l) => ({ date: l.date, name: l.name, note: noteOf(l) }))
           };
         };
-        let v = view();
+        const v = view();
         if (action === 'vipDraw') {
           if (v.winner) return fail('この営業日は、すでに抽選済みです');
-          const pool = v.candidates.filter((c) => c.eligible);
-          if (pool.length) {
-            let r = Math.random() * pool.reduce((s, c) => s + c.weight, 0);
-            let pick = pool[pool.length - 1];
-            for (const c of pool) { r -= c.weight; if (r < 0) { pick = c; break; } }
-            vip.log.push({ date, key: pick.key, name: pick.name, status: 'win' });
+          let none = false;
+          if (v.carryOffer) {
+            const o = v.carryOffer;
+            vip.log.push({ date, key: o.key, name: o.name, status: 'carry', choice: o.nominee ? 'cast' : '', nominee: o.nominee, carry: '', carryFrom: o.from });
+          } else {
+            const pool = v.candidates.filter((c) => c.eligible);
+            none = pool.length === 0;
+            if (pool.length) {
+              let r = Math.random() * pool.reduce((s, c) => s + c.weight, 0);
+              let pick = pool[pool.length - 1];
+              for (const c of pool) { r -= c.weight; if (r < 0) { pick = c; break; } }
+              vip.log.push({ date, key: pick.key, name: pick.name, status: 'win', choice: '', nominee: '', carry: '' });
+            }
           }
           demoSave(db);
-          const after = view();
-          return ok({ ...after, none: pool.length === 0 });
+          return ok({ ...view(), none });
         }
         if (action === 'vipUndo') {
           if (!v.winner) return fail('いまの営業日に、当選者はいません。画面を更新してください');
-          const i = vip.log.findIndex((l) => l.status === 'win' && l.date === date);
-          if (p.mode === 'void') vip.log.splice(i, 1); else vip.log[i].status = 'declined';
+          const i = vip.log.findIndex((l) => sat(l) && l.date === date);
+          if (p.mode === 'void' || vip.log[i].status === 'carry') vip.log.splice(i, 1); else vip.log[i].status = 'declined';
+          demoSave(db);
+          return ok(view());
+        }
+        if (action === 'vipNominate') {
+          if (!v.winner) return fail('いまの営業日に、当選者はいません。画面を更新してください');
+          const row = vip.log.find((l) => sat(l) && l.date === date);
+          const isCarryIn = row.status === 'carry';
+          let choice = 'none';
+          let nominee = '';
+          let carry = '';
+          if (p.mode === 'cast') {
+            const hit = CAST.find((c) => c.name === p.cast);
+            if (!hit) return fail('指名するキャストを選んでください（キャストの一覧にない名前です）');
+            choice = 'cast';
+            nominee = hit.name;
+            const auto = hit.attend === 'ng';
+            const want = p.carry === undefined || p.carry === null ? auto : Boolean(p.carry);
+            if (isCarryIn) {
+              if (want || auto) return fail(nominee + 'さんは、その日も出勤しません。持ち越しは1回だけなので、別のキャストを選ぶか、「指名しない」にしてください');
+            } else if (want) carry = 'yes';
+          } else if (p.mode !== 'none') return fail('指名するか、しないかを選んでください');
+          Object.assign(row, { choice, nominee, carry });
           demoSave(db);
           return ok(view());
         }
@@ -1347,15 +1393,78 @@
   let vipAdjustKey = '';
   let lastVipLoad = 0;
 
-  function vipWinnerMessage(name) {
+  const ATTEND_LABEL = { ok: '出勤', ng: '欠勤', unknown: '出勤確認なし' };
+
+  // 当選した人に送る文面。指名の聞き取り前／指名あり／指名なし／持ち越し、で内容が変わる
+  function vipWinnerMessage(w) {
     const d = vipData && vipData.date ? dateJa(vipData.date) : '次回';
-    return [
-      `${name}さん`, '',
-      `BunnyCafe EXTA ${d}の営業で、VIP席にご案内いたします！`,
-      'VIP席では、お好きなキャストを1名、ご指名いただけます（1:1の接客です。40分・2ローテーション分のご指名も可能です）。',
-      '', 'ご指名のキャストを、このDMでお知らせください。',
-      '当日のご来店を、お待ちしております。'
-    ].join('\n');
+    const name = w.name;
+    if (w.carry) {
+      return [
+        `${name}さん`, '',
+        `BunnyCafe EXTA ${d}の営業で、VIP席にご当選されました！`,
+        `ご指名の「${w.nominee}」さんが、当日は出勤できないため、VIP席へのご案内は、次回の営業に持ち越しとさせてください。`,
+        '次回のご予約をいただければ、抽選なしで、VIP席にご案内いたします。',
+        '', '申し訳ございません。次回のご来店を、お待ちしております。'
+      ].join('\n');
+    }
+    const lines = [`${name}さん`, ''];
+    if (w.type === 'carry') {
+      lines.push(`前回からの持ち越しで、BunnyCafe EXTA ${d}の営業は、VIP席にご案内いたします！`);
+    } else {
+      lines.push(`BunnyCafe EXTA ${d}の営業で、VIP席にご当選されました！`);
+    }
+    if (w.choice === 'cast') {
+      lines.push(`ご指名は「${w.nominee}」さんで、承りました。`);
+    } else if (w.choice === 'none') {
+      lines.push('ご指名は、なしで承りました（当日、お好きなキャストをお選びいただくことも可能です）。');
+    } else {
+      lines.push(
+        'VIP席では、お好きなキャストを1名、ご指名いただけます（1:1の接客です。40分・2ローテーション分のご指名も可能です）。',
+        '', 'ご指名の「あり」「なし」と、ご指名のキャストを、このDMでお知らせください。',
+        '※ご指名のキャストが、当日出勤していない場合は、VIP席へのご案内は、次回の営業に持ち越しとなります。'
+      );
+    }
+    lines.push('', '当日のご来店を、お待ちしております。');
+    return lines.join('\n');
+  }
+
+  function fillVipNominate(res) {
+    const w = res.winner;
+    const select = $('vipCastSelect');
+    select.replaceChildren();
+    res.cast.forEach((c) => {
+      const o = el('option', '', `${c.name}（${ATTEND_LABEL[c.attend] || ''}）`);
+      o.value = c.name;
+      select.append(o);
+    });
+    const radios = document.querySelectorAll('input[name="vipChoice"]');
+    radios.forEach((r) => { r.checked = (w.choice === 'cast' ? 'cast' : (w.choice === 'none' ? 'none' : '')) === r.value; });
+    if (w.choice === 'cast' && w.nominee) select.value = w.nominee;
+    select.disabled = !(w.choice === 'cast');
+
+    $('vipAttendNote').textContent = res.attendState === 'none'
+      ? 'その営業日の出勤確認が、まだありません。出勤しているかどうかは、自動では分かりません（必要なときは、下のボタンで、手で持ち越しにできます）。'
+      : (res.attendState === 'open'
+        ? 'その営業日の出勤確認は、まだ締め切られていません。締め切ったあとに、もう一度「保存」を押すと、持ち越しが自動で決まります。'
+        : 'カッコの中は、その営業日の出勤確認の結果です。欠勤のキャストを指名したときは、次回の営業に持ち越しになります。');
+
+    const result = $('vipNomResult');
+    let text = '';
+    if (w.carry) text = `指名：${w.nominee}さん ― 当日は出勤しないため、今回のVIPは「なし」です。次回の営業に持ち越します（次回の営業で、この人が予約していれば、抽選せずにVIPになります）。`;
+    else if (w.choice === 'cast') text = `指名：${w.nominee}さん` + (w.type === 'carry' ? '（前回からの持ち越し。変えるときは、選び直して「保存」）' : '');
+    else if (w.choice === 'none') text = '指名なし';
+    result.textContent = text;
+    result.hidden = !text;
+
+    const note = $('vipWinnerNote');
+    note.textContent = w.type === 'carry' ? `${w.carryFrom ? dateJa(w.carryFrom) : '前回'}の当選からの、持ち越しです。` : '';
+    note.hidden = !note.textContent;
+
+    const showCarry = w.choice === 'cast' && w.type === 'win';
+    $('vipCarryRow').hidden = !showCarry;
+    $('vipCarryOn').hidden = w.carry;
+    $('vipCarryOff').hidden = !w.carry;
   }
 
   function renderVip(res) {
@@ -1363,16 +1472,32 @@
     $('vipMinVisits').textContent = res.minVisits;
     const w = res.weights || [];
     const dateText = res.date ? dateJa(res.date) : '営業日が未設定';
-    $('vipSummary').textContent = `対象の営業日：${dateText} ／ 予約のお客様 ${res.candidates.length}人 ／ ${res.winner ? `抽選済み（当選：${res.winner.name}）` : `抽選の対象 ${res.eligibleCount}人`}`
-      + (w.length ? `（重み：当選0回=${w[0]}、1回=${w[1]}、2回以上=${w[w.length - 1]}）` : '')
-      + (!res.winner && res.eligibleCount === 0 && res.candidates.length ? ' ／ 対象の人がいないため、今回は「VIPなし」です' : '');
+    const offer = res.carryOffer;
+    $('vipSummary').textContent = `対象の営業日：${dateText} ／ 予約のお客様 ${res.candidates.length}人 ／ `
+      + (res.winner ? `抽選済み（当選：${res.winner.name}${res.winner.carry ? '・次回へ持ち越し' : ''}）` : (offer ? `持ち越しのVIP：${offer.name}さん` : `抽選の対象 ${res.eligibleCount}人`))
+      + (w.length && !offer && !res.winner ? `（重み：当選0回=${w[0]}、1回=${w[1]}、2回以上=${w[w.length - 1]}）` : '')
+      + (!res.winner && !offer && res.eligibleCount === 0 && res.candidates.length ? ' ／ 対象の人がいないため、今回は「VIPなし」です' : '');
 
     const box = $('vipWinnerBox');
     box.hidden = !res.winner;
     $('vipDrawRow').hidden = Boolean(res.winner);
     $('vipCopyText').hidden = true;
-    if (res.winner) $('vipWinnerName').textContent = res.winner.name;
-    $('vipDraw').disabled = res.eligibleCount === 0;
+    if (res.winner) {
+      $('vipWinnerName').textContent = res.winner.name;
+      fillVipNominate(res);
+    }
+    const banner = $('vipCarryBanner');
+    let bannerText = '';
+    if (!res.winner && offer) {
+      bannerText = `前回（${dateJa(offer.from)}）の当選者「${offer.name}」さんは、指名した「${offer.nominee}」さんが出勤しなかったため、今回に持ち越しです。抽選はせず、この人がVIPになります。`;
+    } else if (!res.winner && res.carryLapsed) {
+      const l = res.carryLapsed;
+      bannerText = `前回（${dateJa(l.from)}）の持ち越し（${l.name}さん・指名：${l.nominee}さん）は、今回の予約がないため、終了しました（持ち越しは1回だけです）。今回は、通常どおり抽選します。`;
+    }
+    banner.textContent = bannerText;
+    banner.hidden = !bannerText;
+    $('vipDraw').textContent = offer ? `持ち越しのVIPを確定する（${offer.name}さん）` : '抽選する';
+    $('vipDraw').disabled = !offer && res.eligibleCount === 0;
 
     const empty = res.candidates.length === 0;
     $('vipEmpty').hidden = !empty;
@@ -1383,8 +1508,8 @@
       const tr = el('tr');
       const visitText = `${c.visits}回目` + (c.visitAdjust ? `（手直し ${c.visitAdjust > 0 ? '+' : ''}${c.visitAdjust}）` : '');
       const winText = `${c.wins}回` + (c.winAdjust ? `（手直し ${c.winAdjust > 0 ? '+' : ''}${c.winAdjust}）` : '');
-      const state = c.isWinner ? '当選' : (c.eligible ? '対象' : c.reason);
-      const stateCls = c.isWinner || c.eligible ? 'staff-mark-ok' : 'staff-muted';
+      const state = c.isWinner ? c.reason : (c.eligible ? '対象' : c.reason);
+      const stateCls = c.isWinner || c.isCarry || c.eligible ? 'staff-mark-ok' : 'staff-muted';
       const btn = el('button', 'btn btn-outline', '手直し');
       btn.type = 'button';
       btn.addEventListener('click', () => openVipAdjust(c));
@@ -1397,7 +1522,7 @@
     const hist = $('vipHistory');
     hist.replaceChildren();
     $('vipHistoryEmpty').hidden = res.history.length > 0;
-    res.history.forEach((h) => hist.append(el('p', '', `${h.date ? dateJa(h.date) : '日付なし'}　${h.name}`)));
+    res.history.forEach((h) => hist.append(el('p', '', `${h.date ? dateJa(h.date) : '日付なし'}　${h.name}` + (h.note ? `（${h.note}）` : ''))));
     if (vipAdjustKey && !res.candidates.some((c) => c.key === vipAdjustKey)) closeVipAdjust();
   }
 
@@ -1426,11 +1551,39 @@
   }
 
   function vipDraw() {
-    if (vipData && vipData.eligibleCount === 0) return;
-    if (!confirm(`抽選の対象 ${vipData ? vipData.eligibleCount : 0}人から、1人を引きます。よろしいですか？`)) return;
+    const offer = vipData && vipData.carryOffer;
+    if (!offer && vipData && vipData.eligibleCount === 0) return;
+    if (!confirm(offer
+      ? `前回からの持ち越しで、「${offer.name}」さんを、今回のVIPにします（抽選はしません）。よろしいですか？`
+      : `抽選の対象 ${vipData ? vipData.eligibleCount : 0}人から、1人を引きます。よろしいですか？`)) return;
     vipCall('vipDraw', {}, (res) => (res.none
       ? '抽選の対象の人がいないので、今回は「VIPなし」です（何も記録していません）。'
-      : `抽選しました。当選は「${res.winner.name}」さんです。連絡して、指名するキャストを聞いてください。`));
+      : (res.winner.type === 'carry'
+        ? `持ち越しのVIPを確定しました（${res.winner.name}さん）。指名のキャストが、今回出勤しているか、下の「指名の確認」で確かめてください。`
+        : `抽選しました。当選は「${res.winner.name}」さんです。連絡して、「指名するか、しないか」を聞いてください。`)));
+  }
+
+  function vipNominate(e) {
+    e.preventDefault();
+    const choice = (document.querySelector('input[name="vipChoice"]:checked') || {}).value;
+    if (!choice) { say($('vipMessage'), '「指名しない」か「指名する」を選んでください。'); return; }
+    const cast = $('vipCastSelect').value;
+    if (choice === 'cast' && !cast) { say($('vipMessage'), '指名するキャストを選んでください。'); return; }
+    vipCall('vipNominate', choice === 'cast' ? { mode: 'cast', cast } : { mode: 'none' }, (res) => {
+      const w = res.winner;
+      if (w.carry) return `「${w.nominee}」さんは、その日出勤しないため、次回の営業に持ち越しにしました。当選した人に、連絡してください。`;
+      return w.choice === 'cast' ? `指名「${w.nominee}」さんで、記録しました。` : '「指名なし」で、記録しました。';
+    });
+  }
+
+  function vipSetCarry(carry) {
+    const w = vipData && vipData.winner;
+    if (!w || !w.nominee) return;
+    const ask = carry
+      ? `「${w.nominee}」さんが出勤しないことにして、今回のVIPはなし、次回の営業に持ち越します。よろしいですか？`
+      : '持ち越しをやめて、今回のVIPにします。よろしいですか？';
+    if (!confirm(ask)) return;
+    vipCall('vipNominate', { mode: 'cast', cast: w.nominee, carry }, carry ? '次回の営業に持ち越しにしました。' : '持ち越しをやめて、今回のVIPにしました。');
   }
 
   function vipUndo(mode) {
@@ -1468,7 +1621,7 @@
   async function copyVipMessage() {
     if (!vipData || !vipData.winner) return;
     const box = $('vipCopyText');
-    box.textContent = vipWinnerMessage(vipData.winner.name);
+    box.textContent = vipWinnerMessage(vipData.winner);
     box.hidden = false;
     await copyText('vipCopyText', 'vipMessage');
   }
@@ -1830,6 +1983,10 @@
     $('vipDecline').addEventListener('click', () => vipUndo('declined'));
     $('vipVoid').addEventListener('click', () => vipUndo('void'));
     $('vipCopy').addEventListener('click', copyVipMessage);
+    $('vipNominateForm').addEventListener('submit', vipNominate);
+    $('vipNominateForm').addEventListener('change', (e) => { if (e.target.name === 'vipChoice') $('vipCastSelect').disabled = e.target.value !== 'cast'; });
+    $('vipCarryOn').addEventListener('click', () => vipSetCarry(true));
+    $('vipCarryOff').addEventListener('click', () => vipSetCarry(false));
     $('vipAdjustForm').addEventListener('submit', saveVipAdjust);
     $('vipAdjCancel').addEventListener('click', closeVipAdjust);
     $('maintOn').addEventListener('click', () => setMaintenance(true));

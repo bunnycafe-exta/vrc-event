@@ -79,7 +79,7 @@ function doGet() {
   } catch (err) {
     console.error(err);
   }
-  return json_({ ok: true, service: 'EXTA staff API', version: 21, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
+  return json_({ ok: true, service: 'EXTA staff API', version: 22, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
 }
 
 function doPost(e) {
@@ -129,6 +129,7 @@ function route_(req) {
     case 'vip': requireOwner_(user); return vipState_();
     case 'vipDraw': requireOwner_(user); return withLock_(() => vipDraw_());
     case 'vipUndo': requireOwner_(user); return withLock_(() => vipUndo_(req));
+    case 'vipNominate': requireOwner_(user); return withLock_(() => vipNominate_(req));
     case 'vipAdjust': requireOwner_(user); return withLock_(() => vipAdjust_(req));
     case 'reopenReservation': requireOwner_(user); return withLock_(() => reopenReservation_());
     case 'getNextOpen': requireOwner_(user); return { ok: true, next: storedNextOpen_() };
@@ -927,31 +928,44 @@ function setupReservation() {
 /* ---------- VIP席の抽選（オーナー専用） ---------- */
 // 事前予約のお客様のうち、「来店が4回目以降」で「前回の営業でVIPに当たっていない」人から、1人を抽選する。
 // 過去にVIPに当たった回数が多いほど、当たりにくくする。記録は、スプレッドシートの「VIP当選」「VIP補正」に残る（なければ自動で作る）。
+// 当選した人には「指名するか、しないか」を聞き、指名するキャストが、その営業日に出勤していなければ、次回の営業に持ち越す（1回だけ）。
 
 const VIP_MIN_VISITS = 4;       // 来店が何回目から対象にするか
 const VIP_WEIGHTS = [4, 2, 1];  // 過去の当選 0回 / 1回 / 2回以上 の、当たりやすさ（数字が大きいほど当たりやすい）
 const VIP_LOG_SHEET = 'VIP当選';
-const VIP_LOG_HEADER = ['date', 'key', 'name', 'status', 'drawnAt']; // status: win（当選） / declined（辞退）
+// status : win（抽選で当選） / carry（前回からの持ち越し） / declined（辞退）
+// choice : 空（まだ聞いていない） / none（指名なし） / cast（指名あり）
+// carry  : yes = 指名したキャストが、その日出勤しないため、次回の営業に持ち越す
+const VIP_LOG_HEADER = ['date', 'key', 'name', 'status', 'drawnAt', 'choice', 'nominee', 'carry', 'carryFrom'];
 const VIP_ADJ_SHEET = 'VIP補正';
 const VIP_ADJ_HEADER = ['key', 'name', 'visitAdjust', 'winAdjust', 'updatedAt'];
 
 function vipSheet_(name, header) {
   const ss = ss_();
   let sh = ss.getSheetByName(name);
+  const textCols = name === VIP_LOG_SHEET ? header.length : 2;
   if (!sh) {
     sh = ss.insertSheet(name);
     sh.getRange(1, 1, 1, header.length).setValues([header]).setFontWeight('bold');
     // 日付や名前が、勝手に別の形に変わらないように、文字として扱う
-    const textCols = name === VIP_LOG_SHEET ? header.length : 2;
     sh.getRange(2, 1, sh.getMaxRows() - 1, textCols).setNumberFormat('@');
+    return sh;
   }
+  // 古い版で作ったシートに、あとから増えた列を足す
+  const have = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(String);
+  header.forEach((title, i) => {
+    if (have[i]) return;
+    sh.getRange(1, i + 1).setValue(title).setFontWeight('bold');
+    if (i < textCols) sh.getRange(2, i + 1, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
+  });
   return sh;
 }
 
 function vipLog_() {
   vipSheet_(VIP_LOG_SHEET, VIP_LOG_HEADER);
   return readRows_(VIP_LOG_SHEET).filter(r => String(r.key)).map(r => ({
-    row: r._row, date: asDate_(r.date), key: String(r.key), name: String(r.name), status: String(r.status || 'win')
+    row: r._row, date: asDate_(r.date), key: String(r.key), name: String(r.name), status: String(r.status || 'win'),
+    choice: String(r.choice || ''), nominee: String(r.nominee || ''), carry: String(r.carry || ''), carryFrom: String(r.carryFrom || '')
   }));
 }
 
@@ -962,6 +976,27 @@ function vipAdjustMap_() {
     map[String(r.key)] = { row: r._row, visit: Math.round(Number(r.visitAdjust)) || 0, win: Math.round(Number(r.winAdjust)) || 0 };
   });
   return map;
+}
+
+// 指名できるキャストと、その営業日に出勤するかどうか（出勤確認の結果）。
+// attend: ok=出勤 / ng=欠勤 / unknown=分からない（出勤確認がない、オーナー、登録前の営業日）
+// state:  none=その日の出勤確認がない / open=まだ締め切っていない / closed=締め切り済み
+function vipCastAttend_(date) {
+  const people = readRows_('Staff').filter(r => ['cast', 'owner'].indexOf(String(r.role)) >= 0 && String(r.active).toUpperCase() !== 'FALSE');
+  const unknown = () => people.map(p => ({ name: String(p.name), attend: 'unknown' }));
+  const e = date
+    ? readRows_('Events').map(eventFromRow_)
+      .filter(x => x.date === date && (x.status === 'active' || x.status === 'archived'))
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0]
+    : null;
+  if (!e) return { state: 'none', cast: unknown() };
+  const responses = readRows_('Responses').filter(r => String(r.eventId) === e.id);
+  const cast = people.map(p => {
+    if (String(p.role) === 'owner' || joinedOf_(p) > e.date) return { name: String(p.name), attend: 'unknown' };
+    const resp = responses.find(r => String(r.staffId) === String(p.id));
+    return { name: String(p.name), attend: effectiveOf_(resp) === 'ok' ? 'ok' : 'ng' };
+  });
+  return { state: phaseOf_(e) === 'closed' ? 'closed' : 'open', cast: cast };
 }
 
 // いまの営業日の予約から、抽選の対象になるかどうかを、お客様ごとに判定する
@@ -987,41 +1022,67 @@ function vipView_() {
   });
 
   // 前回の営業日（連続を避ける相手）。営業日の区切りがなければ、VIPの記録でいちばん新しい日にする
+  const sat = l => l.status === 'win' || l.status === 'carry'; // 実際に、VIP席に座る権利が出た記録
   let prevDate = '';
   periods.slice(0, -1).forEach(p => { if (p.date && p.date !== date && p.date > prevDate) prevDate = p.date; });
-  if (!prevDate) log.forEach(l => { if (l.status === 'win' && l.date !== date && l.date > prevDate) prevDate = l.date; });
+  if (!prevDate) log.forEach(l => { if (sat(l) && l.date !== date && l.date > prevDate) prevDate = l.date; });
 
-  const winRow = log.find(l => l.status === 'win' && l.date === date);
+  const winRow = log.find(l => sat(l) && l.date === date);
+
+  // 前回の営業で、指名したキャストが出勤せず、持ち越しになった人（持ち越しは、次の営業だけ・1回だけ）
+  let carryOffer = null;
+  let carryLapsed = null;
+  if (!winRow && prevDate) {
+    const src = log.find(l => l.status === 'win' && l.carry === 'yes' && l.date === prevDate);
+    if (src) {
+      if (people[src.key]) carryOffer = { key: src.key, name: people[src.key].name, nominee: src.nominee, from: src.date };
+      else carryLapsed = { name: src.name, nominee: src.nominee, from: src.date };
+    }
+  }
+
   const candidates = Object.keys(people).map(k => {
     const p = people[k];
     const a = adj[k] || { visit: 0, win: 0 };
     const past = log.filter(l => l.key === k && l.status === 'win' && l.date !== date);
-    const lastWin = past.reduce((m, l) => (l.date > m ? l.date : m), '');
+    const lastWin = log.filter(l => l.key === k && sat(l) && l.date !== date).reduce((m, l) => (l.date > m ? l.date : m), '');
     const visits = p.ordinal + a.visit;
     const wins = Math.max(0, past.length + a.win);
     const declined = log.some(l => l.key === k && l.status === 'declined' && l.date === date);
     let reason = '';
-    if (winRow && winRow.key === k) reason = '今回の当選';
+    if (winRow && winRow.key === k) reason = winRow.status === 'carry' ? '持ち越しのVIP' : '今回の当選';
     else if (declined) reason = '辞退（今回は対象外）';
+    else if (carryOffer && carryOffer.key === k) reason = '持ち越しのVIP（抽選なし）';
+    else if (carryOffer) reason = '持ち越しのVIPがいるため、今回は抽選なし';
     else if (visits < VIP_MIN_VISITS) reason = `来店${Math.max(visits, 0)}回目（${VIP_MIN_VISITS}回目から対象）`;
     else if (prevDate && lastWin === prevDate) reason = '前回の営業でVIPに当選（連続は避ける）';
     const weight = VIP_WEIGHTS[Math.min(wins, VIP_WEIGHTS.length - 1)];
     return {
       key: k, name: p.name, guests: p.guests, visits: visits, visitBase: p.ordinal, visitAdjust: a.visit,
       wins: wins, winBase: past.length, winAdjust: a.win, lastWin: lastWin,
-      eligible: !reason, reason: reason, weight: weight, isWinner: Boolean(winRow && winRow.key === k), percent: 0
+      eligible: !reason, reason: reason, weight: weight,
+      isWinner: Boolean(winRow && winRow.key === k), isCarry: Boolean(carryOffer && carryOffer.key === k), percent: 0
     };
   });
   const pool = candidates.filter(c => c.eligible);
   const total = pool.reduce((s, c) => s + c.weight, 0);
   pool.forEach(c => { c.percent = total ? Math.round(c.weight / total * 1000) / 10 : 0; });
-  candidates.sort((a, b) => (b.isWinner - a.isWinner) || (b.eligible - a.eligible) || (b.visits - a.visits));
+  candidates.sort((a, b) => (b.isWinner - a.isWinner) || (b.isCarry - a.isCarry) || (b.eligible - a.eligible) || (b.visits - a.visits));
 
-  const history = log.filter(l => l.status === 'win').sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 15).map(l => ({ date: l.date, name: l.name }));
+  const noteOf = l => (l.status === 'carry' ? '持ち越し' : '')
+    + (l.choice === 'cast' && l.nominee ? (l.status === 'carry' ? '・' : '') + '指名：' + l.nominee + (l.carry === 'yes' ? '（当日不在のため、次回へ持ち越し）' : '') : '')
+    + (l.choice === 'none' ? (l.status === 'carry' ? '・' : '') + '指名なし' : '');
+  const history = log.filter(sat).sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 15)
+    .map(l => ({ date: l.date, name: l.name, note: noteOf(l) }));
+  const att = vipCastAttend_(date);
   return {
     ok: true, date: date, prevDate: prevDate, minVisits: VIP_MIN_VISITS, weights: VIP_WEIGHTS,
     candidates: candidates, eligibleCount: pool.length,
-    winner: winRow ? { key: winRow.key, name: winRow.name, date: winRow.date } : null,
+    winner: winRow ? {
+      key: winRow.key, name: winRow.name, date: winRow.date, type: winRow.status, choice: winRow.choice,
+      nominee: winRow.nominee, carry: winRow.carry === 'yes', carryFrom: winRow.carryFrom
+    } : null,
+    carryOffer: carryOffer, carryLapsed: carryLapsed,
+    cast: att.cast, attendState: att.state,
     history: history, _winRow: winRow ? winRow.row : 0
   };
 }
@@ -1036,29 +1097,70 @@ function vipDraw_() {
   const v = vipView_();
   if (!v.date) fail_('営業日が決まっていません。「新規作成」タブで次回営業日を設定するか、「予約」タブで「新しい営業日の予約を始める」を押してから、抽選してください');
   if (v.winner) fail_('この営業日は、すでに抽選済みです（当選：' + v.winner.name + '）。引き直すときは、先に、辞退または取り消しにしてください');
-  const pool = v.candidates.filter(c => c.eligible);
-  const out = { none: pool.length === 0 };
-  if (pool.length) {
-    let r = Math.random() * pool.reduce((s, c) => s + c.weight, 0);
-    let pick = pool[pool.length - 1];
-    for (let i = 0; i < pool.length; i++) {
-      r -= pool[i].weight;
-      if (r < 0) { pick = pool[i]; break; }
+  const sh = vipSheet_(VIP_LOG_SHEET, VIP_LOG_HEADER);
+  const row = (key, name, status, choice, nominee, carryFrom) =>
+    sh.appendRow([v.date, key, name, status, nowSecond_(), choice, nominee, '', carryFrom]);
+  let none = false;
+  if (v.carryOffer) {
+    // 前回から持ち越しの人は、抽選せずに、VIPにする（指名は、前回と同じキャスト。変えたいときは、指名を選び直せる）
+    const o = v.carryOffer;
+    row(o.key, o.name, 'carry', o.nominee ? 'cast' : '', o.nominee, o.from);
+  } else {
+    const pool = v.candidates.filter(c => c.eligible);
+    none = pool.length === 0;
+    if (pool.length) {
+      let r = Math.random() * pool.reduce((s, c) => s + c.weight, 0);
+      let pick = pool[pool.length - 1];
+      for (let i = 0; i < pool.length; i++) {
+        r -= pool[i].weight;
+        if (r < 0) { pick = pool[i]; break; }
+      }
+      row(pick.key, pick.name, 'win', '', '', '');
     }
-    vipSheet_(VIP_LOG_SHEET, VIP_LOG_HEADER).appendRow([v.date, pick.key, pick.name, 'win', nowSecond_()]);
   }
   const state = vipState_();
-  state.none = out.none;
+  state.none = none;
   return state;
 }
 
 // 当選を、辞退（今回の抽選の対象から外す）か、取り消し（記録を消す）にする。どちらも、そのあと、引き直せる
+// 持ち越しのVIPを取り消したときは、その人の持ち越しの権利が、また使える状態に戻る（記録を消すだけ）
 function vipUndo_(req) {
   const v = vipView_();
   if (!v.winner) fail_('いまの営業日に、当選者はいません。画面を更新してください');
   const sh = vipSheet_(VIP_LOG_SHEET, VIP_LOG_HEADER);
-  if (req.mode === 'void') sh.deleteRow(v._winRow);
+  if (req.mode === 'void' || v.winner.type === 'carry') sh.deleteRow(v._winRow);
   else sh.getRange(v._winRow, VIP_LOG_HEADER.indexOf('status') + 1).setValue('declined');
+  return vipState_();
+}
+
+// 当選した人の「指名するか、しないか」を記録する。
+// 指名するキャストが、その営業日に出勤しない（出勤確認の結果）ときは、次回の営業に持ち越す。req.carry で、オーナーが手で決めることもできる
+function vipNominate_(req) {
+  const v = vipView_();
+  if (!v.winner) fail_('いまの営業日に、当選者はいません。画面を更新してください');
+  const sh = vipSheet_(VIP_LOG_SHEET, VIP_LOG_HEADER);
+  const col = name => VIP_LOG_HEADER.indexOf(name) + 1;
+  const isCarryIn = v.winner.type === 'carry'; // 持ち越してきた人は、もう持ち越せない（1回だけ）
+  let choice = 'none';
+  let nominee = '';
+  let carry = '';
+  if (req.mode === 'cast') {
+    nominee = String(req.cast || '');
+    const hit = v.cast.find(c => c.name === nominee);
+    if (!hit) fail_('指名するキャストを選んでください（キャストの一覧にない名前です）');
+    choice = 'cast';
+    const auto = hit.attend === 'ng' && v.attendState === 'closed';
+    const want = req.carry === undefined || req.carry === null ? auto : Boolean(req.carry);
+    if (isCarryIn) {
+      if (want || auto) fail_(nominee + 'さんは、その日も出勤しません。持ち越しは1回だけなので、別のキャストを選ぶか、「指名しない」にしてください');
+    } else if (want) {
+      carry = 'yes';
+    }
+  } else if (req.mode !== 'none') {
+    fail_('指名するか、しないかを選んでください');
+  }
+  sh.getRange(v._winRow, col('choice'), 1, 3).setValues([[choice, nominee, carry]]);
   return vipState_();
 }
 

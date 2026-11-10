@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/staff.css?v=38">
+<link rel="stylesheet" href="css/staff.css?v=39">
 </head>
 <body class="staff-body">
 
@@ -292,6 +292,9 @@
             <li>下の表で、「対象」になっている人が、抽選に入る人です。「当たりやすさ」は、その人が、いま引いたら当たる確率です。</li>
             <li>「抽選する」を押すと、対象の人から1人が決まり、記録されます。当選した人に、DMなどで連絡して、指名したいキャストを聞いてください（下の「当選連絡の文面をコピー」が使えます）。</li>
             <li>当選した人が辞退したときは、「辞退されたので引き直す」を押します。その人は、今回の抽選から外れ、当選の回数にも数えません。押し間違えたときは、「抽選を取り消す」で、記録を消して、最初からやり直せます。</li>
+            <li>当選した人に、「指名するか、しないか」を聞いて、答えを「指名の確認」に入れて、「保存」を押します。指名するキャストは、一覧から選びます（その営業日の出勤確認で、「出勤」か「欠勤」かが、名前の横に出ます）。</li>
+            <li>指名したキャストが、その日出勤しないとき（出勤確認が締め切り済みで、欠勤）は、今回のVIPはなしにして、<strong>次回の営業に持ち越し</strong>になります。次回の営業では、その人が予約していれば、抽選をせずに、その人がVIPになります（持ち越しは、次の1回だけ。そのときも出勤しなければ、別のキャストを選ぶか、指名なしにします）。持ち越しの人がいる営業では、「持ち越しのVIPを確定する」を押します。</li>
+            <li>出勤確認の結果が違うとき（その日に急に出勤したなど）は、「持ち越しをやめて、今回のVIPにする」「出勤していないので、次回に持ち越す」で、手で直せます。</li>
             <li>対象の人がいない日は、「VIPなし」です（何も記録されません）。</li>
           </ol>
           <p class="staff-muted staff-small"><strong>対象になる人</strong>：①いまの営業日の予約をしている（キャンセルを除く）、②来店が<span id="vipMinVisits">4</span>回目以降（予約した営業日の数で数えます）、③前回の営業日にVIPへ当選していない。<br><strong>当たりやすさ</strong>：過去にVIPへ当選した回数が、0回なら4、1回なら2、2回以上なら1の重みで抽選します（当選が少ない人ほど、当たりやすい）。<br><strong>お客様の見分け方</strong>：VRChatのアカウントURL（usr_…）で見分けます。<br><strong>回数の手直し</strong>：表の「手直し」で、来店回数と、VIP当選回数を、プラス・マイナスで直せます（例：予約を通さずに来店した人は、来店回数を +1 にする）。</p>
@@ -300,6 +303,22 @@
         <div id="vipWinnerBox" class="staff-vip-winner" hidden>
           <p class="staff-vip-winner-label">今回のVIP当選</p>
           <p class="staff-vip-winner-name" id="vipWinnerName"></p>
+          <p class="staff-muted staff-small" id="vipWinnerNote" hidden></p>
+          <form id="vipNominateForm" class="staff-vip-nominate">
+            <p class="staff-vip-winner-label">指名の確認（当選した人に、聞いてください）</p>
+            <div class="staff-vip-choices">
+              <label><input type="radio" name="vipChoice" value="none"> 指名しない</label>
+              <label><input type="radio" name="vipChoice" value="cast"> 指名する</label>
+              <select id="vipCastSelect" aria-label="指名するキャスト" disabled></select>
+              <button type="submit" class="btn btn-primary">保存</button>
+            </div>
+            <p class="staff-muted staff-small" id="vipAttendNote"></p>
+            <p class="staff-vip-result" id="vipNomResult" hidden></p>
+            <div class="staff-preview-actions" id="vipCarryRow" hidden>
+              <button type="button" class="btn btn-outline" id="vipCarryOn">出勤していないので、次回に持ち越す</button>
+              <button type="button" class="btn btn-outline" id="vipCarryOff">持ち越しをやめて、今回のVIPにする</button>
+            </div>
+          </form>
           <div class="staff-preview-actions">
             <button type="button" class="btn btn-outline" id="vipCopy">当選連絡の文面をコピー</button>
             <button type="button" class="btn btn-outline" id="vipDecline">辞退されたので引き直す</button>
@@ -307,6 +326,7 @@
           </div>
           <pre class="staff-message-box" id="vipCopyText" hidden></pre>
         </div>
+        <p class="staff-vip-result" id="vipCarryBanner" hidden></p>
         <div class="staff-preview-actions" id="vipDrawRow">
           <button type="button" class="btn btn-primary" id="vipDraw">抽選する</button>
           <button type="button" class="btn btn-outline" id="vipReload">最新の状態に更新</button>
@@ -445,6 +465,6 @@
 </main>
 
 <script src="js/config.js?v=8"></script>
-<script src="js/staff.js?v=42"></script>
+<script src="js/staff.js?v=44"></script>
 </body>
 </html>

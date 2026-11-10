@@ -746,3 +746,10 @@
   border-radius: 14px;
 }
 #vipTable td button { white-space: nowrap; padding: 6px 12px; }
+.staff-vip-winner-name + .staff-small { margin: -6px 0 10px; }
+.staff-vip-nominate { margin: 4px 0 14px; padding-top: 12px; border-top: 1px solid rgba(201, 162, 75, 0.3); }
+.staff-vip-choices { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 8px 0 6px; }
+.staff-vip-choices label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.staff-vip-choices select { min-width: 12em; max-width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(201, 162, 75, 0.4); background: rgba(255, 255, 255, 0.06); color: inherit; font: inherit; }
+.staff-vip-choices select:disabled { opacity: 0.45; }
+.staff-vip-result { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: rgba(201, 162, 75, 0.12); font-weight: 700; overflow-wrap: anywhere; }
