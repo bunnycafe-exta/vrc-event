@@ -8,19 +8,19 @@
 .staff-body {
   /* ホームページと同じ色 */
   --cream: #F6F1E4;
-  --paper: #FBF7EC;
-  --leaf: #4E7A44;
+  --paper: #EDF1DE;
+  --leaf: #3F6B3A;
   --leaf-d: #2F4A33;
   --leaf-dd: #1F3322;
-  --sage: #DCE6C9;
+  --sage: #D7E3BF;
   --wood: #8A5A36;
   --gold: #C9A24B;
   --gold-l: #E8CA82;
-  --ink: #243628;
-  --ink-soft: #4d5f50;
+  --ink: #1F3322;
+  --ink-soft: #3F5443;
 
   /* style.css の色の名前を、昼の森の色に置き換える（文字：濃い緑がかった黒、強調：若草色） */
-  --color-cream-soft: var(--cream);
+  --color-cream-soft: var(--st-bg);
   --color-brown: var(--ink);
   --color-brown-soft: var(--ink-soft);
   --color-ink: var(--ink);
@@ -28,31 +28,32 @@
   --color-peach-deep: var(--leaf);
   --color-gold: var(--leaf);
   --color-surface: var(--paper);
-  --gradient-gold: linear-gradient(120deg, #5C8A51, var(--leaf));
+  --gradient-gold: linear-gradient(120deg, #4A7A43, var(--leaf));
   --shadow-soft: 0 12px 26px -14px rgba(47, 74, 51, 0.55);
   --shadow-card: 0 10px 26px -16px rgba(47, 74, 51, 0.5);
 
   /* このファイルの中で使う色 */
-  --st-line: rgba(78, 122, 68, 0.28);
-  --st-line-soft: rgba(78, 122, 68, 0.16);
-  --st-tint: rgba(78, 122, 68, 0.08);
-  --st-field: #fff;
-  --st-ok: #2F7A45;
+  --st-bg: #C5D5AE;
+  --st-line: rgba(47, 74, 51, 0.3);
+  --st-line-soft: rgba(47, 74, 51, 0.16);
+  --st-tint: rgba(47, 74, 51, 0.08);
+  --st-field: #F8F9EE;
+  --st-ok: #2B6A3E;
   --st-ng: #B4482F;
   --st-on-accent: #fff;
 
   color: var(--ink);
-  background: var(--cream);
+  background: var(--st-bg);
 }
 
 /* ---- 全体・ヘッダー ---- */
 .staff-header {
-  background: rgba(246, 241, 228, 0.88);
-  border-bottom: 1px solid var(--st-line);
+  background: var(--leaf-d);
+  border-bottom: 1px solid rgba(246, 241, 228, 0.18);
 }
 
-.staff-header .logo { color: var(--leaf-d); }
-.staff-header .logo-name { color: var(--leaf-d); }
+.staff-header .logo,
+.staff-header .logo-name { color: #F6F1E4; }
 .staff-header .logo-mark { filter: none; }
 
 .staff-card {
@@ -75,7 +76,7 @@
 .staff-field select:focus,
 .staff-field textarea:focus {
   border-color: var(--leaf);
-  box-shadow: 0 0 0 3px rgba(78, 122, 68, 0.2);
+  box-shadow: 0 0 0 3px rgba(47, 74, 51, 0.22);
 }
 
 .staff-message { color: var(--st-ng); }
@@ -110,6 +111,24 @@
   color: var(--st-on-accent);
 }
 
+/* オーナーのタブの帯は、濃い緑（ヘッダーと同じ）にして、タブは、クリーム色の丸いボタンにする */
+.staff-tabs {
+  background: rgba(47, 74, 51, 0.97);
+  border-bottom: 1px solid rgba(246, 241, 228, 0.18);
+}
+
+.staff-tab {
+  color: #F6F1E4;
+  background: rgba(246, 241, 228, 0.1);
+  border: 1px solid rgba(246, 241, 228, 0.28);
+}
+
+.staff-tab.is-active {
+  color: var(--leaf-d);
+  background: #F6F1E4;
+  border-color: transparent;
+}
+
 .staff-badge.is-closed,
 .staff-answer.is-selected.is-no,
 .staff-toggle button.is-active.is-ng {
@@ -127,7 +146,7 @@
 .staff-logout:hover { color: var(--leaf-d); border-color: var(--leaf); background: var(--sage); }
 .staff-delete:hover { color: var(--st-ng); border-color: var(--st-ng); }
 
-.staff-user-role { color: var(--leaf); border: 1px solid var(--st-line); }
+.staff-user-role { color: var(--leaf-d); border: 1px solid var(--st-line); }
 
 .btn-primary { color: var(--st-on-accent); background: var(--leaf); box-shadow: 0 12px 26px -14px rgba(47, 74, 51, 0.8); }
 .btn-primary:hover { background: var(--leaf-d); box-shadow: 0 14px 28px -14px rgba(47, 74, 51, 0.8); }
@@ -140,14 +159,14 @@
 
 /* ---- 文面・回答 ---- */
 .staff-message-box {
-  background: #fff;
+  background: var(--st-field);
   border: 1px solid var(--st-line);
   border-left: 4px solid var(--leaf);
 }
 
 .staff-answer {
   color: var(--ink);
-  background: #fff;
+  background: var(--st-field);
   border: 2px solid var(--st-line);
 }
 
@@ -156,7 +175,7 @@
 .staff-preview { border-top: 1px dashed var(--st-line); }
 
 /* ---- 表・一覧 ---- */
-.staff-table-wrap { scrollbar-color: rgba(78, 122, 68, 0.5) transparent; }
+.staff-table-wrap { scrollbar-color: rgba(47, 74, 51, 0.5) transparent; }
 
 .staff-table th,
 .staff-table td { border-bottom: 1px solid var(--st-line-soft); }
@@ -171,13 +190,13 @@
 .staff-answer-no { color: var(--st-ng); }
 
 .issued-card { background: var(--st-tint); border: 1px solid var(--st-line); }
-.issued-value { background: #fff; border: 1px solid var(--st-line); }
+.issued-value { background: var(--st-field); border: 1px solid var(--st-line); }
 
 .name-link { color: var(--leaf); }
 .name-link:hover { color: var(--leaf-d); }
 
 .staff-history-item {
-  background: #fff;
+  background: var(--st-field);
   border: 1px solid var(--st-line-soft);
 }
 
@@ -185,19 +204,19 @@
 
 /* ---- 配置 ---- */
 .placement-slot {
-  background: #fff;
+  background: var(--st-field);
   border: 1px solid var(--st-line);
 }
 
 .placement-select {
   color: var(--ink);
-  background: #fff;
+  background: var(--st-field);
   border: 1px solid var(--st-line);
   color-scheme: light;
 }
 
 .placement-select:hover,
-.placement-select:focus { border-color: var(--leaf); box-shadow: 0 0 0 3px rgba(78, 122, 68, 0.2); }
+.placement-select:focus { border-color: var(--leaf); box-shadow: 0 0 0 3px rgba(47, 74, 51, 0.22); }
 
 .placement-slot.is-me { background: var(--leaf); border-color: transparent; }
 
