@@ -719,3 +719,30 @@
   background: var(--gradient-gold);
   border-color: transparent;
 }
+
+/* VIP抽選 */
+.staff-vip-winner {
+  margin: 16px 0 20px;
+  padding: 16px 18px;
+  border: 1px solid rgba(201, 162, 75, 0.6);
+  border-radius: 14px;
+  background: rgba(201, 162, 75, 0.1);
+}
+.staff-vip-winner-label {
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  color: var(--color-peach);
+}
+.staff-vip-winner-name {
+  margin: 4px 0 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.staff-vip-adjust {
+  margin: 16px 0;
+  padding: 16px 18px;
+  border: 1px solid rgba(201, 162, 75, 0.25);
+  border-radius: 14px;
+}
+#vipTable td button { white-space: nowrap; padding: 6px 12px; }

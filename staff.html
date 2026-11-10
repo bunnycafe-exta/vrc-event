@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/staff.css?v=37">
+<link rel="stylesheet" href="css/staff.css?v=38">
 </head>
 <body class="staff-body">
 
@@ -86,6 +86,7 @@
         <button type="button" class="staff-tab" data-tab="create">新規作成</button>
         <button type="button" class="staff-tab" data-tab="placement">配置</button>
         <button type="button" class="staff-tab" data-tab="reservations">予約</button>
+        <button type="button" class="staff-tab" data-tab="vip">VIP抽選</button>
         <button type="button" class="staff-tab" data-tab="history">履歴</button>
         <button type="button" class="staff-tab" data-tab="manage">管理</button>
       </nav>
@@ -280,6 +281,68 @@
       </div>
       </div>
 
+      <div class="staff-tabpanel" data-panel="vip" hidden>
+      <div class="staff-card" id="vipCard">
+        <h2 class="staff-h2">VIP席の抽選</h2>
+        <p class="staff-reserve-summary" id="vipSummary">読み込み中…</p>
+        <details class="staff-history-item">
+          <summary>使い方・ルール（ここを開く）</summary>
+          <ol class="staff-small">
+            <li>予約の受付を締め切ったら、このタブを開きます（予約が入るたびに、自動で最新の状態になります）。</li>
+            <li>下の表で、「対象」になっている人が、抽選に入る人です。「当たりやすさ」は、その人が、いま引いたら当たる確率です。</li>
+            <li>「抽選する」を押すと、対象の人から1人が決まり、記録されます。当選した人に、DMなどで連絡して、指名したいキャストを聞いてください（下の「当選連絡の文面をコピー」が使えます）。</li>
+            <li>当選した人が辞退したときは、「辞退されたので引き直す」を押します。その人は、今回の抽選から外れ、当選の回数にも数えません。押し間違えたときは、「抽選を取り消す」で、記録を消して、最初からやり直せます。</li>
+            <li>対象の人がいない日は、「VIPなし」です（何も記録されません）。</li>
+          </ol>
+          <p class="staff-muted staff-small"><strong>対象になる人</strong>：①いまの営業日の予約をしている（キャンセルを除く）、②来店が<span id="vipMinVisits">4</span>回目以降（予約した営業日の数で数えます）、③前回の営業日にVIPへ当選していない。<br><strong>当たりやすさ</strong>：過去にVIPへ当選した回数が、0回なら4、1回なら2、2回以上なら1の重みで抽選します（当選が少ない人ほど、当たりやすい）。<br><strong>お客様の見分け方</strong>：VRChatのアカウントURL（usr_…）で見分けます。<br><strong>回数の手直し</strong>：表の「手直し」で、来店回数と、VIP当選回数を、プラス・マイナスで直せます（例：予約を通さずに来店した人は、来店回数を +1 にする）。</p>
+        </details>
+        <p class="staff-message" id="vipMessage" role="alert"></p>
+        <div id="vipWinnerBox" class="staff-vip-winner" hidden>
+          <p class="staff-vip-winner-label">今回のVIP当選</p>
+          <p class="staff-vip-winner-name" id="vipWinnerName"></p>
+          <div class="staff-preview-actions">
+            <button type="button" class="btn btn-outline" id="vipCopy">当選連絡の文面をコピー</button>
+            <button type="button" class="btn btn-outline" id="vipDecline">辞退されたので引き直す</button>
+            <button type="button" class="btn btn-outline" id="vipVoid">抽選を取り消す</button>
+          </div>
+          <pre class="staff-message-box" id="vipCopyText" hidden></pre>
+        </div>
+        <div class="staff-preview-actions" id="vipDrawRow">
+          <button type="button" class="btn btn-primary" id="vipDraw">抽選する</button>
+          <button type="button" class="btn btn-outline" id="vipReload">最新の状態に更新</button>
+        </div>
+        <h3 class="staff-rot-title">いまの予約のお客様</h3>
+        <p class="staff-muted" id="vipEmpty" hidden>まだ、予約がありません。</p>
+        <div class="staff-table-wrap">
+          <table class="staff-table" id="vipTable" hidden>
+            <thead><tr><th>お名前</th><th>来店回数</th><th>VIP当選</th><th>状態</th><th>当たりやすさ</th><th></th></tr></thead>
+            <tbody id="vipBody"></tbody>
+          </table>
+        </div>
+        <form id="vipAdjustForm" class="staff-vip-adjust" hidden>
+          <h3 class="staff-rot-title" id="vipAdjustTitle">回数の手直し</h3>
+          <p class="staff-muted staff-small" id="vipAdjustInfo"></p>
+          <div class="staff-inline-form">
+            <label class="staff-field">
+              <span>来店回数の手直し（+ / −）</span>
+              <input type="number" id="vipAdjVisit" min="-50" max="50" step="1" inputmode="numeric" value="0" required>
+            </label>
+            <label class="staff-field">
+              <span>VIP当選回数の手直し（+ / −）</span>
+              <input type="number" id="vipAdjWin" min="-50" max="50" step="1" inputmode="numeric" value="0" required>
+            </label>
+          </div>
+          <div class="staff-preview-actions">
+            <button type="submit" class="btn btn-primary">手直しを保存</button>
+            <button type="button" class="btn btn-outline" id="vipAdjCancel">閉じる</button>
+          </div>
+        </form>
+        <h3 class="staff-rot-title">これまでのVIP当選</h3>
+        <p class="staff-muted" id="vipHistoryEmpty">まだ、記録はありません。</p>
+        <div id="vipHistory"></div>
+      </div>
+      </div>
+
       <div class="staff-tabpanel" data-panel="history" hidden>
       <div class="staff-card" id="historyCard">
         <h2 class="staff-h2">出勤履歴・出勤率</h2>
@@ -382,6 +445,6 @@
 </main>
 
 <script src="js/config.js?v=8"></script>
-<script src="js/staff.js?v=40"></script>
+<script src="js/staff.js?v=42"></script>
 </body>
 </html>

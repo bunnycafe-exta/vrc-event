@@ -444,6 +444,77 @@
           stats: { customers: 3, repeaters: 2, businessDays: 3 }
         });
       }
+      case 'vip': case 'vipDraw': case 'vipUndo': case 'vipAdjust': {
+        if (needOwner()) return needOwner();
+        const WEIGHTS = [4, 2, 1];
+        const MIN = 4;
+        const date = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Tokyo' }).format(new Date());
+        const prevDate = demoPastEvents()[0].date;
+        const vip = db.vip = db.vip || { log: [{ date: prevDate, key: 'usr-hinata', name: 'ひなた', status: 'win' }, { date: '2000-01-01', key: 'usr-yuzu', name: 'ゆず', status: 'win' }], adj: {} };
+        const people = [
+          { key: 'usr-sakura', name: 'さくら', guests: 2, ordinal: 4 },
+          { key: 'usr-hinata', name: 'ひなた', guests: 1, ordinal: 5 },
+          { key: 'usr-hanako', name: 'はなこ', guests: 1, ordinal: 1 },
+          { key: 'usr-yuzu', name: 'ゆず', guests: 1, ordinal: 6 },
+          { key: 'usr-mike', name: 'みけ', guests: 1, ordinal: 4 }
+        ];
+        const view = () => {
+          const winRow = vip.log.find((l) => l.status === 'win' && l.date === date);
+          const cands = people.map((p) => {
+            const a = vip.adj[p.key] || { visit: 0, win: 0 };
+            const past = vip.log.filter((l) => l.key === p.key && l.status === 'win' && l.date !== date);
+            const lastWin = past.reduce((m, l) => (l.date > m ? l.date : m), '');
+            const visits = p.ordinal + a.visit;
+            const wins = Math.max(0, past.length + a.win);
+            const declined = vip.log.some((l) => l.key === p.key && l.status === 'declined' && l.date === date);
+            let reason = '';
+            if (winRow && winRow.key === p.key) reason = '今回の当選';
+            else if (declined) reason = '辞退（今回は対象外）';
+            else if (visits < MIN) reason = `来店${Math.max(visits, 0)}回目（${MIN}回目から対象）`;
+            else if (lastWin === prevDate) reason = '前回の営業でVIPに当選（連続は避ける）';
+            return { key: p.key, name: p.name, guests: p.guests, visits, visitBase: p.ordinal, visitAdjust: a.visit, wins, winBase: past.length, winAdjust: a.win, lastWin, eligible: !reason, reason, weight: WEIGHTS[Math.min(wins, 2)], isWinner: Boolean(winRow && winRow.key === p.key), percent: 0 };
+          });
+          const pool = cands.filter((c) => c.eligible);
+          const total = pool.reduce((s, c) => s + c.weight, 0);
+          pool.forEach((c) => { c.percent = Math.round((c.weight / total) * 1000) / 10; });
+          cands.sort((a, b) => (b.isWinner - a.isWinner) || (b.eligible - a.eligible) || (b.visits - a.visits));
+          return {
+            date, prevDate, minVisits: MIN, weights: WEIGHTS, candidates: cands, eligibleCount: pool.length,
+            winner: winRow ? { key: winRow.key, name: winRow.name, date } : null,
+            history: vip.log.filter((l) => l.status === 'win').sort((a, b) => (a.date < b.date ? 1 : -1)).map((l) => ({ date: l.date, name: l.name }))
+          };
+        };
+        let v = view();
+        if (action === 'vipDraw') {
+          if (v.winner) return fail('この営業日は、すでに抽選済みです');
+          const pool = v.candidates.filter((c) => c.eligible);
+          if (pool.length) {
+            let r = Math.random() * pool.reduce((s, c) => s + c.weight, 0);
+            let pick = pool[pool.length - 1];
+            for (const c of pool) { r -= c.weight; if (r < 0) { pick = c; break; } }
+            vip.log.push({ date, key: pick.key, name: pick.name, status: 'win' });
+          }
+          demoSave(db);
+          const after = view();
+          return ok({ ...after, none: pool.length === 0 });
+        }
+        if (action === 'vipUndo') {
+          if (!v.winner) return fail('いまの営業日に、当選者はいません。画面を更新してください');
+          const i = vip.log.findIndex((l) => l.status === 'win' && l.date === date);
+          if (p.mode === 'void') vip.log.splice(i, 1); else vip.log[i].status = 'declined';
+          demoSave(db);
+          return ok(view());
+        }
+        if (action === 'vipAdjust') {
+          const visit = Math.round(Number(p.visitAdjust));
+          const win = Math.round(Number(p.winAdjust));
+          if (!isFinite(visit) || !isFinite(win) || Math.abs(visit) > 50 || Math.abs(win) > 50) return fail('手直しは、-50〜50の整数で入力してください');
+          if (visit === 0 && win === 0) delete vip.adj[p.key]; else vip.adj[p.key] = { visit, win };
+          demoSave(db);
+          return ok(view());
+        }
+        return ok(v);
+      }
       case 'setReservationCap': case 'resetReservationCount': case 'cancelReservation': case 'reopenReservation': case 'reservations': {
         if (needOwner()) return needOwner();
         const lim = db.limit = db.limit || { cap: 6, reset: false, accepting: true, cancelled: [] };
@@ -553,7 +624,7 @@
   }
 
   const OWNER_TAB_KEY = 'exta-owner-tab';
-  const OWNER_TABS = ['status', 'create', 'placement', 'reservations', 'history', 'manage'];
+  const OWNER_TABS = ['status', 'create', 'placement', 'reservations', 'vip', 'history', 'manage'];
   let ownerTabReady = false;
 
   // オーナー画面のタブ切り替え。選んだタブは、再読み込みしても覚えている
@@ -563,6 +634,7 @@
     document.querySelectorAll('.staff-tabpanel').forEach((p) => { p.hidden = p.dataset.panel !== name; });
     try { sessionStorage.setItem(OWNER_TAB_KEY, name); } catch (e) { /* storage unavailable */ }
     if (name === 'reservations') loadReservations(false);
+    if (name === 'vip') loadVip(false);
     if (name === 'create') loadNextOpen();
     if (name === 'manage') loadMaintenance();
     if (scrollTop) window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -587,6 +659,12 @@
     $('rhCustomers').replaceChildren();
     reserveDays = {};
     $('reservationSummary').hidden = true;
+    $('vipBody').replaceChildren(); // VIPの抽選に出ていたお客様の名前も、画面に残さない
+    $('vipHistory').replaceChildren();
+    $('vipWinnerBox').hidden = true;
+    $('vipAdjustForm').hidden = true;
+    vipData = null;
+    lastVipLoad = 0;
     $('issuedList').replaceChildren(); // 発行したパスワードを画面に残さない
     $('manageBody').replaceChildren();
     $('loginPassword').value = '';
@@ -1263,6 +1341,138 @@
     renderReservationHistory(res);
   }
 
+  /* VIP seat lottery (owner) */
+
+  let vipData = null;
+  let vipAdjustKey = '';
+  let lastVipLoad = 0;
+
+  function vipWinnerMessage(name) {
+    const d = vipData && vipData.date ? dateJa(vipData.date) : '次回';
+    return [
+      `${name}さん`, '',
+      `BunnyCafe EXTA ${d}の営業で、VIP席にご案内いたします！`,
+      'VIP席では、お好きなキャストを1名、ご指名いただけます（1:1の接客です。40分・2ローテーション分のご指名も可能です）。',
+      '', 'ご指名のキャストを、このDMでお知らせください。',
+      '当日のご来店を、お待ちしております。'
+    ].join('\n');
+  }
+
+  function renderVip(res) {
+    vipData = res;
+    $('vipMinVisits').textContent = res.minVisits;
+    const w = res.weights || [];
+    const dateText = res.date ? dateJa(res.date) : '営業日が未設定';
+    $('vipSummary').textContent = `対象の営業日：${dateText} ／ 予約のお客様 ${res.candidates.length}人 ／ ${res.winner ? `抽選済み（当選：${res.winner.name}）` : `抽選の対象 ${res.eligibleCount}人`}`
+      + (w.length ? `（重み：当選0回=${w[0]}、1回=${w[1]}、2回以上=${w[w.length - 1]}）` : '')
+      + (!res.winner && res.eligibleCount === 0 && res.candidates.length ? ' ／ 対象の人がいないため、今回は「VIPなし」です' : '');
+
+    const box = $('vipWinnerBox');
+    box.hidden = !res.winner;
+    $('vipDrawRow').hidden = Boolean(res.winner);
+    $('vipCopyText').hidden = true;
+    if (res.winner) $('vipWinnerName').textContent = res.winner.name;
+    $('vipDraw').disabled = res.eligibleCount === 0;
+
+    const empty = res.candidates.length === 0;
+    $('vipEmpty').hidden = !empty;
+    $('vipTable').hidden = empty;
+    const body = $('vipBody');
+    body.replaceChildren();
+    res.candidates.forEach((c) => {
+      const tr = el('tr');
+      const visitText = `${c.visits}回目` + (c.visitAdjust ? `（手直し ${c.visitAdjust > 0 ? '+' : ''}${c.visitAdjust}）` : '');
+      const winText = `${c.wins}回` + (c.winAdjust ? `（手直し ${c.winAdjust > 0 ? '+' : ''}${c.winAdjust}）` : '');
+      const state = c.isWinner ? '当選' : (c.eligible ? '対象' : c.reason);
+      const stateCls = c.isWinner || c.eligible ? 'staff-mark-ok' : 'staff-muted';
+      const btn = el('button', 'btn btn-outline', '手直し');
+      btn.type = 'button';
+      btn.addEventListener('click', () => openVipAdjust(c));
+      const act = el('td');
+      act.append(btn);
+      tr.append(el('td', '', c.name), el('td', '', visitText), el('td', '', winText), el('td', stateCls, state), el('td', 'staff-rate', c.eligible ? `${c.percent}%` : '—'), act);
+      body.append(tr);
+    });
+
+    const hist = $('vipHistory');
+    hist.replaceChildren();
+    $('vipHistoryEmpty').hidden = res.history.length > 0;
+    res.history.forEach((h) => hist.append(el('p', '', `${h.date ? dateJa(h.date) : '日付なし'}　${h.name}`)));
+    if (vipAdjustKey && !res.candidates.some((c) => c.key === vipAdjustKey)) closeVipAdjust();
+  }
+
+  async function loadVip(force) {
+    if (!force && Date.now() - lastVipLoad < 10000) return;
+    lastVipLoad = Date.now();
+    const res = await api('vip');
+    if (!res.ok) {
+      lastVipLoad = 0;
+      if (!handleAuthError(res)) say($('vipMessage'), res.error);
+      return;
+    }
+    say($('vipMessage'), '');
+    renderVip(res);
+  }
+
+  async function vipCall(action, params, doneText) {
+    const msg = $('vipMessage');
+    say(msg, '');
+    const res = await api(action, params || {});
+    if (!res.ok) { if (!handleAuthError(res)) say(msg, res.error); return null; }
+    lastVipLoad = Date.now();
+    renderVip(res);
+    if (doneText) say(msg, typeof doneText === 'function' ? doneText(res) : doneText, true);
+    return res;
+  }
+
+  function vipDraw() {
+    if (vipData && vipData.eligibleCount === 0) return;
+    if (!confirm(`抽選の対象 ${vipData ? vipData.eligibleCount : 0}人から、1人を引きます。よろしいですか？`)) return;
+    vipCall('vipDraw', {}, (res) => (res.none
+      ? '抽選の対象の人がいないので、今回は「VIPなし」です（何も記録していません）。'
+      : `抽選しました。当選は「${res.winner.name}」さんです。連絡して、指名するキャストを聞いてください。`));
+  }
+
+  function vipUndo(mode) {
+    const name = vipData && vipData.winner ? vipData.winner.name : '';
+    const ask = mode === 'void'
+      ? `「${name}」さんの当選を取り消して、記録を消します（今回の抽選の対象には戻ります）。よろしいですか？`
+      : `「${name}」さんが辞退されたことにして、引き直せる状態にします（この人は今回の対象から外れ、当選の回数にも数えません）。よろしいですか？`;
+    if (!confirm(ask)) return;
+    vipCall('vipUndo', { mode }, mode === 'void' ? '当選を取り消しました。もう一度、抽選できます。' : '辞退として記録しました。「抽選する」で、引き直せます。');
+  }
+
+  function openVipAdjust(c) {
+    vipAdjustKey = c.key;
+    $('vipAdjustTitle').textContent = `回数の手直し：${c.name}さん`;
+    $('vipAdjustInfo').textContent = `いまの来店回数は ${c.visits}回目（予約から数えた ${c.visitBase}回 ＋ 手直し ${c.visitAdjust}）、VIP当選は ${c.wins}回（記録 ${c.winBase}回 ＋ 手直し ${c.winAdjust}）です。数字は、予約から数えた回数との「差」を入れます（例：あと1回多く数えたいときは +1）。`;
+    $('vipAdjVisit').value = c.visitAdjust;
+    $('vipAdjWin').value = c.winAdjust;
+    $('vipAdjustForm').hidden = false;
+    $('vipAdjustForm').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function closeVipAdjust() {
+    vipAdjustKey = '';
+    $('vipAdjustForm').hidden = true;
+  }
+
+  async function saveVipAdjust(e) {
+    e.preventDefault();
+    const c = vipData && vipData.candidates.find((x) => x.key === vipAdjustKey);
+    if (!c) { closeVipAdjust(); return; }
+    const res = await vipCall('vipAdjust', { key: c.key, name: c.name, visitAdjust: Number($('vipAdjVisit').value), winAdjust: Number($('vipAdjWin').value) }, `「${c.name}」さんの回数を手直ししました。`);
+    if (res) closeVipAdjust();
+  }
+
+  async function copyVipMessage() {
+    if (!vipData || !vipData.winner) return;
+    const box = $('vipCopyText');
+    box.textContent = vipWinnerMessage(vipData.winner.name);
+    box.hidden = false;
+    await copyText('vipCopyText', 'vipMessage');
+  }
+
   /* Public site "Coming Soon" switch (owner) */
 
   function showMaintenance(on) {
@@ -1615,6 +1825,13 @@
     $('goCreate').addEventListener('click', () => activateOwnerTab('create', true));
     $('historyRange').addEventListener('change', () => loadHistory(true));
     $('reservationReload').addEventListener('click', () => loadReservations(true));
+    $('vipReload').addEventListener('click', () => loadVip(true));
+    $('vipDraw').addEventListener('click', vipDraw);
+    $('vipDecline').addEventListener('click', () => vipUndo('declined'));
+    $('vipVoid').addEventListener('click', () => vipUndo('void'));
+    $('vipCopy').addEventListener('click', copyVipMessage);
+    $('vipAdjustForm').addEventListener('submit', saveVipAdjust);
+    $('vipAdjCancel').addEventListener('click', closeVipAdjust);
     $('maintOn').addEventListener('click', () => setMaintenance(true));
     $('maintOff').addEventListener('click', () => setMaintenance(false));
     $('limitForm').addEventListener('submit', saveLimit);

@@ -79,7 +79,7 @@ function doGet() {
   } catch (err) {
     console.error(err);
   }
-  return json_({ ok: true, service: 'EXTA staff API', version: 20, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
+  return json_({ ok: true, service: 'EXTA staff API', version: 21, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
 }
 
 function doPost(e) {
@@ -126,6 +126,10 @@ function route_(req) {
     case 'resetReservationCount': requireOwner_(user); return withLock_(() => resetReservationCount_());
     case 'reservationHistory': requireOwner_(user); return reservationHistory_();
     case 'cancelReservation': requireOwner_(user); return withLock_(() => cancelReservation_(req));
+    case 'vip': requireOwner_(user); return vipState_();
+    case 'vipDraw': requireOwner_(user); return withLock_(() => vipDraw_());
+    case 'vipUndo': requireOwner_(user); return withLock_(() => vipUndo_(req));
+    case 'vipAdjust': requireOwner_(user); return withLock_(() => vipAdjust_(req));
     case 'reopenReservation': requireOwner_(user); return withLock_(() => reopenReservation_());
     case 'getNextOpen': requireOwner_(user); return { ok: true, next: storedNextOpen_() };
     case 'getMaintenance': requireOwner_(user); return { ok: true, on: maintenanceOn_() };
@@ -920,8 +924,170 @@ function setupReservation() {
   console.log('登録しました。現在の人数: ' + applyReservationLimit_(data, false).used + '名');
 }
 
+/* ---------- VIP席の抽選（オーナー専用） ---------- */
+// 事前予約のお客様のうち、「来店が4回目以降」で「前回の営業でVIPに当たっていない」人から、1人を抽選する。
+// 過去にVIPに当たった回数が多いほど、当たりにくくする。記録は、スプレッドシートの「VIP当選」「VIP補正」に残る（なければ自動で作る）。
+
+const VIP_MIN_VISITS = 4;       // 来店が何回目から対象にするか
+const VIP_WEIGHTS = [4, 2, 1];  // 過去の当選 0回 / 1回 / 2回以上 の、当たりやすさ（数字が大きいほど当たりやすい）
+const VIP_LOG_SHEET = 'VIP当選';
+const VIP_LOG_HEADER = ['date', 'key', 'name', 'status', 'drawnAt']; // status: win（当選） / declined（辞退）
+const VIP_ADJ_SHEET = 'VIP補正';
+const VIP_ADJ_HEADER = ['key', 'name', 'visitAdjust', 'winAdjust', 'updatedAt'];
+
+function vipSheet_(name, header) {
+  const ss = ss_();
+  let sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, header.length).setValues([header]).setFontWeight('bold');
+    // 日付や名前が、勝手に別の形に変わらないように、文字として扱う
+    const textCols = name === VIP_LOG_SHEET ? header.length : 2;
+    sh.getRange(2, 1, sh.getMaxRows() - 1, textCols).setNumberFormat('@');
+  }
+  return sh;
+}
+
+function vipLog_() {
+  vipSheet_(VIP_LOG_SHEET, VIP_LOG_HEADER);
+  return readRows_(VIP_LOG_SHEET).filter(r => String(r.key)).map(r => ({
+    row: r._row, date: asDate_(r.date), key: String(r.key), name: String(r.name), status: String(r.status || 'win')
+  }));
+}
+
+function vipAdjustMap_() {
+  vipSheet_(VIP_ADJ_SHEET, VIP_ADJ_HEADER);
+  const map = {};
+  readRows_(VIP_ADJ_SHEET).filter(r => String(r.key)).forEach(r => {
+    map[String(r.key)] = { row: r._row, visit: Math.round(Number(r.visitAdjust)) || 0, win: Math.round(Number(r.winAdjust)) || 0 };
+  });
+  return map;
+}
+
+// いまの営業日の予約から、抽選の対象になるかどうかを、お客様ごとに判定する
+function vipView_() {
+  const data = readReservations_();
+  const info = annotateReservations_(data);
+  const since = reservationSince_();
+  const periods = reservationPeriods_();
+  const cur = data.rows.filter(r => !r.cancelled && r.time >= since);
+  let date = periods.length ? periods[periods.length - 1].date : '';
+  const log = vipLog_();
+  const adj = vipAdjustMap_();
+
+  const people = {};
+  cur.forEach(r => {
+    const i = info[r.key + '#' + r.row];
+    const name = (data.nameIdx >= 0 ? r.values[data.nameIdx].trim() : '') || '（お名前なし）';
+    const p = people[i.customer] = people[i.customer] || { key: i.customer, name: name, guests: 0, ordinal: 0 };
+    p.name = name;
+    p.guests += guestsOf_(r, data.guestIdx);
+    p.ordinal = Math.max(p.ordinal, i.ordinal);
+    if (!date && i.date) date = i.date;
+  });
+
+  // 前回の営業日（連続を避ける相手）。営業日の区切りがなければ、VIPの記録でいちばん新しい日にする
+  let prevDate = '';
+  periods.slice(0, -1).forEach(p => { if (p.date && p.date !== date && p.date > prevDate) prevDate = p.date; });
+  if (!prevDate) log.forEach(l => { if (l.status === 'win' && l.date !== date && l.date > prevDate) prevDate = l.date; });
+
+  const winRow = log.find(l => l.status === 'win' && l.date === date);
+  const candidates = Object.keys(people).map(k => {
+    const p = people[k];
+    const a = adj[k] || { visit: 0, win: 0 };
+    const past = log.filter(l => l.key === k && l.status === 'win' && l.date !== date);
+    const lastWin = past.reduce((m, l) => (l.date > m ? l.date : m), '');
+    const visits = p.ordinal + a.visit;
+    const wins = Math.max(0, past.length + a.win);
+    const declined = log.some(l => l.key === k && l.status === 'declined' && l.date === date);
+    let reason = '';
+    if (winRow && winRow.key === k) reason = '今回の当選';
+    else if (declined) reason = '辞退（今回は対象外）';
+    else if (visits < VIP_MIN_VISITS) reason = `来店${Math.max(visits, 0)}回目（${VIP_MIN_VISITS}回目から対象）`;
+    else if (prevDate && lastWin === prevDate) reason = '前回の営業でVIPに当選（連続は避ける）';
+    const weight = VIP_WEIGHTS[Math.min(wins, VIP_WEIGHTS.length - 1)];
+    return {
+      key: k, name: p.name, guests: p.guests, visits: visits, visitBase: p.ordinal, visitAdjust: a.visit,
+      wins: wins, winBase: past.length, winAdjust: a.win, lastWin: lastWin,
+      eligible: !reason, reason: reason, weight: weight, isWinner: Boolean(winRow && winRow.key === k), percent: 0
+    };
+  });
+  const pool = candidates.filter(c => c.eligible);
+  const total = pool.reduce((s, c) => s + c.weight, 0);
+  pool.forEach(c => { c.percent = total ? Math.round(c.weight / total * 1000) / 10 : 0; });
+  candidates.sort((a, b) => (b.isWinner - a.isWinner) || (b.eligible - a.eligible) || (b.visits - a.visits));
+
+  const history = log.filter(l => l.status === 'win').sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 15).map(l => ({ date: l.date, name: l.name }));
+  return {
+    ok: true, date: date, prevDate: prevDate, minVisits: VIP_MIN_VISITS, weights: VIP_WEIGHTS,
+    candidates: candidates, eligibleCount: pool.length,
+    winner: winRow ? { key: winRow.key, name: winRow.name, date: winRow.date } : null,
+    history: history, _winRow: winRow ? winRow.row : 0
+  };
+}
+
+function vipState_() {
+  const v = vipView_();
+  delete v._winRow;
+  return v;
+}
+
+function vipDraw_() {
+  const v = vipView_();
+  if (!v.date) fail_('営業日が決まっていません。「新規作成」タブで次回営業日を設定するか、「予約」タブで「新しい営業日の予約を始める」を押してから、抽選してください');
+  if (v.winner) fail_('この営業日は、すでに抽選済みです（当選：' + v.winner.name + '）。引き直すときは、先に、辞退または取り消しにしてください');
+  const pool = v.candidates.filter(c => c.eligible);
+  const out = { none: pool.length === 0 };
+  if (pool.length) {
+    let r = Math.random() * pool.reduce((s, c) => s + c.weight, 0);
+    let pick = pool[pool.length - 1];
+    for (let i = 0; i < pool.length; i++) {
+      r -= pool[i].weight;
+      if (r < 0) { pick = pool[i]; break; }
+    }
+    vipSheet_(VIP_LOG_SHEET, VIP_LOG_HEADER).appendRow([v.date, pick.key, pick.name, 'win', nowSecond_()]);
+  }
+  const state = vipState_();
+  state.none = out.none;
+  return state;
+}
+
+// 当選を、辞退（今回の抽選の対象から外す）か、取り消し（記録を消す）にする。どちらも、そのあと、引き直せる
+function vipUndo_(req) {
+  const v = vipView_();
+  if (!v.winner) fail_('いまの営業日に、当選者はいません。画面を更新してください');
+  const sh = vipSheet_(VIP_LOG_SHEET, VIP_LOG_HEADER);
+  if (req.mode === 'void') sh.deleteRow(v._winRow);
+  else sh.getRange(v._winRow, VIP_LOG_HEADER.indexOf('status') + 1).setValue('declined');
+  return vipState_();
+}
+
+// お客様ごとの「来店回数」「VIP当選回数」の手直し（プラスもマイナスも可）。両方0にすると、手直しは消える
+function vipAdjust_(req) {
+  const key = String(req.key || '');
+  if (!key) fail_('対象のお客様が分かりません。画面を更新してください');
+  const num = (v, label) => {
+    const n = Math.round(Number(v));
+    if (!isFinite(n) || n < -50 || n > 50) fail_(label + 'は、-50〜50の整数で入力してください');
+    return n;
+  };
+  const visit = num(req.visitAdjust, '来店回数の手直し');
+  const win = num(req.winAdjust, 'VIP当選回数の手直し');
+  const name = String(req.name || '').slice(0, 40);
+  const sh = vipSheet_(VIP_ADJ_SHEET, VIP_ADJ_HEADER);
+  const hit = vipAdjustMap_()[key];
+  if (visit === 0 && win === 0) {
+    if (hit) sh.deleteRow(hit.row);
+  } else if (hit) {
+    sh.getRange(hit.row, 2, 1, 4).setValues([[name, visit, win, nowSecond_()]]);
+  } else {
+    sh.appendRow([key, name, visit, win, nowSecond_()]);
+  }
+  return vipState_();
+}
+
 function history_(req) {
-  const limit = Math.max(0, Math.min(60, Number(req.limit) || 0));
+  const limit =Math.max(0, Math.min(60, Number(req.limit) || 0));
   let events = readRows_('Events').map(eventFromRow_)
     .filter(e => (e.status === 'active' || e.status === 'archived') && phaseOf_(e) === 'closed')
     .sort((a, b) => a.date !== b.date ? (a.date < b.date ? 1 : -1) : (a.createdAt < b.createdAt ? 1 : -1));
