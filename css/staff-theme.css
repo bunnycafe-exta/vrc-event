@@ -1,0 +1,219 @@
+/* ==========================================================================
+   スタッフページの色（メインのホームページと同じ「昼の森」）
+   クリーム色の紙 ・ 若草色 ・ 木の茶色 ・ 金色。
+   色だけを、ここでまとめて上書きしている（staff.css のあとに読み込む）。
+   元の暗い色に戻したいときは、staff.html の、このファイルを読み込む行を消す。
+   ========================================================================== */
+
+.staff-body {
+  /* ホームページと同じ色 */
+  --cream: #F6F1E4;
+  --paper: #FBF7EC;
+  --leaf: #4E7A44;
+  --leaf-d: #2F4A33;
+  --leaf-dd: #1F3322;
+  --sage: #DCE6C9;
+  --wood: #8A5A36;
+  --gold: #C9A24B;
+  --gold-l: #E8CA82;
+  --ink: #243628;
+  --ink-soft: #4d5f50;
+
+  /* style.css の色の名前を、昼の森の色に置き換える（文字：濃い緑がかった黒、強調：若草色） */
+  --color-cream-soft: var(--cream);
+  --color-brown: var(--ink);
+  --color-brown-soft: var(--ink-soft);
+  --color-ink: var(--ink);
+  --color-peach: var(--leaf-d);
+  --color-peach-deep: var(--leaf);
+  --color-gold: var(--leaf);
+  --color-surface: var(--paper);
+  --gradient-gold: linear-gradient(120deg, #5C8A51, var(--leaf));
+  --shadow-soft: 0 12px 26px -14px rgba(47, 74, 51, 0.55);
+  --shadow-card: 0 10px 26px -16px rgba(47, 74, 51, 0.5);
+
+  /* このファイルの中で使う色 */
+  --st-line: rgba(78, 122, 68, 0.28);
+  --st-line-soft: rgba(78, 122, 68, 0.16);
+  --st-tint: rgba(78, 122, 68, 0.08);
+  --st-field: #fff;
+  --st-ok: #2F7A45;
+  --st-ng: #B4482F;
+  --st-on-accent: #fff;
+
+  color: var(--ink);
+  background: var(--cream);
+}
+
+/* ---- 全体・ヘッダー ---- */
+.staff-header {
+  background: rgba(246, 241, 228, 0.88);
+  border-bottom: 1px solid var(--st-line);
+}
+
+.staff-header .logo { color: var(--leaf-d); }
+.staff-header .logo-name { color: var(--leaf-d); }
+.staff-header .logo-mark { filter: none; }
+
+.staff-card {
+  background: var(--paper);
+  border: 1px solid var(--st-line);
+}
+
+/* ---- 入力欄 ---- */
+.staff-field input,
+.staff-field select,
+.staff-field textarea,
+.staff-vip-choices select {
+  color: var(--ink);
+  background: var(--st-field);
+  border: 1px solid var(--st-line);
+  color-scheme: light;
+}
+
+.staff-field input:focus,
+.staff-field select:focus,
+.staff-field textarea:focus {
+  border-color: var(--leaf);
+  box-shadow: 0 0 0 3px rgba(78, 122, 68, 0.2);
+}
+
+.staff-message { color: var(--st-ng); }
+.staff-message.is-ok { color: var(--st-ok); }
+
+.staff-demo-hint {
+  background: var(--st-tint);
+  border: 1px dashed var(--st-line);
+}
+
+/* ---- タブ・ボタン ---- */
+.staff-tabs {
+  background: rgba(246, 241, 228, 0.94);
+  border-bottom: 1px solid var(--st-line);
+}
+
+.staff-tab,
+.staff-event-chip {
+  color: var(--leaf-d);
+  background: var(--paper);
+  border: 1px solid var(--st-line);
+}
+
+.staff-tab.is-active,
+.staff-event-chip.is-active,
+.staff-badge,
+.staff-answer.is-selected.is-yes,
+.mini-btn,
+.staff-toggle button.is-active.is-ok,
+.placement-slot.is-me .placement-stations,
+.placement-slot.is-me .placement-name {
+  color: var(--st-on-accent);
+}
+
+.staff-badge.is-closed,
+.staff-answer.is-selected.is-no,
+.staff-toggle button.is-active.is-ng {
+  color: var(--st-on-accent);
+  background: var(--st-ng);
+}
+
+.staff-logout,
+.staff-delete,
+.staff-toggle button {
+  color: var(--leaf-d);
+  border: 1px solid var(--st-line);
+}
+
+.staff-logout:hover { color: var(--leaf-d); border-color: var(--leaf); background: var(--sage); }
+.staff-delete:hover { color: var(--st-ng); border-color: var(--st-ng); }
+
+.staff-user-role { color: var(--leaf); border: 1px solid var(--st-line); }
+
+.btn-primary { color: var(--st-on-accent); background: var(--leaf); box-shadow: 0 12px 26px -14px rgba(47, 74, 51, 0.8); }
+.btn-primary:hover { background: var(--leaf-d); box-shadow: 0 14px 28px -14px rgba(47, 74, 51, 0.8); }
+.btn-outline { color: var(--leaf-d); border-color: var(--leaf); }
+.btn-outline:hover { background: var(--sage); }
+
+.mini-btn { background: var(--leaf); }
+.mini-btn.is-ghost { color: var(--leaf-d); background: transparent; border: 1px solid var(--st-line); }
+.mini-btn.is-ok { color: var(--st-on-accent); background: var(--st-ok); }
+
+/* ---- 文面・回答 ---- */
+.staff-message-box {
+  background: #fff;
+  border: 1px solid var(--st-line);
+  border-left: 4px solid var(--leaf);
+}
+
+.staff-answer {
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid var(--st-line);
+}
+
+.staff-answer:hover:not(:disabled) { border-color: var(--leaf); }
+
+.staff-preview { border-top: 1px dashed var(--st-line); }
+
+/* ---- 表・一覧 ---- */
+.staff-table-wrap { scrollbar-color: rgba(78, 122, 68, 0.5) transparent; }
+
+.staff-table th,
+.staff-table td { border-bottom: 1px solid var(--st-line-soft); }
+
+.staff-matrix th:first-child,
+.staff-matrix td:first-child { background: var(--paper); }
+
+.staff-mark-ok,
+.staff-answer-yes { color: var(--st-ok); }
+
+.staff-mark-ng,
+.staff-answer-no { color: var(--st-ng); }
+
+.issued-card { background: var(--st-tint); border: 1px solid var(--st-line); }
+.issued-value { background: #fff; border: 1px solid var(--st-line); }
+
+.name-link { color: var(--leaf); }
+.name-link:hover { color: var(--leaf-d); }
+
+.staff-history-item {
+  background: #fff;
+  border: 1px solid var(--st-line-soft);
+}
+
+.staff-reserve-item dd a { color: var(--wood); }
+
+/* ---- 配置 ---- */
+.placement-slot {
+  background: #fff;
+  border: 1px solid var(--st-line);
+}
+
+.placement-select {
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--st-line);
+  color-scheme: light;
+}
+
+.placement-select:hover,
+.placement-select:focus { border-color: var(--leaf); box-shadow: 0 0 0 3px rgba(78, 122, 68, 0.2); }
+
+.placement-slot.is-me { background: var(--leaf); border-color: transparent; }
+
+.staff-swap-hint {
+  background: var(--st-tint);
+  border: 1px dashed var(--st-line);
+}
+
+.staff-event + .staff-event { border-top: 1px solid var(--st-line); }
+
+/* ---- VIP抽選 ---- */
+.staff-vip-winner {
+  border: 1px solid var(--gold);
+  background: rgba(201, 162, 75, 0.14);
+}
+
+.staff-vip-adjust { border: 1px solid var(--st-line); }
+.staff-vip-nominate { border-top: 1px solid var(--st-line); }
+.staff-vip-result { background: rgba(201, 162, 75, 0.2); }
