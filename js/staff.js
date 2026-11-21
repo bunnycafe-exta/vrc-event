@@ -112,17 +112,20 @@
     return a;
   }
 
+  // キャストが足りないときは、①から順に詰めて⑥から空ける（前と同じ場所を避けられないときだけ後ろへ広げる）
   function demoPlaceAvoiding(names, prevPos) {
-    for (let attempt = 0; attempt < 200; attempt++) {
-      const slots = Array(DEMO_POSITIONS).fill('');
-      const free = demoShuffle([...Array(DEMO_POSITIONS).keys()]);
-      let ok = true;
-      for (const name of demoShuffle(names)) {
-        const idx = free.findIndex((x) => x !== prevPos[name]);
-        if (idx < 0) { ok = false; break; }
-        slots[free.splice(idx, 1)[0]] = name;
+    for (let width = Math.max(names.length, 1); width <= DEMO_POSITIONS; width++) {
+      for (let attempt = 0; attempt < 200; attempt++) {
+        const slots = Array(DEMO_POSITIONS).fill('');
+        const free = demoShuffle([...Array(width).keys()]);
+        let ok = true;
+        for (const name of demoShuffle(names)) {
+          const idx = free.findIndex((x) => x !== prevPos[name]);
+          if (idx < 0) { ok = false; break; }
+          slots[free.splice(idx, 1)[0]] = name;
+        }
+        if (ok) return slots;
       }
-      if (ok) return slots;
     }
     return Array(DEMO_POSITIONS).fill('');
   }
@@ -131,15 +134,20 @@
   const AREAS = ['A-1', 'A-2', 'B-1', 'B-2'];
   const emptyAreas = () => Object.fromEntries(AREAS.map((a) => [a, []]));
 
+  const sideAreas = (side) => AREAS.filter((a) => a.charAt(0) === side);
+
+  // まずA側（A-1・A-2）とB側（B-1・B-2）に同じ人数で分け、次に各側の2エリアへ同じ人数で分ける（6人→3人と3人）
   function demoSplitStaff(names) {
     const groups = emptyAreas();
-    const bigger = demoShuffle(AREAS).slice(0, names.length % AREAS.length);
-    const base = Math.floor(names.length / AREAS.length);
     let next = 0;
-    AREAS.forEach((a) => {
-      const size = base + (bigger.includes(a) ? 1 : 0);
-      groups[a] = names.slice(next, next + size);
+    demoShuffle(['A', 'B']).forEach((side, i) => {
+      const size = Math.floor(names.length / 2) + (i === 0 ? names.length % 2 : 0);
+      const members = names.slice(next, next + size);
       next += size;
+      const areas = demoShuffle(sideAreas(side));
+      const firstSize = Math.ceil(members.length / 2);
+      groups[areas[0]] = members.slice(0, firstSize);
+      groups[areas[1]] = members.slice(firstSize);
     });
     return groups;
   }
@@ -147,9 +155,14 @@
   function demoSpread(names, counts) {
     const size = Object.fromEntries(AREAS.map((a) => [a, counts[a] || 0]));
     const result = emptyAreas();
+    const total = (side) => sideAreas(side).reduce((s, a) => s + size[a], 0);
     demoShuffle(names).forEach((name) => {
-      const min = Math.min(...AREAS.map((a) => size[a]));
-      const candidates = AREAS.filter((a) => size[a] === min);
+      const ta = total('A');
+      const tb = total('B');
+      const side = ta === tb ? (Math.random() < 0.5 ? 'A' : 'B') : (ta < tb ? 'A' : 'B');
+      const areas = sideAreas(side);
+      const min = Math.min(...areas.map((a) => size[a]));
+      const candidates = areas.filter((a) => size[a] === min);
       const g = candidates[Math.floor(Math.random() * candidates.length)];
       result[g].push(name); size[g]++;
     });

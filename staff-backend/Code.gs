@@ -79,7 +79,7 @@ function doGet() {
   } catch (err) {
     console.error(err);
   }
-  return json_({ ok: true, service: 'EXTA staff API', version: 22, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
+  return json_({ ok: true, service: 'EXTA staff API', version: 23, next: next, reservationOpen: reservationOpen, maintenance: maintenanceOn_() });
 }
 
 function doPost(e) {
@@ -1322,19 +1322,23 @@ function shuffle_(arr) {
 }
 
 // names を P 個の場所にランダムに置く。prevPos[name] に書かれた場所(0始まり)は避ける。置けない場所は ''
+// キャストが足りないときは、①から順に詰めて、⑥（いちばん後ろ）から空ける。
+// （前と同じ場所を避けられないときだけ、1か所ずつ後ろへ広げる）
 function placeAvoiding_(names, prevPos) {
   const P = POSITIONS_PER_ROTATION;
-  for (let attempt = 0; attempt < 200; attempt++) {
-    const slots = [];
-    for (let i = 0; i < P; i++) slots.push('');
-    let ok = true;
-    const free = shuffle_(Array.from({ length: P }, (_, i) => i));
-    for (const name of shuffle_(names)) {
-      const idx = free.findIndex(p => p !== prevPos[name]);
-      if (idx < 0) { ok = false; break; }
-      slots[free.splice(idx, 1)[0]] = name;
+  for (let width = Math.max(names.length, 1); width <= P; width++) {
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const slots = [];
+      for (let i = 0; i < P; i++) slots.push('');
+      let ok = true;
+      const free = shuffle_(Array.from({ length: width }, (_, i) => i));
+      for (const name of shuffle_(names)) {
+        const idx = free.findIndex(p => p !== prevPos[name]);
+        if (idx < 0) { ok = false; break; }
+        slots[free.splice(idx, 1)[0]] = name;
+      }
+      if (ok) return slots;
     }
-    if (ok) return slots;
   }
   // まず起こらないが、見つからない場合は「前の場所の次」にずらして必ず条件を満たす
   const slots = [];
@@ -1348,28 +1352,43 @@ function placeAvoiding_(names, prevPos) {
   return slots;
 }
 
-// スタッフを、4つのエリアにできるだけ同じ人数で分ける（割り切れないときは、人数が多くなるエリアをランダムに決める）
+// エリアは、A側（A-1・A-2）とB側（B-1・B-2）の2つに分かれる
+function sideAreas_(side) {
+  return STAFF_AREAS.filter(a => a.charAt(0) === side);
+}
+
+// スタッフを、まずA側とB側に同じ人数で分け（奇数のときは、多いほうをランダムに決める）、
+// そのあと、それぞれの側の2つのエリアに同じ人数で分ける。
+// 例：6人 → A側3人（A-1が2・A-2が1など）、B側3人。A側4人・B側2人にはならない
 function splitStaff_(names) {
   const groups = emptyAreas_();
-  const bigger = shuffle_(STAFF_AREAS).slice(0, names.length % STAFF_AREAS.length);
-  const base = Math.floor(names.length / STAFF_AREAS.length);
+  const sides = shuffle_(['A', 'B']); // 先に出るほうが、奇数のとき1人多い
   let next = 0;
-  STAFF_AREAS.forEach(a => {
-    const size = base + (bigger.indexOf(a) >= 0 ? 1 : 0);
-    groups[a] = names.slice(next, next + size);
+  sides.forEach((side, i) => {
+    const size = Math.floor(names.length / 2) + (i === 0 ? names.length % 2 : 0);
+    const members = names.slice(next, next + size);
     next += size;
+    const areas = shuffle_(sideAreas_(side)); // 先に出るエリアが、奇数のとき1人多い
+    const firstSize = Math.ceil(members.length / 2);
+    groups[areas[0]] = members.slice(0, firstSize);
+    groups[areas[1]] = members.slice(firstSize);
   });
   return groups;
 }
 
-// あふれたキャストを、いまの人数がいちばん少ないエリアに入れる（同数ならランダム）
+// あふれたキャストを、人数が少ない側（A側／B側）のうち、人数がいちばん少ないエリアに入れる（同数ならランダム）
 function spreadOverflow_(names, counts) {
   const size = {};
   const result = emptyAreas_();
   STAFF_AREAS.forEach(a => { size[a] = counts[a] || 0; });
+  const sideTotal = side => sideAreas_(side).reduce((s, a) => s + size[a], 0);
   shuffle_(names).forEach(name => {
-    const min = Math.min.apply(null, STAFF_AREAS.map(a => size[a]));
-    const candidates = STAFF_AREAS.filter(a => size[a] === min);
+    const ta = sideTotal('A');
+    const tb = sideTotal('B');
+    const side = ta === tb ? (Math.random() < 0.5 ? 'A' : 'B') : (ta < tb ? 'A' : 'B');
+    const areas = sideAreas_(side);
+    const min = Math.min.apply(null, areas.map(a => size[a]));
+    const candidates = areas.filter(a => size[a] === min);
     const g = candidates[Math.floor(Math.random() * candidates.length)];
     result[g].push(name);
     size[g]++;
